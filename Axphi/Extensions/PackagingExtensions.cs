@@ -16,7 +16,7 @@ namespace Axphi.Extensions
                 return;
             }
 
-            var part = package.CreatePart(new Uri(partUri), contentType, CompressionOption.Normal);
+            var part = package.CreatePart(new Uri(partUri, UriKind.RelativeOrAbsolute), contentType, CompressionOption.Normal);
             using var partStream = part.GetStream();
             partStream.Write(bytes, 0, bytes.Length);
         }

@@ -25,9 +25,9 @@ namespace Axphi.Services
             var chartJson = JsonSerializer.Serialize(project.Chart);
             var chartJsonUtfBytes = Encoding.UTF8.GetBytes(chartJson);
 
-            package.WritePartAllBytes("chart.json", "application/json", chartJsonUtfBytes);
-            package.WritePartAllBytes("audio", "audio", project.EncodedAudio);
-            package.WritePartAllBytes("illustration", "audio", project.EncodedIllustration);
+            package.WritePartAllBytes("/chart.json", "application/json", chartJsonUtfBytes);
+            package.WritePartAllBytes("/audio", "audio", project.EncodedAudio);
+            package.WritePartAllBytes("/illustration", "audio", project.EncodedIllustration);
         }
 
         public void SaveEditingProject(string path)

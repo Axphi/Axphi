@@ -65,6 +65,7 @@
                                Command="{Binding MaximizeRestoreSelfCommand}"/>
                     <ws:Button ws:WindowOption.IsCloseButton="True" Content="x" Style="{StaticResource CaptionButton}"
                                HoverBackground="#e81123"
+                               HoverBorderBrush="#e81123"
                                Command="{Binding CloseSelfCommand}"/>
                 </StackPanel>
             </Grid>

@@ -346,7 +346,9 @@ namespace Axphi.Components
             var notePixelHeight = renderInfo.ChartUnitToPixel(0.2);
 
             drawingContext.PushTransform(noteTransform);
+            drawingContext.PushOpacity(opacity);
             drawingContext.DrawRectangle(fill, null, new Rect(-notePixelWidth / 2, -notePixelHeight / 2, notePixelWidth, notePixelHeight));
+            drawingContext.Pop();
             drawingContext.Pop();
         }
     }

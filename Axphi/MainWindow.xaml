@@ -8,7 +8,17 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800"
         d:DataContext="{d:DesignInstance Type=local:MainWindow,IsDesignTimeCreatable=False}">
-    <Grid>
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="File">
+                <MenuItem Header="Save"
+                          Command="{Binding SaveChartCommand}"/>
+            </MenuItem>
+            <MenuItem Header="Debugging">
+                <MenuItem Header="Load demo chart"
+                          Command="{Binding LoadDemoChartCommand}"/>
+            </MenuItem>
+        </Menu>
         <DockPanel>
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                         HorizontalAlignment="Center">
@@ -18,7 +28,8 @@
                         Command="{Binding StopChartRenderingCommand}"/>
             </StackPanel>
             <comp:ChartRenderer x:Name="chartRenderer"
+                                Chart="{Binding ProjectManager.EditingProject.Chart}"
                                 ClipToBounds="True"/>
         </DockPanel>
-    </Grid>
+    </DockPanel>
 </Window>

@@ -14,7 +14,7 @@ namespace Axphi.Data
         public Vector InitialOffset { get; set; }
         public Vector InitialScale { get; set; } = new Vector(1, 1);
         public double InitialRotation { get; set; }
-        public double InitialOpacity { get; set; }
+        public double InitialOpacity { get; set; } = 1;
 
         public TransformKeyFrames? TransformKeyFrames { get; set; }
 

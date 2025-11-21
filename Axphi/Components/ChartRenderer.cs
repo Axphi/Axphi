@@ -264,15 +264,11 @@ namespace Axphi.Components
 
         }
 
-        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, JudgementLine judgementLine, TimeSpan time)
+        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, JudgementLine line, TimeSpan time)
         {
             CalculateObjectTransform(
-                time, default, new Vector(1, 1), default, 1, judgementLine.TransformKeyFrames,
+                time, line.InitialOffset, line.InitialScale, line.InitialRotation, line.InitialOpacity, line.TransformKeyFrames,
                 out var offset, out var scale, out var rotationAngle, out var opacity);
-
-            var pixelInitialPosition = new Vector(
-                renderInfo.ChartUnitToPixel(judgementLine.InitialPosition.X),
-                renderInfo.ChartUnitToPixel(judgementLine.InitialPosition.Y));
 
             var pixelOffset = new Vector(
                 renderInfo.ChartUnitToPixel(offset.X),
@@ -282,14 +278,9 @@ namespace Axphi.Components
             {
                 Children =
                 {
-                    new ScaleTransform(
-                        judgementLine.InitialScale.X * scale.X,
-                        judgementLine.InitialScale.Y * scale.Y),
-
-                    new RotateTransform(-judgementLine.InitialRotation - rotationAngle),
-                    new TranslateTransform(
-                        pixelInitialPosition.X + pixelOffset.X,
-                        -pixelInitialPosition.Y - pixelOffset.Y),
+                    new ScaleTransform(scale.X, scale.Y),
+                    new RotateTransform(-rotationAngle),
+                    new TranslateTransform(pixelOffset.X, -pixelOffset.Y),
                 }
             };
 
@@ -298,11 +289,11 @@ namespace Axphi.Components
 
             drawingContext.DrawRectangle(_lineYellow, null, new Rect(-renderInfo.CanvasWidth / 2, -2, renderInfo.CanvasWidth, 4));
 
-            if (judgementLine.Notes is { } notes)
+            if (line.Notes is { } notes)
             {
                 foreach (var note in notes)
                 {
-                    RenderNote(drawingContext, renderInfo, note, time, judgementLine.Speed);
+                    RenderNote(drawingContext, renderInfo, note, time, line.Speed);
                 }
             }
 
@@ -325,7 +316,7 @@ namespace Axphi.Components
             var pixelDistance = renderInfo.ChartUnitToPixel(distance);
 
             CalculateObjectTransform(
-                time, default, new Vector(1, 1), default, 1, note.TransformKeyFrames,
+                time, note.InitialOffset, note.InitialScale, note.InitialRotation, note.InitialOpacity, note.TransformKeyFrames,
                 out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(
@@ -336,14 +327,9 @@ namespace Axphi.Components
             {
                 Children =
                 {
-                    new ScaleTransform(
-                        scale.X,
-                        scale.Y),
-
+                    new ScaleTransform(scale.X, scale.Y),
                     new RotateTransform(rotationAngle),
-                    new TranslateTransform(
-                        pixelOffset.X,
-                        pixelOffset.Y + pixelDistance),
+                    new TranslateTransform(pixelOffset.X, pixelOffset.Y + pixelDistance),
                 }
             };
 

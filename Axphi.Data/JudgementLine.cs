@@ -11,9 +11,10 @@ namespace Axphi.Data
         public string? Name { get; set; }
         public double Speed { get; set; } = 1;
 
-        public Vector InitialPosition { get; set; }
-        public double InitialRotation { get; set; }
+        public Vector InitialOffset { get; set; }
         public Vector InitialScale { get; set; } = new Vector(1, 1);
+        public double InitialRotation { get; set; }
+        public double InitialOpacity { get; set; }
 
         public TransformKeyFrames? TransformKeyFrames { get; set; }
 

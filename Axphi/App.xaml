@@ -14,5 +14,17 @@
             <Setter Property="PopupBackground" Value="#2e2e2e"/>
             <Setter Property="PopupBorderThickness" Value="0"/>
         </Style>
+
+        <Style TargetType="{x:Type ws:Button}">
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="4 3"/>
+            <Setter Property="Foreground" Value="#cacaca"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="HoverBorderBrush" Value="#3d3d3d"/>
+            <Setter Property="PressedBorderBrush" Value="#4f4f4f"/>
+            <Setter Property="Background" Value="#2e2e2e"/>
+            <Setter Property="HoverBackground" Value="#3d3d3d"/>
+            <Setter Property="PressedBackground" Value="#4f4f4f"/>
+        </Style>
     </Application.Resources>
 </Application>

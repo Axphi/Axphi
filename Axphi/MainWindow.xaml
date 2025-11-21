@@ -7,7 +7,7 @@
         xmlns:local="clr-namespace:Axphi"
         xmlns:comp="clr-namespace:Axphi.Components"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
+        Title="MainWindow" Height="650" Width="1200"
         Background="#1f1f1f"
         Foreground="#d6d6d6"
         d:DataContext="{d:DesignInstance Type=local:MainWindow,IsDesignTimeCreatable=False}"
@@ -76,7 +76,7 @@
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*"/>
-                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="2.8*"/>
                     <ColumnDefinition Width="1*"/>
                 </Grid.ColumnDefinitions>
 
@@ -88,28 +88,18 @@
                               Header="Hierarchy">
                     <ScrollViewer>
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal">
-
-                            </StackPanel>
+                            <Border>
+                                <StackPanel Orientation="Horizontal">
+                                    <ws:Button Content="Import"
+                                               Command="{Binding ImportMusicCommand}"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </comp:TabPane>
 
                 <DockPanel Grid.Row="0"
                            Grid.Column="1">
-                    <DockPanel.Resources>
-                        <Style TargetType="{x:Type ws:Button}">
-                            <Setter Property="CornerRadius" Value="4"/>
-                            <Setter Property="Padding" Value="4 3"/>
-                            <Setter Property="Foreground" Value="#cacaca"/>
-                            <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="HoverBorderBrush" Value="#3d3d3d"/>
-                            <Setter Property="PressedBorderBrush" Value="#4f4f4f"/>
-                            <Setter Property="Background" Value="#2e2e2e"/>
-                            <Setter Property="HoverBackground" Value="#3d3d3d"/>
-                            <Setter Property="PressedBackground" Value="#4f4f4f"/>
-                        </Style>
-                    </DockPanel.Resources>
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                                 HorizontalAlignment="Center">
                         <ws:Button Content="Play/Pause"

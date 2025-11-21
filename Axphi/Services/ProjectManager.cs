@@ -14,7 +14,10 @@ namespace Axphi.Services
     public partial class ProjectManager : ObservableObject
     {
         [ObservableProperty]
-        private Project? _editingProject;
+        private Project _editingProject = new Project()
+        {
+            Chart = new Chart()
+        };
 
         [ObservableProperty]
         private string? _editingProjectFilePath;

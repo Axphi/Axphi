@@ -4,6 +4,7 @@ using Axphi.Utilities;
 using Axphi.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
+using NAudio.Utils;
 using NAudio.Wave;
 using System.Diagnostics;
 using System.Windows;
@@ -19,6 +20,7 @@ namespace Axphi;
 public partial class MainWindow : Window
 {
     private SaveFileDialog? _saveChartDialog;
+    private OpenFileDialog? _importMusicDialog;
 
     private MediaFoundationReader? _musicReader;
     private WasapiOut? _wasapiOut;
@@ -61,10 +63,12 @@ public partial class MainWindow : Window
 
         if (_dispatcherTimer.IsEnabled)
         {
+            _wasapiOut?.Play();
             _renderStopwatch.Start();
         }
         else
         {
+            _wasapiOut?.Pause();
             _renderStopwatch.Stop();
         }
     }
@@ -72,9 +76,10 @@ public partial class MainWindow : Window
     [RelayCommand]
     private void StopChartRendering()
     {
+        _dispatcherTimer?.Stop();
         _renderStopwatch?.Stop();
         _renderStopwatch?.Reset();
-        _dispatcherTimer?.Stop();
+        _wasapiOut?.Stop();
 
         chartRenderer.Time = default;
     }
@@ -87,6 +92,27 @@ public partial class MainWindow : Window
             Chart = DebuggingUtils.CreateDemoChart()
         };
         ProjectManager.EditingProjectFilePath = null;
+    }
+
+    [RelayCommand]
+    private void ImportMusic()
+    {
+        _importMusicDialog ??= new OpenFileDialog()
+        {
+            Title = "Import music",
+            Filter = "Audio file|*.mp3;*.ogg;*.wav|Any|*.*",
+            CheckFileExists = true,
+        };
+
+        if (_importMusicDialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        ProjectManager.EditingProject.EncodedAudio = System.IO.File.ReadAllBytes(_importMusicDialog.FileName);
+        _musicReader = new MediaFoundationReader(_importMusicDialog.FileName);
+        _wasapiOut ??= new WasapiOut();
+        _wasapiOut.Init(_musicReader);
     }
 
     [RelayCommand]
@@ -130,11 +156,18 @@ public partial class MainWindow : Window
     };
 
     [RelayCommand]
-    private void CloseSelf() 
+    private void CloseSelf()
         => Close();
 
     private void RenderTimerCallback(object? sender, EventArgs e)
     {
+        if (_wasapiOut is not null &&
+            _wasapiOut.PlaybackState == PlaybackState.Playing)
+        {
+            chartRenderer.Time = _wasapiOut.GetPositionTimeSpan();
+            return;
+        }
+
         _renderStopwatch ??= new Stopwatch();
         chartRenderer.Time = _renderStopwatch.Elapsed;
     }

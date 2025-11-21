@@ -19,10 +19,10 @@ namespace Axphi.Components
 
         private static SolidColorBrush _progressWhite = new SolidColorBrush(Color.FromRgb(220, 220, 219));
 
-        private static SolidColorBrush _nodeFlick = new SolidColorBrush(Color.FromRgb(255, 95, 95));
-        private static SolidColorBrush _nodeTap = new SolidColorBrush(Color.FromRgb(82, 133, 243));
-        private static SolidColorBrush _nodeDrag = new SolidColorBrush(Color.FromRgb(255, 222, 145));
-        private static SolidColorBrush _nodeHold = new SolidColorBrush(Color.FromRgb(81, 180, 255));
+        private static SolidColorBrush _noteFlick = new SolidColorBrush(Color.FromRgb(255, 95, 95));
+        private static SolidColorBrush _noteTap = new SolidColorBrush(Color.FromRgb(82, 133, 243));
+        private static SolidColorBrush _noteDrag = new SolidColorBrush(Color.FromRgb(255, 222, 145));
+        private static SolidColorBrush _noteHold = new SolidColorBrush(Color.FromRgb(81, 180, 255));
 
 
         public TimeSpan Time
@@ -298,11 +298,11 @@ namespace Axphi.Components
 
             drawingContext.DrawRectangle(_lineYellow, null, new Rect(-renderInfo.CanvasWidth / 2, -2, renderInfo.CanvasWidth, 4));
 
-            if (judgementLine.Nodes is { } nodes)
+            if (judgementLine.Notes is { } notes)
             {
-                foreach (var node in nodes)
+                foreach (var note in notes)
                 {
-                    RenderNode(drawingContext, renderInfo, node, time, judgementLine.Speed);
+                    RenderNote(drawingContext, renderInfo, note, time, judgementLine.Speed);
                 }
             }
 
@@ -310,29 +310,29 @@ namespace Axphi.Components
             drawingContext.Pop();
         }
 
-        private static void RenderNode(DrawingContext drawingContext, RenderInfo renderInfo, Node node, TimeSpan time, double speed)
+        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Note note, TimeSpan time, double speed)
         {
-            var timeFromNow = node.HitTime - time;
+            var timeFromNow = note.HitTime - time;
             var timeSecToNow = timeFromNow.TotalSeconds;
             if (Math.Abs(timeSecToNow) > 10)
             {
                 return;
             }
 
-            var finalSpeed = node.CustomSpeed ?? speed;
+            var finalSpeed = note.CustomSpeed ?? speed;
 
             var distance = -finalSpeed * timeSecToNow;
             var pixelDistance = renderInfo.ChartUnitToPixel(distance);
 
             CalculateObjectTransform(
-                time, default, new Vector(1, 1), default, 1, node.TransformKeyFrames,
+                time, default, new Vector(1, 1), default, 1, note.TransformKeyFrames,
                 out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(
                 renderInfo.ChartUnitToPixel(offset.X),
                 renderInfo.ChartUnitToPixel(offset.Y));
 
-            var nodeTransform = new TransformGroup()
+            var noteTransform = new TransformGroup()
             {
                 Children =
                 {
@@ -347,20 +347,20 @@ namespace Axphi.Components
                 }
             };
 
-            var fill = node.Kind switch
+            var fill = note.Kind switch
             {
-                NodeKind.Tap => _nodeTap,
-                NodeKind.Drag => _nodeDrag,
-                NodeKind.Hold => _nodeHold,
-                NodeKind.Flick => _nodeFlick,
+                NoteKind.Tap => _noteTap,
+                NoteKind.Drag => _noteDrag,
+                NoteKind.Hold => _noteHold,
+                NoteKind.Flick => _noteFlick,
                 _ => Brushes.Purple,
             };
 
-            var nodePixelWidth = renderInfo.ChartUnitToPixel(2);
-            var nodePixelHeight = renderInfo.ChartUnitToPixel(0.2);
+            var notePixelWidth = renderInfo.ChartUnitToPixel(2);
+            var notePixelHeight = renderInfo.ChartUnitToPixel(0.2);
 
-            drawingContext.PushTransform(nodeTransform);
-            drawingContext.DrawRectangle(fill, null, new Rect(-nodePixelWidth / 2, -nodePixelHeight / 2, nodePixelWidth, nodePixelHeight));
+            drawingContext.PushTransform(noteTransform);
+            drawingContext.DrawRectangle(fill, null, new Rect(-notePixelWidth / 2, -notePixelHeight / 2, notePixelWidth, notePixelHeight));
             drawingContext.Pop();
         }
     }

@@ -5,19 +5,19 @@ namespace Axphi.Data
     /// <summary>
     /// 音符
     /// </summary>
-    public class Node
+    public class Note
     {
-        public Node()
+        public Note()
         {
         }
 
-        public Node(NodeKind kind, TimeSpan hitTime)
+        public Note(NoteKind kind, TimeSpan hitTime)
         {
             Kind = kind;
             HitTime = hitTime;
         }
 
-        public NodeKind Kind { get; set; }
+        public NoteKind Kind { get; set; }
         public TimeSpan HitTime { get; set; }
         public TimeSpan HoldDuration { get; set; }
         public double? CustomSpeed { get; set; }

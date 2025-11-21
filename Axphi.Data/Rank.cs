@@ -5,7 +5,7 @@
         EZ, HD, IN, AT
     }
 
-    public enum NodeKind
+    public enum NoteKind
     {
         Tap, Hold, Drag, Flick
     }

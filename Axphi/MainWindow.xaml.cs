@@ -53,10 +53,10 @@ public partial class MainWindow : Window
                             }
                         }
                     },
-                    Nodes = new List<Node>()
+                    Notes = new List<Note>()
                     {
-                        new Node(NodeKind.Tap, TimeSpan.FromSeconds(1)),
-                        new Node(NodeKind.Tap, TimeSpan.FromSeconds(2))
+                        new Note(NoteKind.Tap, TimeSpan.FromSeconds(1)),
+                        new Note(NoteKind.Tap, TimeSpan.FromSeconds(2))
                         {
                             TransformKeyFrames = new Data.KeyFrames.TransformKeyFrames()
                             {
@@ -83,7 +83,7 @@ public partial class MainWindow : Window
                                 }
                             }
                         },
-                        new Node(NodeKind.Tap, TimeSpan.FromSeconds(3))
+                        new Note(NoteKind.Tap, TimeSpan.FromSeconds(3))
                         {
                             TransformKeyFrames = new Data.KeyFrames.TransformKeyFrames()
                             {
@@ -106,7 +106,7 @@ public partial class MainWindow : Window
                                 }
                             }
                         },
-                        new Node(NodeKind.Tap, TimeSpan.FromSeconds(4))
+                        new Note(NoteKind.Tap, TimeSpan.FromSeconds(4))
                         {
                             TransformKeyFrames = new Data.KeyFrames.TransformKeyFrames()
                             {

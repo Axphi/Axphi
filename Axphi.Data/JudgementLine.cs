@@ -20,6 +20,6 @@ namespace Axphi.Data
         /// <summary>
         /// 音符
         /// </summary>
-        public List<Node>? Nodes { get; set; }
+        public List<Note>? Notes { get; set; }
     }
 }

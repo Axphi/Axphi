@@ -3,33 +3,124 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ws="https://schemas.elecho.dev/wpfsuite"
         xmlns:local="clr-namespace:Axphi"
         xmlns:comp="clr-namespace:Axphi.Components"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800"
-        d:DataContext="{d:DesignInstance Type=local:MainWindow,IsDesignTimeCreatable=False}">
-    <DockPanel>
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="File">
-                <MenuItem Header="Save"
-                          Command="{Binding SaveChartCommand}"/>
-            </MenuItem>
-            <MenuItem Header="Debugging">
-                <MenuItem Header="Load demo chart"
-                          Command="{Binding LoadDemoChartCommand}"/>
-            </MenuItem>
-        </Menu>
+        Background="#1f1f1f"
+        Foreground="#d6d6d6"
+        d:DataContext="{d:DesignInstance Type=local:MainWindow,IsDesignTimeCreatable=False}"
+        ws:WindowOption.IsCaptionMenuVisible="False">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome/>
+    </WindowChrome.WindowChrome>
+
+    <ws:WindowContentAdapter>
         <DockPanel>
-            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
-                        HorizontalAlignment="Center">
-                <Button Content="Play/Pause"
-                        Command="{Binding PlayPauseChartRenderingCommand}"/>
-                <Button Content="Stop"
-                        Command="{Binding StopChartRenderingCommand}"/>
-            </StackPanel>
-            <comp:ChartRenderer x:Name="chartRenderer"
-                                Chart="{Binding ProjectManager.EditingProject.Chart}"
-                                ClipToBounds="True"/>
+            <Grid DockPanel.Dock="Top">
+                <StackPanel Orientation="Horizontal"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            Margin="4 0 0 0">
+                    <TextBlock Text="LOGO"
+                               VerticalAlignment="Center"/>
+                    <ws:Menu VerticalAlignment="Center"
+                             Margin="4">
+                        <ws:MenuItem Header="File">
+                            <ws:MenuItem Header="Save"
+                                         Command="{Binding SaveChartCommand}"/>
+                        </ws:MenuItem>
+                        <ws:MenuItem Header="Debugging">
+                            <ws:MenuItem Header="Load demo chart"
+                                         Command="{Binding LoadDemoChartCommand}"/>
+                        </ws:MenuItem>
+                    </ws:Menu>
+                </StackPanel>
+                <StackPanel HorizontalAlignment="Right"
+                            Orientation="Horizontal"
+                            Margin="4">
+                    <StackPanel.Resources>
+                        <Style x:Key="CaptionButton"
+                               TargetType="{x:Type ws:Button}">
+                            <Setter Property="Width" Value="28"/>
+                            <Setter Property="Height" Value="26"/>
+                            <Setter Property="Margin" Value="1 0 0 0"/>
+                            <Setter Property="CornerRadius" Value="4"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="HoverBorderBrush" Value="#3d3d3d"/>
+                            <Setter Property="PressedBorderBrush" Value="Transparent"/>
+                            <Setter Property="Background" Value="#2e2e2e"/>
+                            <Setter Property="HoverBackground" Value="#3d3d3d"/>
+                            <Setter Property="PressedBackground" Value="#4f4f4f"/>
+                            <Setter Property="Foreground" Value="#b2b2b2"/>
+                            <Setter Property="Foreground" Value="#b2b2b2"/>
+                            <Setter Property="HoverForeground" Value="#fafafa"/>
+                        </Style>
+                    </StackPanel.Resources>
+                    <ws:Button ws:WindowOption.IsMinimumButton="True" Content="-" Style="{StaticResource CaptionButton}"
+                               Command="{Binding MinimizeSelfCommand}"/>
+                    <ws:Button ws:WindowOption.IsMaximumButton="True" Content="+" Style="{StaticResource CaptionButton}"
+                               Command="{Binding MaximizeRestoreSelfCommand}"/>
+                    <ws:Button ws:WindowOption.IsCloseButton="True" Content="x" Style="{StaticResource CaptionButton}"
+                               HoverBackground="#e81123"
+                               Command="{Binding CloseSelfCommand}"/>
+                </StackPanel>
+            </Grid>
+            <Grid Margin="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="2*"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+
+                <comp:TabPane Header="Properties">
+
+                </comp:TabPane>
+
+                <comp:TabPane Grid.Row="1"
+                              Header="Hierarchy">
+                    <ScrollViewer>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </comp:TabPane>
+
+                <DockPanel Grid.Row="0"
+                           Grid.Column="1">
+                    <DockPanel.Resources>
+                        <Style TargetType="{x:Type ws:Button}">
+                            <Setter Property="CornerRadius" Value="4"/>
+                            <Setter Property="Padding" Value="4 3"/>
+                            <Setter Property="Foreground" Value="#cacaca"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="HoverBorderBrush" Value="#3d3d3d"/>
+                            <Setter Property="PressedBorderBrush" Value="#4f4f4f"/>
+                            <Setter Property="Background" Value="#2e2e2e"/>
+                            <Setter Property="HoverBackground" Value="#3d3d3d"/>
+                            <Setter Property="PressedBackground" Value="#4f4f4f"/>
+                        </Style>
+                    </DockPanel.Resources>
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                                HorizontalAlignment="Center">
+                        <ws:Button Content="Play/Pause"
+                                   Command="{Binding PlayPauseChartRenderingCommand}"/>
+                        <ws:Button Content="Stop"
+                                   Command="{Binding StopChartRenderingCommand}"/>
+                    </StackPanel>
+                    <comp:ChartRenderer x:Name="chartRenderer"
+                                        Chart="{Binding ProjectManager.EditingProject.Chart}"
+                                        ClipToBounds="True"/>
+                </DockPanel>
+            </Grid>
         </DockPanel>
-    </DockPanel>
+    </ws:WindowContentAdapter>
 </Window>

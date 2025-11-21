@@ -1,8 +1,18 @@
 ﻿<Application x:Class="Axphi.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ws="https://schemas.elecho.dev/wpfsuite"
              xmlns:local="clr-namespace:Axphi">
     <Application.Resources>
-
+        <Style TargetType="{x:Type ws:Menu}">
+            <Setter Property="Background" Value="#1f1f1f"/>
+            <Setter Property="Foreground" Value="#d6d6d6"/>
+        </Style>
+        <Style TargetType="{x:Type ws:MenuItem}">
+            <Setter Property="Background" Value="#1f1f1f"/>
+            <Setter Property="Foreground" Value="#d6d6d6"/>
+            <Setter Property="PopupBackground" Value="#2e2e2e"/>
+            <Setter Property="PopupBorderThickness" Value="0"/>
+        </Style>
     </Application.Resources>
 </Application>

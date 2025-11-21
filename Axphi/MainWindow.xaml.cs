@@ -4,8 +4,11 @@ using Axphi.Utilities;
 using Axphi.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
+using NAudio.Wave;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace Axphi;
@@ -16,6 +19,9 @@ namespace Axphi;
 public partial class MainWindow : Window
 {
     private SaveFileDialog? _saveChartDialog;
+
+    private MediaFoundationReader? _musicReader;
+    private WasapiOut? _wasapiOut;
 
     private DispatcherTimer? _dispatcherTimer;
     private Stopwatch? _renderStopwatch;
@@ -31,6 +37,13 @@ public partial class MainWindow : Window
         ProjectManager = projectManager;
         DataContext = this;
         InitializeComponent();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        var hwndSource = (HwndSource)PresentationSource.FromVisual(this);
+        hwndSource.CompositionTarget.BackgroundColor = Color.FromRgb(31, 31, 31);
+        base.OnSourceInitialized(e);
     }
 
     [RelayCommand]
@@ -104,6 +117,21 @@ public partial class MainWindow : Window
 
         ProjectManager.SaveEditingProject(ProjectManager.EditingProjectFilePath);
     }
+
+    [RelayCommand]
+    private void MinimizeSelf()
+        => WindowState = WindowState.Minimized;
+
+    [RelayCommand]
+    private void MaximizeRestoreSelf() => WindowState = WindowState switch
+    {
+        WindowState.Maximized => WindowState.Normal,
+        _ => WindowState.Maximized
+    };
+
+    [RelayCommand]
+    private void CloseSelf() 
+        => Close();
 
     private void RenderTimerCallback(object? sender, EventArgs e)
     {

@@ -19,20 +19,23 @@ namespace Axphi.Utilities
                 {
                     new JudgementLine()
                     {
-                        TransformKeyFrames = new Data.KeyFrames.TransformKeyFrames()
+                        AnimatableProperties =
                         {
-                            OffsetKeyFrames = new List<Data.KeyFrames.OffsetKeyFrame>()
+                            Offset=
                             {
-                                new Data.KeyFrames.OffsetKeyFrame()
+                                KeyFrames =
                                 {
-                                    Time = TimeSpan.FromSeconds(5),
-                                    Value = new Vector(0, 1.5),
-                                },
+                                    new Data.KeyFrames.OffsetKeyFrame()
+                                    {
+                                        Time = TimeSpan.FromSeconds(5),
+                                        Value = new Vector(0, 1.5),
+                                    },
 
-                                new Data.KeyFrames.OffsetKeyFrame()
-                                {
-                                    Time = TimeSpan.FromSeconds(8),
-                                    Value = new Vector(0, -1.5),
+                                    new Data.KeyFrames.OffsetKeyFrame()
+                                    {
+                                        Time = TimeSpan.FromSeconds(8),
+                                        Value = new Vector(0, -1.5),
+                                    }
                                 }
                             }
                         },
@@ -41,69 +44,78 @@ namespace Axphi.Utilities
                             new Note(NoteKind.Tap, TimeSpan.FromSeconds(1)),
                             new Note(NoteKind.Tap, TimeSpan.FromSeconds(2))
                             {
-                                TransformKeyFrames = new Data.KeyFrames.TransformKeyFrames()
+                                AnimatableProperties =
                                 {
-                                    OffsetKeyFrames = new List<Data.KeyFrames.OffsetKeyFrame>()
+                                    Offset =
                                     {
-                                        new Data.KeyFrames.OffsetKeyFrame()
+                                        KeyFrames =
                                         {
-                                            Time = TimeSpan.FromSeconds(1),
-                                        },
-                                        new Data.KeyFrames.OffsetKeyFrame()
-                                        {
-                                            Time = TimeSpan.FromSeconds(1.5),
-                                            Value = new Vector(-2, 0),
-                                        },
-                                        new Data.KeyFrames.OffsetKeyFrame()
-                                        {
-                                            Time = TimeSpan.FromSeconds(1.75),
-                                            Value = new Vector(2, 0),
-                                        },
-                                        new Data.KeyFrames.OffsetKeyFrame()
-                                        {
-                                            Time = TimeSpan.FromSeconds(2),
+                                            new Data.KeyFrames.OffsetKeyFrame()
+                                            {
+                                                Time = TimeSpan.FromSeconds(1),
+                                            },
+                                            new Data.KeyFrames.OffsetKeyFrame()
+                                            {
+                                                Time = TimeSpan.FromSeconds(1.5),
+                                                Value = new Vector(-2, 0),
+                                            },
+                                            new Data.KeyFrames.OffsetKeyFrame()
+                                            {
+                                                Time = TimeSpan.FromSeconds(1.75),
+                                                Value = new Vector(2, 0),
+                                            },
+                                            new Data.KeyFrames.OffsetKeyFrame()
+                                            {
+                                                Time = TimeSpan.FromSeconds(2),
+                                            }
                                         }
                                     }
-                                }
+                                },
                             },
                             new Note(NoteKind.Tap, TimeSpan.FromSeconds(3))
                             {
-                                TransformKeyFrames = new Data.KeyFrames.TransformKeyFrames()
+                                AnimatableProperties =
                                 {
-                                    ScaleKeyFrames = new List<Data.KeyFrames.ScaleKeyFrame>()
+                                    Scale =
                                     {
-                                        new Data.KeyFrames.ScaleKeyFrame()
+                                        KeyFrames =
                                         {
-                                            Time = TimeSpan.FromSeconds(2),
-                                        },
-                                        new Data.KeyFrames.ScaleKeyFrame()
-                                        {
-                                            Time = TimeSpan.FromSeconds(2.5),
-                                            Value = new Vector(2, 2)
-                                        },
-                                        new Data.KeyFrames.ScaleKeyFrame()
-                                        {
-                                            Time = TimeSpan.FromSeconds(3),
-                                            Value = new Vector(1, 1)
+                                            new Data.KeyFrames.ScaleKeyFrame()
+                                            {
+                                                Time = TimeSpan.FromSeconds(2),
+                                            },
+                                            new Data.KeyFrames.ScaleKeyFrame()
+                                            {
+                                                Time = TimeSpan.FromSeconds(2.5),
+                                                Value = new Vector(2, 2)
+                                            },
+                                            new Data.KeyFrames.ScaleKeyFrame()
+                                            {
+                                                Time = TimeSpan.FromSeconds(3),
+                                                Value = new Vector(1, 1)
+                                            }
                                         }
                                     }
-                                }
+                                },
                             },
                             new Note(NoteKind.Tap, TimeSpan.FromSeconds(4))
                             {
-                                TransformKeyFrames = new Data.KeyFrames.TransformKeyFrames()
+                                AnimatableProperties =
                                 {
-                                    RotationKeyFrames = new List<Data.KeyFrames.RotationKeyFrame>()
+                                    Rotation =
                                     {
-                                        new Data.KeyFrames.RotationKeyFrame()
+                                        KeyFrames =
                                         {
-                                            Time = TimeSpan.FromSeconds(3.5),
-                                            Value = 0
-                                        },
-                                        new Data.KeyFrames.RotationKeyFrame()
-                                        {
-                                            Time = TimeSpan.FromSeconds(4),
-                                            Value = 180
+                                            new Data.KeyFrames.RotationKeyFrame()
+                                            {
+                                                Time = TimeSpan.FromSeconds(3.5),
+                                                Value = 0
+                                            },
+                                            new Data.KeyFrames.RotationKeyFrame()
+                                            {
+                                                Time = TimeSpan.FromSeconds(4),
+                                                Value = 180
+                                            }
                                         }
                                     }
                                 }

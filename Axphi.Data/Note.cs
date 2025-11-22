@@ -1,4 +1,5 @@
-﻿using Axphi.Data.KeyFrames;
+﻿using Axphi.Data.AnimatableProperties;
+using Axphi.Data.KeyFrames;
 using System.Windows;
 
 namespace Axphi.Data
@@ -23,14 +24,9 @@ namespace Axphi.Data
         public TimeSpan HoldDuration { get; set; }
         public double? CustomSpeed { get; set; }
 
-        public Vector InitialOffset { get; set; }
-        public Vector InitialScale { get; set; } = new Vector(1, 1);
-        public double InitialRotation { get; set; }
-        public double InitialOpacity { get; set; } = 1;
-
         /// <summary>
-        /// 
+        /// 动画属性
         /// </summary>
-        public TransformKeyFrames? TransformKeyFrames { get; set; }
+        public StandardAnimatableProperties AnimatableProperties { get; } = new StandardAnimatableProperties();
     }
 }

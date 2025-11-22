@@ -1,4 +1,5 @@
-﻿using Axphi.Data.KeyFrames;
+﻿using Axphi.Data.AnimatableProperties;
+using Axphi.Data.KeyFrames;
 using System.Windows;
 
 namespace Axphi.Data
@@ -11,12 +12,10 @@ namespace Axphi.Data
         public string? Name { get; set; }
         public double Speed { get; set; } = 1;
 
-        public Vector InitialOffset { get; set; }
-        public Vector InitialScale { get; set; } = new Vector(1, 1);
-        public double InitialRotation { get; set; }
-        public double InitialOpacity { get; set; } = 1;
-
-        public TransformKeyFrames? TransformKeyFrames { get; set; }
+        /// <summary>
+        /// 动画属性
+        /// </summary>
+        public StandardAnimatableProperties AnimatableProperties { get; } = new StandardAnimatableProperties();
 
         /// <summary>
         /// 音符

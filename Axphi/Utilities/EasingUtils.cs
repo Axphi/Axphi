@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using Axphi.Data.AnimatableProperties;
 
 namespace Axphi.Utilities
 {
@@ -83,38 +84,32 @@ namespace Axphi.Utilities
         public static void CalculateObjectTransform(
             TimeSpan time,
             KeyFrameEasingDirection easingDirection,
-            Vector initialOffset, Vector initialScale, double initialRotationAngle, double initialOpacity,
-            TransformKeyFrames? transformKeyFrames,
+            StandardAnimatableProperties properties,
             out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
-            finalOffset = initialOffset;
-            finalScale = initialScale;
-            finalRotationAngle = initialRotationAngle;
-            finalOpacity = initialOpacity;
+            finalOffset = properties.Offset.InitialValue;
+            finalScale = properties.Scale.InitialValue;
+            finalRotationAngle = properties.Rotation.InitialValue;
+            finalOpacity = properties.Opacity.InitialValue;
 
-            if (transformKeyFrames is null)
+            if (properties.Offset.KeyFrames is { } offsetKeyFrames)
             {
-                return;
+                CalculateObjectSingleTransform(time, easingDirection, properties.Offset.InitialValue, offsetKeyFrames, MathUtils.Lerp, out finalOffset);
             }
 
-            if (transformKeyFrames.OffsetKeyFrames is { } offsetKeyFrames)
+            if (properties.Scale.KeyFrames is { } scaleKeyFrames)
             {
-                CalculateObjectSingleTransform(time, easingDirection, initialOffset, offsetKeyFrames, MathUtils.Lerp, out finalOffset);
+                CalculateObjectSingleTransform(time, easingDirection, properties.Scale.InitialValue, scaleKeyFrames, MathUtils.Lerp, out finalScale);
             }
 
-            if (transformKeyFrames.ScaleKeyFrames is { } scaleKeyFrames)
+            if (properties.Rotation.KeyFrames is { } rotationKeyFrames)
             {
-                CalculateObjectSingleTransform(time, easingDirection, initialScale, scaleKeyFrames, MathUtils.Lerp, out finalScale);
+                CalculateObjectSingleTransform(time, easingDirection, properties.Rotation.InitialValue, rotationKeyFrames, MathUtils.Lerp, out finalRotationAngle);
             }
 
-            if (transformKeyFrames.RotationKeyFrames is { } rotationKeyFrames)
+            if (properties.Opacity.KeyFrames is { } opacityKeyFrames)
             {
-                CalculateObjectSingleTransform(time, easingDirection, initialRotationAngle, rotationKeyFrames, MathUtils.Lerp, out finalRotationAngle);
-            }
-
-            if (transformKeyFrames.OpacityKeyFrames is { } opacityKeyFrames)
-            {
-                CalculateObjectSingleTransform(time, easingDirection, initialOpacity, opacityKeyFrames, MathUtils.Lerp, out finalOpacity);
+                CalculateObjectSingleTransform(time, easingDirection, properties.Opacity.InitialValue, opacityKeyFrames, MathUtils.Lerp, out finalOpacity);
             }
         }
 

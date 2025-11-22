@@ -85,17 +85,20 @@
                 </comp:TabPane>
 
                 <comp:TabPane Grid.Row="1"
-                              Header="Hierarchy">
-                    <ScrollViewer>
-                        <StackPanel>
-                            <Border>
-                                <StackPanel Orientation="Horizontal">
-                                    <ws:Button Content="Import"
-                                               Command="{Binding ImportMusicCommand}"/>
-                                </StackPanel>
-                            </Border>
+                              Grid.ColumnSpan="2"
+                              Header="Timeline">
+                    <comp:ChartTimeline/>
+                </comp:TabPane>
+
+                <comp:TabPane Header="Project"
+                              Grid.Row="1"
+                              Grid.Column="2">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <ws:Button Content="Import"
+                                       Command="{Binding ImportMusicCommand}"/>
                         </StackPanel>
-                    </ScrollViewer>
+                    </StackPanel>
                 </comp:TabPane>
 
                 <DockPanel Grid.Row="0"

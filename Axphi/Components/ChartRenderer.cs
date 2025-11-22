@@ -131,127 +131,10 @@ namespace Axphi.Components
 
             foreach (var judgementLine in judgementLines)
             {
-                RenderJudgementLine(drawingContext, renderInfo, judgementLine, time);
+                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, time);
             }
 
             drawingContext.Pop();
-        }
-
-        private static void CalculateObjectTransform(
-            TimeSpan time,
-            Vector initialOffset, Vector initialScale, double initialRotationAngle, double initialOpacity,
-            TransformKeyFrames? transformKeyFrames,
-            out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
-        {
-            finalOffset = initialOffset;
-            finalScale = initialScale;
-            finalRotationAngle = initialRotationAngle;
-            finalOpacity = initialOpacity;
-
-            if (transformKeyFrames is null)
-            {
-                return;
-            }
-
-            if (transformKeyFrames.OffsetKeyFrames is { } offsetKeyFrames)
-            {
-                var lastTime = default(TimeSpan);
-                foreach (var offsetKeyFrame in offsetKeyFrames)
-                {
-                    if (offsetKeyFrame.Time <= time)
-                    {
-                        finalOffset = offsetKeyFrame.Vector;
-                        lastTime = offsetKeyFrame.Time;
-                    }
-                    else
-                    {
-                        var elapsed = time - lastTime;
-                        var total = offsetKeyFrame.Time - lastTime;
-                        var normalizedTime = elapsed / total;
-                        var y = offsetKeyFrame.Easing.Calculate(normalizedTime);
-
-                        finalOffset = new Vector(
-                            MathUtils.Lerp(finalOffset.X, offsetKeyFrame.Vector.X, y),
-                            MathUtils.Lerp(finalOffset.Y, offsetKeyFrame.Vector.Y, y));
-
-                        break;
-                    }
-                }
-            }
-
-            if (transformKeyFrames.ScaleKeyFrames is { } scaleKeyFrames)
-            {
-                var lastTime = default(TimeSpan);
-                foreach (var scaleKeyFrame in scaleKeyFrames)
-                {
-                    if (scaleKeyFrame.Time <= time)
-                    {
-                        finalScale = scaleKeyFrame.Scale;
-                        lastTime = scaleKeyFrame.Time;
-                    }
-                    else
-                    {
-                        var elapsed = time - lastTime;
-                        var total = scaleKeyFrame.Time - lastTime;
-                        var normalizedTime = elapsed / total;
-                        var y = scaleKeyFrame.Easing.Calculate(normalizedTime);
-
-                        finalScale = new Vector(
-                            MathUtils.Lerp(finalScale.X, scaleKeyFrame.Scale.X, y),
-                            MathUtils.Lerp(finalScale.Y, scaleKeyFrame.Scale.Y, y));
-
-                        break;
-                    }
-                }
-            }
-
-            if (transformKeyFrames.RotationKeyFrames is { } rotationKeyFrames)
-            {
-                var lastTime = default(TimeSpan);
-                foreach (var rotationKeyFrame in rotationKeyFrames)
-                {
-                    if (rotationKeyFrame.Time <= time)
-                    {
-                        finalRotationAngle = rotationKeyFrame.Angle;
-                        lastTime = rotationKeyFrame.Time;
-                    }
-                    else
-                    {
-                        var elapsed = time - lastTime;
-                        var total = rotationKeyFrame.Time - lastTime;
-                        var normalizedTime = elapsed / total;
-                        var y = rotationKeyFrame.Easing.Calculate(normalizedTime);
-
-                        finalRotationAngle = MathUtils.Lerp(finalRotationAngle, rotationKeyFrame.Angle, y);
-
-                        break;
-                    }
-                }
-            }
-
-            if (transformKeyFrames.OpacityKeyFrames is { } opacityKeyFrames)
-            {
-                var lastTime = default(TimeSpan);
-                foreach (var opacityKeyFrame in opacityKeyFrames)
-                {
-                    if (opacityKeyFrame.Time <= time)
-                    {
-                        finalOpacity = opacityKeyFrame.Opacity;
-                        lastTime = opacityKeyFrame.Time;
-                    }
-                    else
-                    {
-                        var elapsed = time - lastTime;
-                        var total = opacityKeyFrame.Time - lastTime;
-                        var normalizedTime = elapsed / total;
-                        var y = opacityKeyFrame.Easing.Calculate(normalizedTime);
-
-                        finalOpacity = MathUtils.Lerp(finalOpacity, opacityKeyFrame.Opacity, y);
-
-                        break;
-                    }
-                }
-            }
         }
 
         private static void RenderProgress(DrawingContext drawingContext, RenderInfo renderInfo, double progress)
@@ -264,10 +147,11 @@ namespace Axphi.Components
 
         }
 
-        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, JudgementLine line, TimeSpan time)
+        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, TimeSpan time)
         {
-            CalculateObjectTransform(
-                time, line.InitialOffset, line.InitialScale, line.InitialRotation, line.InitialOpacity, line.TransformKeyFrames,
+            EasingUtils.CalculateObjectTransform(
+                time, chart.KeyFrameEasingDirection,
+                line.InitialOffset, line.InitialScale, line.InitialRotation, line.InitialOpacity, line.TransformKeyFrames,
                 out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(
@@ -293,7 +177,7 @@ namespace Axphi.Components
             {
                 foreach (var note in notes)
                 {
-                    RenderNote(drawingContext, renderInfo, note, time, line.Speed);
+                    RenderNote(drawingContext, renderInfo, chart, note, time, line.Speed);
                 }
             }
 
@@ -301,7 +185,7 @@ namespace Axphi.Components
             drawingContext.Pop();
         }
 
-        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Note note, TimeSpan time, double speed)
+        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, TimeSpan time, double speed)
         {
             var timeFromNow = note.HitTime - time;
             var timeSecToNow = timeFromNow.TotalSeconds;
@@ -315,8 +199,9 @@ namespace Axphi.Components
             var distance = -finalSpeed * timeSecToNow;
             var pixelDistance = renderInfo.ChartUnitToPixel(distance);
 
-            CalculateObjectTransform(
-                time, note.InitialOffset, note.InitialScale, note.InitialRotation, note.InitialOpacity, note.TransformKeyFrames,
+            EasingUtils.CalculateObjectTransform(
+                time, chart.KeyFrameEasingDirection,
+                note.InitialOffset, note.InitialScale, note.InitialRotation, note.InitialOpacity, note.TransformKeyFrames,
                 out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(

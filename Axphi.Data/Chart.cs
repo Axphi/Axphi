@@ -55,11 +55,16 @@ namespace Axphi.Data
         /// <summary>
         /// BPM 关键帧
         /// </summary>
-        public List<BpmKeyFrame>? BpmKeyFrames { get; set; }
+        public List<KeyFrame<double>>? BpmKeyFrames { get; set; }
 
         /// <summary>
         /// 判定线
         /// </summary>
         public List<JudgementLine>? JudgementLines { get; set; }
+
+        /// <summary>
+        /// 插值方向
+        /// </summary>
+        public KeyFrameEasingDirection KeyFrameEasingDirection { get; set; }
     }
 }

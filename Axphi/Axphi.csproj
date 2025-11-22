@@ -21,8 +21,4 @@
     <ProjectReference Include="..\Axphi.Data\Axphi.Data.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Views\Dialogs\" />
-  </ItemGroup>
-
 </Project>

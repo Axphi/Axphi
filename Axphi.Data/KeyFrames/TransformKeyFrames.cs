@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Windows;
 
 namespace Axphi.Data.KeyFrames
 {
@@ -7,7 +8,7 @@ namespace Axphi.Data.KeyFrames
         /// <summary>
         /// 偏移
         /// </summary>
-        public List<VectorKeyFrame>? OffsetKeyFrames { get; set; }
+        public List<OffsetKeyFrame>? OffsetKeyFrames { get; set; }
 
         /// <summary>
         /// 缩放

@@ -21,18 +21,18 @@ namespace Axphi.Utilities
                     {
                         TransformKeyFrames = new Data.KeyFrames.TransformKeyFrames()
                         {
-                            OffsetKeyFrames = new List<Data.KeyFrames.VectorKeyFrame>()
+                            OffsetKeyFrames = new List<Data.KeyFrames.OffsetKeyFrame>()
                             {
-                                new Data.KeyFrames.VectorKeyFrame()
+                                new Data.KeyFrames.OffsetKeyFrame()
                                 {
                                     Time = TimeSpan.FromSeconds(5),
-                                    Vector = new Vector(0, 1.5),
+                                    Value = new Vector(0, 1.5),
                                 },
 
-                                new Data.KeyFrames.VectorKeyFrame()
+                                new Data.KeyFrames.OffsetKeyFrame()
                                 {
                                     Time = TimeSpan.FromSeconds(8),
-                                    Vector = new Vector(0, -1.5),
+                                    Value = new Vector(0, -1.5),
                                 }
                             }
                         },
@@ -43,23 +43,23 @@ namespace Axphi.Utilities
                             {
                                 TransformKeyFrames = new Data.KeyFrames.TransformKeyFrames()
                                 {
-                                    OffsetKeyFrames = new List<Data.KeyFrames.VectorKeyFrame>()
+                                    OffsetKeyFrames = new List<Data.KeyFrames.OffsetKeyFrame>()
                                     {
-                                        new Data.KeyFrames.VectorKeyFrame()
+                                        new Data.KeyFrames.OffsetKeyFrame()
                                         {
                                             Time = TimeSpan.FromSeconds(1),
                                         },
-                                        new Data.KeyFrames.VectorKeyFrame()
+                                        new Data.KeyFrames.OffsetKeyFrame()
                                         {
                                             Time = TimeSpan.FromSeconds(1.5),
-                                            Vector = new Vector(-2, 0),
+                                            Value = new Vector(-2, 0),
                                         },
-                                        new Data.KeyFrames.VectorKeyFrame()
+                                        new Data.KeyFrames.OffsetKeyFrame()
                                         {
                                             Time = TimeSpan.FromSeconds(1.75),
-                                            Vector = new Vector(2, 0),
+                                            Value = new Vector(2, 0),
                                         },
-                                        new Data.KeyFrames.VectorKeyFrame()
+                                        new Data.KeyFrames.OffsetKeyFrame()
                                         {
                                             Time = TimeSpan.FromSeconds(2),
                                         }
@@ -79,12 +79,12 @@ namespace Axphi.Utilities
                                         new Data.KeyFrames.ScaleKeyFrame()
                                         {
                                             Time = TimeSpan.FromSeconds(2.5),
-                                            Scale = new Vector(2, 2)
+                                            Value = new Vector(2, 2)
                                         },
                                         new Data.KeyFrames.ScaleKeyFrame()
                                         {
                                             Time = TimeSpan.FromSeconds(3),
-                                            Scale = new Vector(1, 1)
+                                            Value = new Vector(1, 1)
                                         }
                                     }
                                 }
@@ -98,12 +98,12 @@ namespace Axphi.Utilities
                                         new Data.KeyFrames.RotationKeyFrame()
                                         {
                                             Time = TimeSpan.FromSeconds(3.5),
-                                            Angle = 0
+                                            Value = 0
                                         },
                                         new Data.KeyFrames.RotationKeyFrame()
                                         {
                                             Time = TimeSpan.FromSeconds(4),
-                                            Angle = 180
+                                            Value = 180
                                         }
                                     }
                                 }

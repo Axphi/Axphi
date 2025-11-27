@@ -13,11 +13,11 @@ namespace Axphi.Components
 {
     public class ChartRenderer : FrameworkElement
     {
-        private static SolidColorBrush _lineYellow = new SolidColorBrush(Color.FromRgb(218, 218, 161));
-        private static SolidColorBrush _lineBlue = new SolidColorBrush(Color.FromRgb(115, 195, 239));
-        private static SolidColorBrush _lineWhite = new SolidColorBrush(Color.FromRgb(220, 220, 219));
+        private static SolidColorBrush _lineYellow = new SolidColorBrush(Color.FromRgb(254, 255, 169));
+        private static SolidColorBrush _lineBlue = new SolidColorBrush(Color.FromRgb(162, 238, 255));
+        private static SolidColorBrush _lineWhite = new SolidColorBrush(Color.FromRgb(255, 255, 255));
 
-        private static SolidColorBrush _progressWhite = new SolidColorBrush(Color.FromRgb(220, 220, 219));
+        private static SolidColorBrush _progressWhite = new SolidColorBrush(Color.FromRgb(255, 255, 255));
 
         private static SolidColorBrush _noteFlick = new SolidColorBrush(Color.FromRgb(255, 95, 95));
         private static SolidColorBrush _noteTap = new SolidColorBrush(Color.FromRgb(82, 133, 243));

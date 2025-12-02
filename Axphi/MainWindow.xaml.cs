@@ -8,6 +8,8 @@ using NAudio.Utils;
 using NAudio.Wave;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -39,6 +41,7 @@ public partial class MainWindow : Window
         ProjectManager = projectManager;
         DataContext = this;
         InitializeComponent();
+        UpdateVisuals();
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -170,5 +173,153 @@ public partial class MainWindow : Window
 
         _renderStopwatch ??= new Stopwatch();
         chartRenderer.Time = _renderStopwatch.Elapsed;
+    }
+    //wtfbro我开始瞎写了
+    private Point _p1 = new Point(0.75, 0.25);
+    private Point _p2 = new Point(0.25, 0.75);
+
+    private void UpdateVisuals()
+    {
+        double w = GraphCanvas.Width;
+        double h = GraphCanvas.Height;
+
+        // --- 1. 计算 P1 的屏幕坐标 ---
+        // X轴：直接乘宽度
+        double x1 = _p1.X * w;
+        // Y轴：因为屏幕Y向下增加，所以要用高度减去 (翻转Y轴)
+        double y1 = h - (_p1.Y * h);
+
+        // --- 2. 计算 P2 的屏幕坐标 ---
+        double x2 = _p2.X * w;
+        double y2 = h - (_p2.Y * h);
+
+        // --- 3. 移动蓝色圆点 (Thumb) ---
+        // 为了让圆心对准坐标，需要减去圆自身宽度的一半 (7像素)
+        Canvas.SetLeft(Thumb1, x1 - Thumb1.Width / 2);
+        Canvas.SetTop(Thumb1, y1 - Thumb1.Height / 2);
+
+        Canvas.SetLeft(Thumb2, x2 - Thumb2.Width / 2);
+        Canvas.SetTop(Thumb2, y2 - Thumb2.Height / 2);
+
+        // --- 4. 画辅助虚线 ---
+        // Line1: 从左下角 (0,0) -> P1
+        Line1.X1 = 0;           // 左下角 X=0
+        Line1.Y1 = h;           // 左下角 Y=Height
+        Line1.X2 = x1;
+        Line1.Y2 = y1;
+
+        // Line2: 从右上角 (1,1) -> P2
+        Line2.X1 = w;           // 右上角 X=Width
+        Line2.Y1 = 0;           // 右上角 Y=0
+        Line2.X2 = x2;
+        Line2.Y2 = y2;
+
+        // --- 5. 画红色贝塞尔曲线 ---
+        UpdateBezierCurve(x1, y1, x2, y2);
+
+
+        InfoTextP1.Text = $"P1: ({_p1.X:F2}, {_p1.Y:F2})";
+        InfoTextP2.Text = $"P2: ({_p2.X:F2}, {_p2.Y:F2})";
+    }
+
+    // 单独把画曲线提出来，比较清晰
+    private void UpdateBezierCurve(double x1, double y1, double x2, double y2)
+    {
+        double w = GraphCanvas.Width;
+        double h = GraphCanvas.Height;
+
+        // 创建贝塞尔几何图形
+        // 起点：左下角 (0, h)
+        // 终点：右上角 (w, 0)
+        // 控制点1：(x1, y1)
+        // 控制点2：(x2, y2)
+
+        PathGeometry geometry = new PathGeometry();
+        PathFigure figure = new PathFigure();
+
+        // 设置起点 (左下角)
+        figure.StartPoint = new Point(0, h);
+
+        // 贝塞尔片段
+        BezierSegment segment = new BezierSegment(
+            new Point(x1, y1),  // 控制点1
+            new Point(x2, y2),  // 控制点2
+            new Point(w, 0),    // 终点 (右上角)
+            true
+        );
+
+        figure.Segments.Add(segment);
+        geometry.Figures.Add(figure);
+
+        // 赋值给 XAML 里的 Path
+        CurvePath.Data = geometry;
+    }
+
+
+    // 记录当前正在拖拽的那个圆点 (可能是 Thumb1，也可能是 Thumb2)
+    private FrameworkElement _draggingThumb = null;
+    // 1. 鼠标按下：开始拖拽
+    private void Thumb_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // 获取被点击的圆点
+        _draggingThumb = sender as FrameworkElement;
+
+        // 【重要】捕获鼠标
+        // 这样即使鼠标移出了 Canvas 范围，程序依然能收到移动事件，防止拖断
+        if (_draggingThumb != null)
+        {
+            _draggingThumb.CaptureMouse();
+        }
+    }
+
+    // 2. 鼠标抬起：结束拖拽
+    private void Thumb_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_draggingThumb != null)
+        {
+            // 释放鼠标捕获
+            _draggingThumb.ReleaseMouseCapture();
+            _draggingThumb = null;
+        }
+    }
+
+    // 3. 鼠标移动：计算坐标并更新
+    private void Thumb_MouseMove(object sender, MouseEventArgs e)
+    {
+        // 如果没有在拖拽，直接忽略
+        if (_draggingThumb == null) return;
+
+        // 获取鼠标在 Canvas 上的像素坐标
+        Point mousePos = e.GetPosition(GraphCanvas);
+        double w = GraphCanvas.Width;
+        double h = GraphCanvas.Height;
+
+        // --- 核心算法：像素坐标 -> 归一化坐标 (0~1) ---
+
+        // 1. 计算 X (范围 0~1)
+        double xNorm = mousePos.X / w;
+
+        // 2. 计算 Y (范围 0~1)
+        // 屏幕Y向下增加，数学Y向上增加，所以要反过来算：(总高 - 鼠标Y) / 总高
+        double yNorm = (h - mousePos.Y) / h;
+
+        // --- 实施约束：X 值不允许小于 0 或大于 1 ---
+        if (xNorm < 0) xNorm = 0;
+        if (xNorm > 1) xNorm = 1;
+
+        // --- 更新数据 ---
+        // 判断当前拖的是哪个点，更新对应的 _p1 或 _p2
+        if (_draggingThumb == Thumb1)
+        {
+            _p1 = new Point(xNorm, yNorm);
+        }
+        else if (_draggingThumb == Thumb2)
+        {
+            _p2 = new Point(xNorm, yNorm);
+        }
+
+        // --- 刷新画面 ---
+        // 数据变了，重新画图
+        UpdateVisuals();
     }
 }

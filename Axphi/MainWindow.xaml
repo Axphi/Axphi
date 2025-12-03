@@ -158,6 +158,7 @@
                                         x:Name="InputBox"
                                         HorizontalAlignment="Stretch"
                                         VerticalAlignment="Center"
+                                        TextAlignment="Center"
                                         KeyDown="InputBox_KeyDown"
                                         LostFocus="InputBox_LostFocus"
                                         Visibility="Hidden" />

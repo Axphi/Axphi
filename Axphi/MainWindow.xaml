@@ -91,9 +91,9 @@
                 </Grid.ColumnDefinitions>
 
                 <comp:TabPane Header="Properties">
-                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid>
 
-                        <StackPanel>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Border BorderBrush="#CCCCCC" BorderThickness="1">
 
                                 <Canvas
@@ -139,24 +139,31 @@
 
                                 </Canvas>
                             </Border>
-                            <UniformGrid
-                                Width="200"
-                                Margin="0,10,0,0"
-                                Columns="2">
-                                <TextBlock
-                                    x:Name="InfoTextP1"
-                                    HorizontalAlignment="Left"
-                                    FontWeight="Bold"
-                                    Foreground="#007ACC"
-                                    Text="P1: (0.00, 0.00)" />
+                            <StackPanel Width="200" Margin="0,10,0,0">
 
-                                <TextBlock
-                                    x:Name="InfoTextP2"
-                                    HorizontalAlignment="Right"
-                                    FontWeight="Bold"
-                                    Foreground="#007ACC"
-                                    Text="P2: (0.00, 0.00)" />
-                            </UniformGrid>
+                                <Grid
+                                    Width="200"
+                                    Height="25"
+                                    Margin="0,10,0,0"
+                                    HorizontalAlignment="Center">
+
+                                    <TextBlock
+                                        x:Name="DisplayBox"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontWeight="Bold"
+                                        MouseLeftButtonDown="DisplayBox_MouseLeftButtonDown" />
+
+                                    <TextBox
+                                        x:Name="InputBox"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Center"
+                                        KeyDown="InputBox_KeyDown"
+                                        LostFocus="InputBox_LostFocus"
+                                        Visibility="Hidden" />
+                                </Grid>
+
+                            </StackPanel>
                         </StackPanel>
 
                     </Grid>

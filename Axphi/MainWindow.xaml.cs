@@ -14,6 +14,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 
+
 namespace Axphi;
 
 /// <summary>
@@ -217,9 +218,11 @@ public partial class MainWindow : Window
         // --- 5. 画红色贝塞尔曲线 ---
         UpdateBezierCurve(x1, y1, x2, y2);
 
-
-        InfoTextP1.Text = $"P1: ({_p1.X:F2}, {_p1.Y:F2})";
-        InfoTextP2.Text = $"P2: ({_p2.X:F2}, {_p2.Y:F2})";
+        if (InputBox.Visibility != Visibility.Visible)
+        {
+            // 格式化为 "P1.X, P1.Y, P2.X, P2.Y" 的逗号分隔字符串
+            DisplayBox.Text = $"{_p1.X:F2}, {_p1.Y:F2}, {_p2.X:F2}, {_p2.Y:F2}";
+        }
     }
 
     // 单独把画曲线提出来，比较清晰
@@ -321,5 +324,123 @@ public partial class MainWindow : Window
         // --- 刷新画面 ---
         // 数据变了，重新画图
         UpdateVisuals();
+    }
+    private void DisplayBox_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // 1. 拷贝当前显示的值到输入框
+        InputBox.Text = DisplayBox.Text;
+
+        // 2. 切换可见性：隐藏显示框，显示输入框
+        DisplayBox.Visibility = Visibility.Hidden;
+        InputBox.Visibility = Visibility.Visible;
+
+        // 3. 聚焦并选中所有文本，方便用户直接输入
+        InputBox.Focus();
+        InputBox.SelectAll();
+
+        // 【新增关键代码】
+        // 标记事件已处理，阻止它冒泡传给外面的 Grid
+        // 这样 OnBackgroundClick 就不会被触发了
+        e.Handled = true;
+
+    }
+    // Helper 方法：解析字符串并更新 _p1, _p2
+    private void ApplyInputValues(string inputText)
+    {
+        // 1. 清理并分割字符串 (移除空格，按逗号分割)
+        string[] parts = inputText.Replace(" ", "").Split(',');
+
+        if (parts.Length == 4 &&
+            double.TryParse(parts[0], out double p1x) &&
+            double.TryParse(parts[1], out double p1y) &&
+            double.TryParse(parts[2], out double p2x) &&
+            double.TryParse(parts[3], out double p2y))
+        {
+            // 2. 限制 X 范围 (0~1)
+            p1x = Math.Max(0, Math.Min(1, p1x));
+            p2x = Math.Max(0, Math.Min(1, p2x));
+
+            // 3. 更新核心数据
+            _p1 = new Point(p1x, p1y);
+            _p2 = new Point(p2x, p2y);
+        }
+        // 提示：如果输入错误，这里应该有一个机制来通知用户，但为了简单我们暂时忽略。
+    }
+    private void InputBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            FinishEditing();
+        }
+    }
+    private void InputBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        FinishEditing();
+    }
+
+
+    // 【修改】点击背景时，强制完成编辑
+    private void OnBackgroundClick(object sender, MouseButtonEventArgs e)
+    {
+        FinishEditing();
+    }
+
+
+    // 【新增方法】专门用来：保存数据、隐藏输入框、显示文本框
+    private void FinishEditing()
+    {
+        // 如果输入框本来就没打开，直接返回，避免重复操作
+        if (InputBox.Visibility != Visibility.Visible) return;
+
+        // 1. 解析并应用当前输入的值
+        ApplyInputValues(InputBox.Text);
+
+        // 2. 切换 UI 状态：隐藏输入框，显示文本框
+        InputBox.Visibility = Visibility.Hidden;
+        DisplayBox.Visibility = Visibility.Visible;
+
+        // 3. 刷新画面 (这里会把 _p1, _p2 的新值重新画图，并更新 DisplayBox 的文字)
+        UpdateVisuals();
+
+        // 4. 清除焦点（确保光标不再闪烁）
+        Keyboard.ClearFocus();
+    }
+
+    // 【全局点击拦截】
+    // 无论你点了窗口里的按钮、菜单、还是空白处，这个方法都会最先执行
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseDown(e);
+
+        // 1. 如果当前【没有】处于编辑模式，直接放行，啥也不用管
+        if (InputBox.Visibility != Visibility.Visible) return;
+
+        // 2. 获取用户点击的目标控件
+        var clickedElement = e.OriginalSource as DependencyObject;
+
+        // 3. 判断：用户点的是不是【输入框本身】？
+        // 如果点的是输入框内部，那说明用户想移动光标或选中文本，不能结束编辑
+        // 使用 VisualTreeHelper 来判断点击的元素是不是 InputBox 的一部分
+        if (IsChildOf(clickedElement, InputBox))
+        {
+            return; // 点在输入框上，放行，不提交
+        }
+
+        // 4. 如果代码跑到这里，说明：
+        //    a. 正在编辑
+        //    b. 用户点到了输入框以外的地方 (可能是背景，也可能是Save按钮，或者是Thumb)
+        //    -> 强制提交！
+        FinishEditing();
+    }
+
+    // 【辅助方法】判断 child 是否是 parent 的子元素 (或者就是 parent 本身)
+    private bool IsChildOf(DependencyObject child, DependencyObject parent)
+    {
+        while (child != null)
+        {
+            if (child == parent) return true;
+            child = VisualTreeHelper.GetParent(child);
+        }
+        return false;
     }
 }

@@ -90,7 +90,7 @@
                     <ColumnDefinition Width="1*" />
                 </Grid.ColumnDefinitions>
 
-                <comp:TabPane Header="Properties">
+                <comp:TabPane Header="Flow">
                     <Grid>
 
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">

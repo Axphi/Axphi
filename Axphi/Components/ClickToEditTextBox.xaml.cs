@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -18,14 +18,6 @@ namespace Axphi.Components
     /// </summary>
     public partial class ClickToEditTextBox : UserControl
     {
-
-        // 定义一个事件：当数值提交并发生改变时触发
-        public event EventHandler? ValueChanged;
-        public ClickToEditTextBox()
-        {
-            InitializeComponent();
-        }
-
         // --- 依赖属性 (Dependency Property) ---
         // 让我们可以像使用原生控件一样绑定 Text="{Binding ...}"
         public static readonly DependencyProperty TextProperty =
@@ -35,6 +27,13 @@ namespace Axphi.Components
         {
             get { return (string)GetValue(TextProperty); }
             set { SetValue(TextProperty, value); }
+        }
+
+        // 定义一个事件：当数值提交并发生改变时触发
+        public event EventHandler? ValueChanged;
+        public ClickToEditTextBox()
+        {
+            InitializeComponent();
         }
 
         // --- 1. 进入编辑模式 ---
@@ -76,10 +75,7 @@ namespace Axphi.Components
 
             // 移除窗口监听，释放资源
             var parentWindow = Window.GetWindow(this);
-            if (parentWindow != null)
-            {
-                parentWindow.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
-            }
+            parentWindow?.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
 
             // 清除焦点
             Keyboard.ClearFocus();

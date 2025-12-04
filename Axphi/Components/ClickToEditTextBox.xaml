@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     x:Class="Axphi.Components.ClickToEditTextBox"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -17,7 +17,7 @@
             Cursor="Hand"
             FontWeight="Bold"
             MouseLeftButtonDown="DisplayBlock_MouseLeftButtonDown"
-            Text="{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            Text="{Binding Text, RelativeSource={RelativeSource AncestorType=local:ClickToEditTextBox}}"
             TextAlignment="Center" />
 
         <TextBox
@@ -26,7 +26,7 @@
             VerticalAlignment="Center"
             KeyDown="InputBox_KeyDown"
             LostFocus="InputBox_LostFocus"
-            Text="{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=Explicit}"
+            Text="{Binding Text, RelativeSource={RelativeSource AncestorType=local:ClickToEditTextBox}, UpdateSourceTrigger=Explicit}"
             TextAlignment="Center"
             Visibility="Hidden" />
     </Grid>

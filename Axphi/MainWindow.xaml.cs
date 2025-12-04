@@ -218,10 +218,13 @@ public partial class MainWindow : Window
         // --- 5. 画红色贝塞尔曲线 ---
         UpdateBezierCurve(x1, y1, x2, y2);
 
-        if (InputBox.Visibility != Visibility.Visible)
+        // 【修改】直接给自定义控件赋值
+        // 这里为了防止循环触发(改字->重画->改字)，可以加个判断
+        // 或者因为我们控件内部逻辑是 TextBlock 显示时才更新，通常没问题
+        string newText = $"{_p1.X:F2}, {_p1.Y:F2}, {_p2.X:F2}, {_p2.Y:F2}";
+        if (BezierValueBox.Text != newText)
         {
-            // 格式化为 "P1.X, P1.Y, P2.X, P2.Y" 的逗号分隔字符串
-            DisplayBox.Text = $"{_p1.X:F2}, {_p1.Y:F2}, {_p2.X:F2}, {_p2.Y:F2}";
+            BezierValueBox.Text = newText;
         }
     }
 
@@ -325,25 +328,7 @@ public partial class MainWindow : Window
         // 数据变了，重新画图
         UpdateVisuals();
     }
-    private void DisplayBox_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        // 1. 拷贝当前显示的值到输入框
-        InputBox.Text = DisplayBox.Text;
-
-        // 2. 切换可见性：隐藏显示框，显示输入框
-        DisplayBox.Visibility = Visibility.Hidden;
-        InputBox.Visibility = Visibility.Visible;
-
-        // 3. 聚焦并选中所有文本，方便用户直接输入
-        InputBox.Focus();
-        InputBox.SelectAll();
-
-        // 【新增关键代码】
-        // 标记事件已处理，阻止它冒泡传给外面的 Grid
-        // 这样 OnBackgroundClick 就不会被触发了
-        e.Handled = true;
-
-    }
+    
     // Helper 方法：解析字符串并更新 _p1, _p2
     private void ApplyInputValues(string inputText)
     {
@@ -366,72 +351,23 @@ public partial class MainWindow : Window
         }
         // 提示：如果输入错误，这里应该有一个机制来通知用户，但为了简单我们暂时忽略。
     }
-    private void InputBox_KeyDown(object sender, KeyEventArgs e)
+
+    // 【新增】当自定义控件里的值被修改并提交后，触发这个
+    private void BezierValueBox_OnValueChanged(object sender, EventArgs e)
     {
-        if (e.Key == Key.Enter)
-        {
-            FinishEditing();
-        }
-    }
-    private void InputBox_LostFocus(object sender, RoutedEventArgs e)
-    {
-        FinishEditing();
-    }
+        // 1. 获取新文本
+        string inputText = BezierValueBox.Text;
 
+        // 2. 调用你原来的解析逻辑 (ApplyInputValues 代码保留着)
+        ApplyInputValues(inputText);
 
-    // 【修改】点击背景时，强制完成编辑
-    private void OnBackgroundClick(object sender, MouseButtonEventArgs e)
-    {
-        FinishEditing();
-    }
-
-
-    // 【新增方法】专门用来：保存数据、隐藏输入框、显示文本框
-    private void FinishEditing()
-    {
-        // 如果输入框本来就没打开，直接返回，避免重复操作
-        if (InputBox.Visibility != Visibility.Visible) return;
-
-        // 1. 解析并应用当前输入的值
-        ApplyInputValues(InputBox.Text);
-
-        // 2. 切换 UI 状态：隐藏输入框，显示文本框
-        InputBox.Visibility = Visibility.Hidden;
-        DisplayBox.Visibility = Visibility.Visible;
-
-        // 3. 刷新画面 (这里会把 _p1, _p2 的新值重新画图，并更新 DisplayBox 的文字)
+        // 3. 刷新画面
         UpdateVisuals();
-
-        // 4. 清除焦点（确保光标不再闪烁）
-        Keyboard.ClearFocus();
     }
 
-    // 【全局点击拦截】
-    // 无论你点了窗口里的按钮、菜单、还是空白处，这个方法都会最先执行
-    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
-    {
-        base.OnPreviewMouseDown(e);
 
-        // 1. 如果当前【没有】处于编辑模式，直接放行，啥也不用管
-        if (InputBox.Visibility != Visibility.Visible) return;
 
-        // 2. 获取用户点击的目标控件
-        var clickedElement = e.OriginalSource as DependencyObject;
 
-        // 3. 判断：用户点的是不是【输入框本身】？
-        // 如果点的是输入框内部，那说明用户想移动光标或选中文本，不能结束编辑
-        // 使用 VisualTreeHelper 来判断点击的元素是不是 InputBox 的一部分
-        if (IsChildOf(clickedElement, InputBox))
-        {
-            return; // 点在输入框上，放行，不提交
-        }
-
-        // 4. 如果代码跑到这里，说明：
-        //    a. 正在编辑
-        //    b. 用户点到了输入框以外的地方 (可能是背景，也可能是Save按钮，或者是Thumb)
-        //    -> 强制提交！
-        FinishEditing();
-    }
 
     // 【辅助方法】判断 child 是否是 parent 的子元素 (或者就是 parent 本身)
     private bool IsChildOf(DependencyObject child, DependencyObject parent)

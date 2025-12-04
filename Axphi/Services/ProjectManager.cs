@@ -1,6 +1,8 @@
 using Axphi.Data;
 using Axphi.Extensions;
 using CommunityToolkit.Mvvm.ComponentModel;
+using System.IO;
+using System.IO.Compression;
 using System.IO.Packaging;
 using System.Text;
 using System.Text.Json;
@@ -20,13 +22,20 @@ public partial class ProjectManager : ObservableObject
 
     public void SaveProject(Project project, string path)
     {
-        using var package = Package.Open(path, System.IO.FileMode.Create);
+        using var fs = new FileStream(path, FileMode.Create);
+        using ZipArchive zip = new ZipArchive(fs, ZipArchiveMode.Create);
         var chartJson = JsonSerializer.Serialize(project.Chart);
         var chartJsonUtfBytes = Encoding.UTF8.GetBytes(chartJson);
 
-        package.WritePartAllBytes("/chart.json", "application/json", chartJsonUtfBytes);
-        package.WritePartAllBytes("/audio", "audio", project.EncodedAudio);
-        package.WritePartAllBytes("/illustration", "audio", project.EncodedIllustration);
+        var chartEntry = zip.CreateEntry("chart.json").Open();
+        chartEntry.Write(chartJsonUtfBytes);
+        chartEntry.Close();
+        var audioEntry = zip.CreateEntry("audio").Open();
+        audioEntry.Write(project.EncodedAudio);
+        audioEntry.Close();
+        var illustrationEntry = zip.CreateEntry("illustration").Open();
+        illustrationEntry.Write(project.EncodedIllustration);
+        illustrationEntry.Close();
     }
 
     public void SaveEditingProject(string path)
@@ -35,7 +44,6 @@ public partial class ProjectManager : ObservableObject
         {
             throw new InvalidOperationException("No project editing");
         }
-
         SaveProject(EditingProject, path);
     }
 }

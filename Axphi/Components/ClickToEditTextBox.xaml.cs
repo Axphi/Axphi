@@ -115,7 +115,7 @@ namespace Axphi.Components
         }
 
         // 辅助方法
-        private bool IsChildOf(DependencyObject child, DependencyObject parent)
+        private bool IsChildOf(DependencyObject? child, DependencyObject parent)
         {
             while (child != null)
             {

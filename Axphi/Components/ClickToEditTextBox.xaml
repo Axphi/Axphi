@@ -1,29 +1,33 @@
-﻿<UserControl x:Class="Axphi.Components.ClickToEditTextBox"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Axphi.Components"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+﻿<UserControl
+    x:Class="Axphi.Components.ClickToEditTextBox"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Axphi.Components"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
     <Grid>
-        <TextBlock x:Name="DisplayBlock"
-                   Text="{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                   HorizontalAlignment="Stretch"
-                   VerticalAlignment="Center"
-                   TextAlignment="Center"
-                   FontWeight="Bold"
-                   Cursor="Hand"
-                   Background="Transparent"
-                   MouseLeftButtonDown="DisplayBlock_MouseLeftButtonDown"/>
+        <TextBlock
+            x:Name="DisplayBlock"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Center"
+            Background="#4A4A4A"
+            Cursor="Hand"
+            FontWeight="Bold"
+            MouseLeftButtonDown="DisplayBlock_MouseLeftButtonDown"
+            Text="{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            TextAlignment="Center" />
 
-        <TextBox x:Name="InputBox"
-                 Text="{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=Explicit}"
-                 HorizontalAlignment="Stretch"
-                 VerticalAlignment="Center"
-                 TextAlignment="Center"
-                 Visibility="Hidden"
-                 KeyDown="InputBox_KeyDown"
-                 LostFocus="InputBox_LostFocus"/>
+        <TextBox
+            x:Name="InputBox"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Center"
+            KeyDown="InputBox_KeyDown"
+            LostFocus="InputBox_LostFocus"
+            Text="{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=Explicit}"
+            TextAlignment="Center"
+            Visibility="Hidden" />
     </Grid>
 </UserControl>

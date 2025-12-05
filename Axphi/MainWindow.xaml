@@ -90,7 +90,10 @@
                     <ColumnDefinition Width="1*" />
                 </Grid.ColumnDefinitions>
 
-                <comp:TabPane Header="Flow">
+                <comp:TabPane
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Header="Flow">
                     <Grid>
 
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -154,11 +157,15 @@
 
                 <comp:TabPane
                     Grid.Row="1"
-                    Grid.ColumnSpan="2"
-                    Header="Timeline">
+                    Grid.Column="0"
+                    Header="Line">
                     <comp:ChartTimeline />
                 </comp:TabPane>
 
+                <comp:TabPane
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Header="Timeline" />
                 <comp:TabPane
                     Grid.Row="1"
                     Grid.Column="2"

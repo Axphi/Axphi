@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.ComponentModel;
+using System.Globalization;
 
 namespace Axphi.Components;
 
@@ -15,6 +16,9 @@ public class ValueChunk : INotifyPropertyChanged
 {
     private string _displayText = "";
     private double _value;
+
+    // 【新增】标记这是第几个数字 (0, 1, 2, 3...)
+    public int NumberIndex { get; set; } = -1;
 
     public string DisplayText
     {
@@ -66,6 +70,21 @@ public class ChunkTemplateSelector : DataTemplateSelector
     }
 }
 
+
+public class ValueConstrainingEventArgs : EventArgs
+{
+    public int Index { get; }
+    public double ProposedValue { get; set; } // 控件算出来的值
+    public double FinalValue { get; set; }    // 外部修改后的最终值
+
+    public ValueConstrainingEventArgs(int index, double value)
+    {
+        Index = index;
+        ProposedValue = value;
+        FinalValue = value;
+    }
+}
+
 public partial class DraggableValueBox : UserControl
 {
     public event EventHandler? ValueChanged;
@@ -80,6 +99,9 @@ public partial class DraggableValueBox : UserControl
     private ValueChunk? _activeChunk;
     private FrameworkElement? _activeElement;
     private bool _hasMovedSignificantly = false; // 区分是点击还是拖拽
+
+    // 【新增】数值限制事件
+    public event EventHandler<ValueConstrainingEventArgs>? ValueConstraining;
 
     public DraggableValueBox()
     {
@@ -166,6 +188,8 @@ public partial class DraggableValueBox : UserControl
         var matches = Regex.Matches(text, pattern);
 
         int lastIndex = 0;
+        int numberCounter = 0; // 【新增】数字计数器
+
         foreach (Match match in matches)
         {
             // 1. 添加数字前面的普通文本 (例如逗号)
@@ -179,18 +203,28 @@ public partial class DraggableValueBox : UserControl
             }
 
             // 2. 添加数字本身
-            if (double.TryParse(match.Value, out double val))
+            if (double.TryParse(match.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out double val))
             {
                 _chunks.Add(new ValueChunk
                 {
-                    DisplayText = val.ToString(NumberFormat),
+                    DisplayText = val.ToString(NumberFormat, CultureInfo.InvariantCulture), // 这里也要改
                     Value = val,
-                    IsNumber = true
+                    IsNumber = true,
+                    NumberIndex = numberCounter++ // 设置数字索引
                 });
             }
 
             lastIndex = match.Index + match.Length;
         }
+        if (lastIndex < text.Length)
+        {
+            _chunks.Add(new ValueChunk
+            {
+                DisplayText = text.Substring(lastIndex),
+                IsNumber = false
+            });
+        }
+
 
         // 3. 添加剩余的文本
         if (lastIndex < text.Length)
@@ -220,7 +254,7 @@ public partial class DraggableValueBox : UserControl
         // 隐藏鼠标，锁定捕获
         //Mouse.OverrideCursor = Cursors.None;
 
-        
+
         Mouse.OverrideCursor = Cursors.SizeWE; // 双向箭头 <->
 
         _activeElement.CaptureMouse();
@@ -259,6 +293,14 @@ public partial class DraggableValueBox : UserControl
         if (newValue < Minimum) newValue = Minimum;
         if (newValue > Maximum) newValue = Maximum;
 
+        // 3. 【核心新增】询问外部：你要对这个特定的数字做特殊限制吗？
+        if (ValueConstraining != null)
+        {
+            var args = new ValueConstrainingEventArgs(_activeChunk.NumberIndex, newValue);
+            ValueConstraining.Invoke(this, args);
+            newValue = args.FinalValue; // 使用外部修正后的值
+        }
+
 
         // Ctrl 吸附逻辑 (可选：吸附到整数)
         // if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
@@ -266,7 +308,8 @@ public partial class DraggableValueBox : UserControl
 
         // 3. 更新界面
         _activeChunk.Value = newValue;
-        _activeChunk.DisplayText = newValue.ToString(NumberFormat);
+        // 强制用英文格式显示
+        _activeChunk.DisplayText = newValue.ToString(NumberFormat, CultureInfo.InvariantCulture);
 
         // 强制刷新 UI 显示 (因为 ObservableCollection 有时候不刷属性)
         // 这里简单粗暴一点，重新生成字符串通知外部
@@ -421,4 +464,6 @@ public partial class DraggableValueBox : UserControl
             tb.SelectAll();
         }
     }
+
 }
+

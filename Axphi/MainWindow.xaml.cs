@@ -13,6 +13,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Globalization;
 
 
 namespace Axphi;
@@ -179,6 +180,12 @@ public partial class MainWindow : Window
     private Point _p1 = new Point(0.75, 0.25);
     private Point _p2 = new Point(0.25, 0.75);
 
+
+
+    //测试用数据
+    //private Point _p1 = new Point(10.1, 20.2);
+    //private Point _p2 = new Point(30.3, 40.4);
+
     private void UpdateVisuals()
     {
         double w = GraphCanvas.Width;
@@ -221,7 +228,14 @@ public partial class MainWindow : Window
         // 【修改】直接给自定义控件赋值
         // 这里为了防止循环触发(改字->重画->改字)，可以加个判断
         // 或者因为我们控件内部逻辑是 TextBlock 显示时才更新，通常没问题
-        string newText = $"{_p1.X:F2}, {_p1.Y:F2}, {_p2.X:F2}, {_p2.Y:F2}";
+
+        //string newText = $"{_p1.X:F2}, {_p1.Y:F2}, {_p2.X:F2}, {_p2.Y:F2}";
+
+        // 【核心修复】强制使用不依赖语言环境的格式化
+        // 这保证了结果永远是 "0.75, 0.25" 而不是 "0,75, 0,25"
+        string newText = string.Format(CultureInfo.InvariantCulture,
+            "{0:F2}, {1:F2}, {2:F2}, {3:F2}",
+            _p1.X, _p1.Y, _p2.X, _p2.Y);
         if (BezierValueBox.Text != newText)
         {
             BezierValueBox.Text = newText;
@@ -365,6 +379,27 @@ public partial class MainWindow : Window
         UpdateVisuals();
     }
 
+
+    private void BezierValueBox_OnValueConstraining(object sender, Axphi.Components.ValueConstrainingEventArgs e)
+    {
+        // e.Index 表示当前拖动的是第几个数字 (从0开始)
+        // 格式: P1.X(0), P1.Y(1), P2.X(2), P2.Y(3)
+
+        // 规则：只有偶数索引 (0, 2) 是 X轴，需要限制在 0~1
+        // 奇数索引 (1, 3) 是 Y轴，不做限制
+        if (e.Index == 0 || e.Index == 2)
+        {
+            // 如果计算出的值小于0，强行改成0
+            if (e.ProposedValue < 0) e.FinalValue = 0;
+            // 如果计算出的值大于1，强行改成1
+            else if (e.ProposedValue > 1) e.FinalValue = 1;
+
+            // 否则保持原样
+        }
+
+        // 可以在这里加其他规则，比如 Y 轴虽然不限制 0~1，但不能超过 -10~10
+        // if (e.Index == 1 || e.Index == 3) { ... }
+    }
 
 
 

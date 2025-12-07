@@ -144,11 +144,12 @@
                             </Border>
                             <StackPanel Width="200" Margin="0,10,0,0">
 
-                                <comp:ClickToEditTextBox
+                                <comp:DraggableValueBox
                                     x:Name="BezierValueBox"
-                                    Height="25"
+                                    Height="30"
+                                    DragSpeed="0.01"
+                                    NumberFormat="F2"
                                     ValueChanged="BezierValueBox_OnValueChanged" />
-
                             </StackPanel>
                         </StackPanel>
 

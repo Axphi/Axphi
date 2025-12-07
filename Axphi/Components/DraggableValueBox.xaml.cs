@@ -5,16 +5,52 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.ComponentModel;
 
 namespace Axphi.Components;
 
 // 1. 数据块定义：我们要把字符串切成这样的小块
-public class ValueChunk
+// 1. 数据块定义：实现 INotifyPropertyChanged
+public class ValueChunk : INotifyPropertyChanged
 {
-    public string DisplayText { get; set; } = "";
-    public double Value { get; set; }
+    private string _displayText = "";
+    private double _value;
+
+    public string DisplayText
+    {
+        get => _displayText;
+        set
+        {
+            if (_displayText != value)
+            {
+                _displayText = value;
+                OnPropertyChanged(nameof(DisplayText)); // <--- 关键：值改变时通知 UI
+            }
+        }
+    }
+
+    public double Value
+    {
+        get => _value;
+        set
+        {
+            if (_value != value)
+            {
+                _value = value;
+                OnPropertyChanged(nameof(Value));
+            }
+        }
+    }
+
     public bool IsNumber { get; set; }
-    public bool IsEditing { get; set; } // 是否正在输入
+
+    // INotifyPropertyChanged 接口的实现
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected void OnPropertyChanged(string propertyName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 // 2. 模板选择器 (XAML 用)
@@ -82,6 +118,26 @@ public partial class DraggableValueBox : UserControl
     {
         get => (string)GetValue(NumberFormatProperty);
         set => SetValue(NumberFormatProperty, value);
+    }
+
+    // 4. Minimum: 最小值 (默认负无穷)
+    public static readonly DependencyProperty MinimumProperty =
+        DependencyProperty.Register("Minimum", typeof(double), typeof(DraggableValueBox), new PropertyMetadata(double.MinValue));
+
+    public double Minimum
+    {
+        get => (double)GetValue(MinimumProperty);
+        set => SetValue(MinimumProperty, value);
+    }
+
+    // 5. Maximum: 最大值 (默认正无穷)
+    public static readonly DependencyProperty MaximumProperty =
+        DependencyProperty.Register("Maximum", typeof(double), typeof(DraggableValueBox), new PropertyMetadata(double.MaxValue));
+
+    public double Maximum
+    {
+        get => (double)GetValue(MaximumProperty);
+        set => SetValue(MaximumProperty, value);
     }
 
     #endregion
@@ -162,7 +218,11 @@ public partial class DraggableValueBox : UserControl
         _hasMovedSignificantly = false;
 
         // 隐藏鼠标，锁定捕获
-        Mouse.OverrideCursor = Cursors.None;
+        //Mouse.OverrideCursor = Cursors.None;
+
+        
+        Mouse.OverrideCursor = Cursors.SizeWE; // 双向箭头 <->
+
         _activeElement.CaptureMouse();
     }
 
@@ -192,6 +252,13 @@ public partial class DraggableValueBox : UserControl
 
         // 2. 计算新值
         double newValue = _startDragValue + (deltaX * speed);
+
+
+        // 【新增代码】: 实施数值钳制 (Clamp)
+        // 如果小于 Min，就死死定在 Min；如果大于 Max，就死死定在 Max
+        if (newValue < Minimum) newValue = Minimum;
+        if (newValue > Maximum) newValue = Maximum;
+
 
         // Ctrl 吸附逻辑 (可选：吸附到整数)
         // if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)

@@ -150,6 +150,8 @@
                                     Height="30"
                                     DragSpeed="0.01"
                                     NumberFormat="F2"
+                                    Minimum="0" 
+                                    Maximum="1"
                                     ValueChanged="BezierValueBox_OnValueChanged" />
                             </StackPanel>
                         </StackPanel>

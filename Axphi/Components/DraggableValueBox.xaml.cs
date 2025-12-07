@@ -103,6 +103,9 @@ public partial class DraggableValueBox : UserControl
     // 【新增】数值限制事件
     public event EventHandler<ValueConstrainingEventArgs>? ValueConstraining;
 
+    // 记录当前正在编辑的 TextBox，方便我们从全局事件里找到它
+    private TextBox? _currentEditingTextBox = null;
+
     public DraggableValueBox()
     {
         InitializeComponent();
@@ -376,6 +379,14 @@ public partial class DraggableValueBox : UserControl
             textBox.Visibility = Visibility.Visible;
             textBox.Focus();
             textBox.SelectAll();
+
+            // 【新增】记录当前编辑框，并开始监听窗口全局点击
+            _currentEditingTextBox = textBox;
+            var parentWindow = Window.GetWindow(this);
+            if (parentWindow != null)
+            {
+                parentWindow.PreviewMouseDown += ParentWindow_PreviewMouseDown;
+            }
         }
     }
 
@@ -424,8 +435,48 @@ public partial class DraggableValueBox : UserControl
             textBox.Visibility = Visibility.Collapsed;
         }
 
+
+        // 【新增】编辑结束，移除窗口监听，清空引用
+        var parentWindow = Window.GetWindow(this);
+        if (parentWindow != null)
+        {
+            parentWindow.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
+        }
+        _currentEditingTextBox = null;
+
+        
         // 3. 通知外部
         RebuildAndNotify();
+    }
+
+    // 【新增】全局点击拦截
+    private void ParentWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // 如果当前没在编辑，或者找不到编辑框，直接退出
+        if (_currentEditingTextBox == null) return;
+
+        var clickedElement = e.OriginalSource as DependencyObject;
+
+        // 1. 判断点击的是不是当前输入框（或其内部）
+        // 如果是点在输入框上（比如选文本），就啥也不做，让它继续
+        if (IsChildOf(_currentEditingTextBox, clickedElement))
+        {
+            return;
+        }
+
+        // 2. 如果点的是外面 -> 强制提交！
+        FinishEdit(_currentEditingTextBox);
+    }
+
+    // 辅助方法：判断 clicked 是否在 parent 内部
+    private bool IsChildOf(DependencyObject parent, DependencyObject clicked)
+    {
+        while (clicked != null)
+        {
+            if (clicked == parent) return true;
+            clicked = VisualTreeHelper.GetParent(clicked);
+        }
+        return false;
     }
 
     // --- 辅助：重组字符串并通知 ---

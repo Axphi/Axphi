@@ -7,53 +7,24 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.ComponentModel;
 using System.Globalization;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Axphi.Components;
 
 // 1. 数据块定义：我们要把字符串切成这样的小块
 // 1. 数据块定义：实现 INotifyPropertyChanged
-public class ValueChunk : INotifyPropertyChanged
+public partial class ValueChunk : ObservableObject
 {
+    [ObservableProperty]
     private string _displayText = "";
+
+    [ObservableProperty]
     private double _value;
 
     // 【新增】标记这是第几个数字 (0, 1, 2, 3...)
     public int NumberIndex { get; set; } = -1;
 
-    public string DisplayText
-    {
-        get => _displayText;
-        set
-        {
-            if (_displayText != value)
-            {
-                _displayText = value;
-                OnPropertyChanged(nameof(DisplayText)); // <--- 关键：值改变时通知 UI
-            }
-        }
-    }
-
-    public double Value
-    {
-        get => _value;
-        set
-        {
-            if (_value != value)
-            {
-                _value = value;
-                OnPropertyChanged(nameof(Value));
-            }
-        }
-    }
-
     public bool IsNumber { get; set; }
-
-    // INotifyPropertyChanged 接口的实现
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected void OnPropertyChanged(string propertyName)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }
 

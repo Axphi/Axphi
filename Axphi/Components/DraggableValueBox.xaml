@@ -17,7 +17,7 @@
                 <Border x:Name="HoverBorder" 
                         Background="Transparent" 
                         CornerRadius="2" 
-                        Padding="2,0">
+                        Padding="2, 1">
                     <TextBlock Text="{Binding DisplayText}" 
                                Foreground="#007ACC" 
                                FontWeight="Bold"/>
@@ -29,6 +29,11 @@
                          MinWidth="40"
                          Padding="0"
                          Margin="0"
+                         BorderThickness="1"
+                         Foreground="White" 
+                         Background="#55555555"
+                         HorizontalContentAlignment="Center"
+                         FontWeight="Bold"
                          KeyDown="EditBox_KeyDown"
                          LostFocus="EditBox_LostFocus"
                          Loaded="EditBox_Loaded"/>
@@ -70,7 +75,8 @@
     </UserControl.Resources>
 
     <ItemsControl x:Name="MainItemsControl" 
-                  ItemTemplateSelector="{StaticResource ChunkSelector}">
+                  ItemTemplateSelector="{StaticResource ChunkSelector}"
+                  FocusVisualStyle="{x:Null}">
         <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center"/>

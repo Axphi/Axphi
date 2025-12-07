@@ -146,6 +146,7 @@
 
                                 <comp:DraggableValueBox
                                     x:Name="BezierValueBox"
+                                    HorizontalAlignment="Center"
                                     Height="30"
                                     DragSpeed="0.01"
                                     NumberFormat="F2"

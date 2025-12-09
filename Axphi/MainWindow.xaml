@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="Axphi.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -95,7 +95,6 @@
                     Grid.Column="0"
                     Header="Flow">
                     <Grid>
-
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Border BorderBrush="#CCCCCC" BorderThickness="1">
 
@@ -142,16 +141,14 @@
 
                                 </Canvas>
                             </Border>
-                            <StackPanel Width="200" Margin="0,10,0,0">
-
-                                <comp:DraggableValueBox
-                                    x:Name="BezierValueBox"
-                                    HorizontalAlignment="Center"
-                                    Height="30"
-                                    DragSpeed="0.01"
-                                    NumberFormat="F2"
-                                    ValueChanged="BezierValueBox_OnValueChanged"
-                                    ValueConstraining="BezierValueBox_OnValueConstraining"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 10 0 0">
+                                <comp:DraggableValueBox Value="{Binding ViewModel.X1}" Height="30" DragSpeed="0.01" NumberFormat="0.0" Maximum="123" />
+                                <TextBlock Text=", " />
+                                <comp:DraggableValueBox Value="{Binding ViewModel.Y1}" Height="30" DragSpeed="0.01" NumberFormat="0.0" Maximum="123" />
+                                <TextBlock Text=", " />
+                                <comp:DraggableValueBox Value="{Binding ViewModel.X2}" Height="30" DragSpeed="0.01" NumberFormat="0.0" Maximum="123" />
+                                <TextBlock Text=", " />
+                                <comp:DraggableValueBox Value="{Binding ViewModel.Y2}" Height="30" DragSpeed="0.01" NumberFormat="0.0" Maximum="123" />
                             </StackPanel>
                         </StackPanel>
 

@@ -1,15 +1,17 @@
-﻿using Axphi.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Axphi.ViewModels
+namespace Axphi.ViewModels;
+
+public partial class MainViewModel : ObservableObject
 {
-    public partial class MainViewModel : ObservableObject
-    {
+    [ObservableProperty]
+    private double _x1;
+    [ObservableProperty]
+    private double _y1;
+    [ObservableProperty]
+    private double _x2;
+    [ObservableProperty]
+    private double _y2;
 
-    }
+
 }

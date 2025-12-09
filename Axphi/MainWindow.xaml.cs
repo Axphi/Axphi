@@ -1,4 +1,4 @@
-﻿using Axphi.Data;
+using Axphi.Data;
 using Axphi.Services;
 using Axphi.Utilities;
 using Axphi.ViewModels;
@@ -236,10 +236,10 @@ public partial class MainWindow : Window
         string newText = string.Format(CultureInfo.InvariantCulture,
             "{0:F2}, {1:F2}, {2:F2}, {3:F2}",
             _p1.X, _p1.Y, _p2.X, _p2.Y);
-        if (BezierValueBox.Text != newText)
-        {
-            BezierValueBox.Text = newText;
-        }
+        //if (BezierValueBox.Text != newText)
+        //{
+        //    BezierValueBox.Text = newText;
+        //}
     }
 
     // 单独把画曲线提出来，比较清晰
@@ -370,36 +370,36 @@ public partial class MainWindow : Window
     private void BezierValueBox_OnValueChanged(object sender, EventArgs e)
     {
         // 1. 获取新文本
-        string inputText = BezierValueBox.Text;
+        //string inputText = BezierValueBox.Text;
 
         // 2. 调用你原来的解析逻辑 (ApplyInputValues 代码保留着)
-        ApplyInputValues(inputText);
+        //ApplyInputValues(inputText);
 
         // 3. 刷新画面
         UpdateVisuals();
     }
 
 
-    private void BezierValueBox_OnValueConstraining(object sender, Axphi.Components.ValueConstrainingEventArgs e)
-    {
-        // e.Index 表示当前拖动的是第几个数字 (从0开始)
-        // 格式: P1.X(0), P1.Y(1), P2.X(2), P2.Y(3)
+    //private void BezierValueBox_OnValueConstraining(object sender, Axphi.Components.ValueConstrainingEventArgs e)
+    //{
+    //    // e.Index 表示当前拖动的是第几个数字 (从0开始)
+    //    // 格式: P1.X(0), P1.Y(1), P2.X(2), P2.Y(3)
 
-        // 规则：只有偶数索引 (0, 2) 是 X轴，需要限制在 0~1
-        // 奇数索引 (1, 3) 是 Y轴，不做限制
-        if (e.Index == 0 || e.Index == 2)
-        {
-            // 如果计算出的值小于0，强行改成0
-            if (e.ProposedValue < 0) e.FinalValue = 0;
-            // 如果计算出的值大于1，强行改成1
-            else if (e.ProposedValue > 1) e.FinalValue = 1;
+    //    // 规则：只有偶数索引 (0, 2) 是 X轴，需要限制在 0~1
+    //    // 奇数索引 (1, 3) 是 Y轴，不做限制
+    //    if (e.Index == 0 || e.Index == 2)
+    //    {
+    //        // 如果计算出的值小于0，强行改成0
+    //        if (e.ProposedValue < 0) e.FinalValue = 0;
+    //        // 如果计算出的值大于1，强行改成1
+    //        else if (e.ProposedValue > 1) e.FinalValue = 1;
 
-            // 否则保持原样
-        }
+    //        // 否则保持原样
+    //    }
 
-        // 可以在这里加其他规则，比如 Y 轴虽然不限制 0~1，但不能超过 -10~10
-        // if (e.Index == 1 || e.Index == 3) { ... }
-    }
+    //    // 可以在这里加其他规则，比如 Y 轴虽然不限制 0~1，但不能超过 -10~10
+    //    // if (e.Index == 1 || e.Index == 3) { ... }
+    //}
 
 
 

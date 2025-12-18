@@ -147,17 +147,9 @@
                 </comp:TabPane>
 
                 <DockPanel Grid.Row="0" Grid.Column="1">
-                    <StackPanel
-                        HorizontalAlignment="Center"
-                        DockPanel.Dock="Bottom"
-                        Orientation="Horizontal">
-                        <ws:Button Command="{Binding PlayPauseChartRenderingCommand}" Content="Play/Pause" />
-                        <ws:Button Command="{Binding StopChartRenderingCommand}" Content="Stop" />
-                    </StackPanel>
-                    <comp:ChartRenderer
-                        x:Name="chartRenderer"
-                        Chart="{Binding ProjectManager.EditingProject.Chart}"
-                        ClipToBounds="True" />
+
+                    <mainWinComp:ChartDisplay x:Name="MainChartDisplay" />
+
                 </DockPanel>
             </Grid>
         </DockPanel>

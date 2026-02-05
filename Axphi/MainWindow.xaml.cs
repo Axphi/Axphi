@@ -263,64 +263,120 @@ public partial class MainWindow : Window
 
 
     // 记录当前正在拖拽的那个圆点 (可能是 Thumb1，也可能是 Thumb2)
-    private FrameworkElement _draggingThumb = null;
+    private FrameworkElement? _draggingThumb;
+
+    private void GraphCanvas_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // 点击图的时候：按距离选最近的点，并立即吸附到鼠标
+        var mousePos = e.GetPosition(GraphCanvas);
+        _draggingThumb = GetNearestThumb(mousePos);
+        GraphCanvas.CaptureMouse();
+        ApplyMouseToDraggingThumb(mousePos);
+        e.Handled = true;
+    }
+
+    private void GraphCanvas_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_draggingThumb is null || !GraphCanvas.IsMouseCaptured)
+        {
+            return;
+        }
+
+        var mousePos = e.GetPosition(GraphCanvas);
+        ApplyMouseToDraggingThumb(mousePos);
+        e.Handled = true;
+    }
+
+    private void GraphCanvas_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (GraphCanvas.IsMouseCaptured)
+        {
+            GraphCanvas.ReleaseMouseCapture();
+        }
+
+        _draggingThumb = null;
+        e.Handled = true;
+    }
+
+    private FrameworkElement GetNearestThumb(Point mousePos)
+    {
+        double w = GraphCanvas.Width;
+        double h = GraphCanvas.Height;
+
+        // 归一化点 -> 像素点（注意 y 轴翻转）
+        var p1 = new Point(_p1.X * w, h - (_p1.Y * h));
+        var p2 = new Point(_p2.X * w, h - (_p2.Y * h));
+
+        double d1 = (mousePos.X - p1.X) * (mousePos.X - p1.X) + (mousePos.Y - p1.Y) * (mousePos.Y - p1.Y);
+        double d2 = (mousePos.X - p2.X) * (mousePos.X - p2.X) + (mousePos.Y - p2.Y) * (mousePos.Y - p2.Y);
+        return d1 <= d2 ? Thumb1 : Thumb2;
+    }
+
+    private void ApplyMouseToDraggingThumb(Point mousePos)
+    {
+        if (_draggingThumb is null)
+        {
+            return;
+        }
+
+        double w = GraphCanvas.Width;
+        double h = GraphCanvas.Height;
+        if (w <= 0 || h <= 0)
+        {
+            return;
+        }
+
+        double xNorm = mousePos.X / w;
+        double yNorm = (h - mousePos.Y) / h;
+
+        // 更新到 ViewModel（X 会在 ViewModel 内部钳制到 0..1）
+        if (_draggingThumb == Thumb1)
+        {
+            ViewModel.X1 = xNorm;
+            ViewModel.Y1 = yNorm;
+        }
+        else
+        {
+            ViewModel.X2 = xNorm;
+            ViewModel.Y2 = yNorm;
+        }
+    }
+
     // 1. 鼠标按下：开始拖拽
     private void Thumb_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        // 获取被点击的圆点
+        // 仍然兼容“直接点圆点拖动”，但实际拖拽逻辑由 Canvas Preview 统一接管
         _draggingThumb = sender as FrameworkElement;
-
-        // 【重要】捕获鼠标
-        // 这样即使鼠标移出了 Canvas 范围，程序依然能收到移动事件，防止拖断
         if (_draggingThumb != null)
         {
-            _draggingThumb.CaptureMouse();
+            GraphCanvas.CaptureMouse();
+            ApplyMouseToDraggingThumb(e.GetPosition(GraphCanvas));
+            e.Handled = true;
         }
     }
 
     // 2. 鼠标抬起：结束拖拽
     private void Thumb_MouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (_draggingThumb != null)
+        if (GraphCanvas.IsMouseCaptured)
         {
-            // 释放鼠标捕获
-            _draggingThumb.ReleaseMouseCapture();
-            _draggingThumb = null;
+            GraphCanvas.ReleaseMouseCapture();
         }
+
+        _draggingThumb = null;
+        e.Handled = true;
     }
 
     // 3. 鼠标移动：计算坐标并更新
     private void Thumb_MouseMove(object sender, MouseEventArgs e)
     {
-        // 如果没有在拖拽，直接忽略
-        if (_draggingThumb == null) return;
-
-        // 获取鼠标在 Canvas 上的像素坐标
-        Point mousePos = e.GetPosition(GraphCanvas);
-        double w = GraphCanvas.Width;
-        double h = GraphCanvas.Height;
-
-        // --- 核心算法：像素坐标 -> 归一化坐标 (0~1) ---
-
-        // 1. 计算 X (范围 0~1)
-        double xNorm = mousePos.X / w;
-
-        // 2. 计算 Y (范围 0~1)
-        // 屏幕Y向下增加，数学Y向上增加，所以要反过来算：(总高 - 鼠标Y) / 总高
-        double yNorm = (h - mousePos.Y) / h;
-
-        // --- 更新数据 ---
-        // 统一更新到 ViewModel（并由 ViewModel 的钳制 + PropertyChanged 驱动刷新 UI）
-        if (_draggingThumb == Thumb1)
+        if (_draggingThumb is null || !GraphCanvas.IsMouseCaptured)
         {
-            ViewModel.X1 = xNorm;
-            ViewModel.Y1 = yNorm;
+            return;
         }
-        else if (_draggingThumb == Thumb2)
-        {
-            ViewModel.X2 = xNorm;
-            ViewModel.Y2 = yNorm;
-        }
+
+        ApplyMouseToDraggingThumb(e.GetPosition(GraphCanvas));
+        e.Handled = true;
     }
     
     // Helper 方法：解析字符串并更新 _p1, _p2

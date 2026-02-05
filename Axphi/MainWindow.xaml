@@ -49,7 +49,10 @@
                                     Width="200"
                                     Height="200"
                                     Background="#414141"
-                                    ClipToBounds="False">
+                                    ClipToBounds="False"
+                                    PreviewMouseLeftButtonDown="GraphCanvas_PreviewMouseLeftButtonDown"
+                                    PreviewMouseMove="GraphCanvas_PreviewMouseMove"
+                                    PreviewMouseLeftButtonUp="GraphCanvas_PreviewMouseLeftButtonUp">
 
                                     <Path
                                         x:Name="CurvePath"

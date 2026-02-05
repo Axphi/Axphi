@@ -27,11 +27,11 @@ public partial class MainWindow : Window
     private SaveFileDialog? _saveChartDialog;
     private OpenFileDialog? _importMusicDialog;
 
-    private MediaFoundationReader? _musicReader;
-    private WasapiOut? _wasapiOut;
+    //private MediaFoundationReader? _musicReader;
+    //private WasapiOut? _wasapiOut;
 
-    private DispatcherTimer? _dispatcherTimer;
-    private Stopwatch? _renderStopwatch;
+    //private DispatcherTimer? _dispatcherTimer;
+    //private Stopwatch? _renderStopwatch;
 
     public MainViewModel ViewModel { get; }
     public ProjectManager ProjectManager { get; }
@@ -72,41 +72,9 @@ public partial class MainWindow : Window
         base.OnSourceInitialized(e);
     }
 
-    [RelayCommand]
-    private void PlayPauseChartRendering()
-    {
-        _renderStopwatch ??= new Stopwatch();
-        if (_dispatcherTimer is null)
-        {
-            _dispatcherTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(1), DispatcherPriority.Render, RenderTimerCallback, Dispatcher);
-        }
-        else
-        {
-            _dispatcherTimer.IsEnabled ^= true;
-        }
+    
 
-        if (_dispatcherTimer.IsEnabled)
-        {
-            _wasapiOut?.Play();
-            _renderStopwatch.Start();
-        }
-        else
-        {
-            _wasapiOut?.Pause();
-            _renderStopwatch.Stop();
-        }
-    }
-
-    [RelayCommand]
-    private void StopChartRendering()
-    {
-        _dispatcherTimer?.Stop();
-        _renderStopwatch?.Stop();
-        _renderStopwatch?.Reset();
-        _wasapiOut?.Stop();
-
-        chartRenderer.Time = default;
-    }
+    
 
     [RelayCommand]
     private void LoadDemoChart()
@@ -121,6 +89,9 @@ public partial class MainWindow : Window
     [RelayCommand]
     private void ImportMusic()
     {
+        
+        
+
         _importMusicDialog ??= new OpenFileDialog()
         {
             Title = "Import music",
@@ -133,10 +104,17 @@ public partial class MainWindow : Window
             return;
         }
 
+        //ProjectManager.EditingProject.EncodedAudio = System.IO.File.ReadAllBytes(_importMusicDialog.FileName);
+        //_musicReader = new MediaFoundationReader(_importMusicDialog.FileName);
+        //_wasapiOut ??= new WasapiOut();
+        //_wasapiOut.Init(_musicReader);
+
+        // 1. 业务数据逻辑：保存到 Project 对象 (保持不变)
         ProjectManager.EditingProject.EncodedAudio = System.IO.File.ReadAllBytes(_importMusicDialog.FileName);
-        _musicReader = new MediaFoundationReader(_importMusicDialog.FileName);
-        _wasapiOut ??= new WasapiOut();
-        _wasapiOut.Init(_musicReader);
+
+        // 2. 播放器逻辑：直接调用控件的方法 (新逻辑)
+        // MainChartDisplay 是你在 XAML 里给控件起的名字
+        MainChartDisplay.LoadAudio(_importMusicDialog.FileName);
     }
 
     [RelayCommand]
@@ -183,18 +161,7 @@ public partial class MainWindow : Window
     private void CloseSelf()
         => Close();
 
-    private void RenderTimerCallback(object? sender, EventArgs e)
-    {
-        if (_wasapiOut is not null &&
-            _wasapiOut.PlaybackState == PlaybackState.Playing)
-        {
-            chartRenderer.Time = _wasapiOut.GetPositionTimeSpan();
-            return;
-        }
-
-        _renderStopwatch ??= new Stopwatch();
-        chartRenderer.Time = _renderStopwatch.Elapsed;
-    }
+    
     //wtfbro我开始瞎写了
     private Point _p1 = new Point(0.75, 0.25);
     private Point _p2 = new Point(0.25, 0.75);
@@ -427,4 +394,6 @@ public partial class MainWindow : Window
         }
         return false;
     }
+
+
 }

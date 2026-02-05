@@ -14,8 +14,8 @@ public partial class DraggableValueBox : UserControl
     public event EventHandler? ValueChanged;
 
     // 拖拽状态记录
-    private Point _startDragScreenPos;
-    private double _startDragValue;
+    private Point _lastDragScreenPos;
+    private Window? _parentWindow;
 
 
     #region Dependency Properties
@@ -27,7 +27,15 @@ public partial class DraggableValueBox : UserControl
     }
 
 
-    public static readonly DependencyProperty ValueProperty = DependencyProperty.Register(nameof(Value), typeof(double), typeof(DraggableValueBox), new PropertyMetadata(0.0));
+    public static readonly DependencyProperty ValueProperty = DependencyProperty.Register(
+        nameof(Value),
+        typeof(double),
+        typeof(DraggableValueBox),
+        new FrameworkPropertyMetadata(
+            0.0,
+            FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+            OnValueChanged,
+            CoerceValue));
     public double Value
     {
         get { return (double)GetValue(ValueProperty); }
@@ -43,7 +51,11 @@ public partial class DraggableValueBox : UserControl
     }
 
     // 3. Format: 数字格式 (默认 F2)
-    public static readonly DependencyProperty NumberFormatProperty = DependencyProperty.Register("NumberFormat", typeof(string), typeof(DraggableValueBox), new PropertyMetadata("F2"));
+    public static readonly DependencyProperty NumberFormatProperty = DependencyProperty.Register(
+        "NumberFormat",
+        typeof(string),
+        typeof(DraggableValueBox),
+        new PropertyMetadata("F2", OnNumberFormatChanged));
     public string NumberFormat
     {
         get => (string)GetValue(NumberFormatProperty);
@@ -51,7 +63,11 @@ public partial class DraggableValueBox : UserControl
     }
 
     // 4. Minimum: 最小值 (默认负无穷)
-    public static readonly DependencyProperty MinimumProperty = DependencyProperty.Register("Minimum", typeof(double), typeof(DraggableValueBox), new PropertyMetadata(double.MinValue));
+    public static readonly DependencyProperty MinimumProperty = DependencyProperty.Register(
+        "Minimum",
+        typeof(double),
+        typeof(DraggableValueBox),
+        new PropertyMetadata(double.MinValue, OnMinMaxChanged));
     public double Minimum
     {
         get => (double)GetValue(MinimumProperty);
@@ -59,7 +75,11 @@ public partial class DraggableValueBox : UserControl
     }
 
     // 5. Maximum: 最大值 (默认正无穷)
-    public static readonly DependencyProperty MaximumProperty = DependencyProperty.Register("Maximum", typeof(double), typeof(DraggableValueBox), new PropertyMetadata(double.MaxValue));
+    public static readonly DependencyProperty MaximumProperty = DependencyProperty.Register(
+        "Maximum",
+        typeof(double),
+        typeof(DraggableValueBox),
+        new PropertyMetadata(double.MaxValue, OnMinMaxChanged));
     public double Maximum
     {
         get => (double)GetValue(MaximumProperty);
@@ -85,61 +105,149 @@ public partial class DraggableValueBox : UserControl
     public DraggableValueBox()
     {
         InitializeComponent();
+
+        Loaded += (_, _) => SyncDisplayText();
+        Unloaded += (_, _) => UnhookWindowClick();
     }
 
     private static void IsEditableChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        //if (d is not DraggableValueBox obj)
-        //{
-        //    return;
-        //}
+        if (d is not DraggableValueBox obj)
+        {
+            return;
+        }
 
-        //var oldValue = (bool)e.OldValue;
-        //var newValue = (bool)e.NewValue;
-
-        //if (!oldValue && newValue)
-        //{
-        //    obj.EnterEditMode();
-        //}
-        //else
-        //{
-        //    obj.FinishEdit();
-        //}
+        var newValue = (bool)e.NewValue;
+        if (newValue)
+        {
+            obj.BeginEdit();
+        }
+        else
+        {
+            obj.EndEdit();
+        }
     }
 
 
 
+    private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not DraggableValueBox obj)
+        {
+            return;
+        }
+
+        obj.SyncDisplayText();
+        obj.ValueChanged?.Invoke(obj, EventArgs.Empty);
+    }
+
+    private static object CoerceValue(DependencyObject d, object baseValue)
+    {
+        if (d is not DraggableValueBox obj)
+        {
+            return baseValue;
+        }
+
+        var value = (double)baseValue;
+        if (value < obj.Minimum) value = obj.Minimum;
+        if (value > obj.Maximum) value = obj.Maximum;
+        return value;
+    }
+
+    private static void OnMinMaxChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not DraggableValueBox obj)
+        {
+            return;
+        }
+
+        // 当 Min/Max 改变时，强制重新钳制当前 Value
+        obj.CoerceValue(ValueProperty);
+        obj.SyncDisplayText();
+    }
+
+    private void SyncDisplayText()
+    {
+        try
+        {
+            DisplayText = Value.ToString(NumberFormat, CultureInfo.InvariantCulture);
+        }
+        catch (FormatException)
+        {
+            // NumberFormat 非法时，退回默认格式，避免 UI 直接炸
+            DisplayText = Value.ToString(CultureInfo.InvariantCulture);
+        }
+    }
+
     #endregion
+
+    private static void OnNumberFormatChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not DraggableValueBox obj)
+        {
+            return;
+        }
+
+        obj.SyncDisplayText();
+    }
 
 
     // --- 交互逻辑：鼠标按下 ---
     private void Number_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (sender is FrameworkElement frameworkElement)
+        if (IsEditable)
         {
-            _startDragScreenPos = e.GetPosition(frameworkElement);
-            _startDragValue = Value;
-            IsDragging = true;
-
-            Mouse.OverrideCursor = Cursors.SizeWE;
-            Container.CaptureMouse();
+            return;
         }
+
+        // 双击进入编辑模式（不触发拖拽）
+        if (e.ClickCount >= 2)
+        {
+            IsEditable = true;
+            e.Handled = true;
+            return;
+        }
+
+        var cursor = GetCursorPosPixels();
+        _lastDragScreenPos = new Point(cursor.X, cursor.Y);
+        IsDragging = true;
+
+        Mouse.OverrideCursor = Cursors.SizeWE;
+        Container.CaptureMouse();
     }
 
     // --- 交互逻辑：鼠标拖动 (核心) ---
     private void Number_MouseMove(object sender, MouseEventArgs e)
     {
-        if (!IsDragging || sender is not FrameworkElement frameworkElement)
+        if (!IsDragging)
         {
             return;
         }
 
-        Point currentScreenPos = frameworkElement.PointToScreen(e.GetPosition(frameworkElement));
-        double deltaX = currentScreenPos.X - _startDragScreenPos.X;
+        // 用真实光标像素坐标（避免 PointToScreen 在捕获/缩放下偶发不准）
+        var cursor = GetCursorPosPixels();
+        Point currentScreenPos = new Point(cursor.X, cursor.Y);
+
+        // 基于“上一帧”计算增量，避免回环/瞬移导致 delta 巨大而数值跳变
+        double deltaX = currentScreenPos.X - _lastDragScreenPos.X;
+
+        // --- 4. 屏幕边缘回环 (Infinite Wrap) ---
+        // 使用虚拟屏幕像素边界（多显示器），并在回环时重置基准点。
+        var bounds = GetVirtualScreenBoundsPixels();
+        var boundsWidth = bounds.Right - bounds.Left;
+
+        // 如果系统/驱动导致光标瞬移（例如 SetCursorPos 尚未生效的一帧），
+        // 这一帧直接丢弃并重置基准，防止 Value 大跳。
+        if (boundsWidth > 0 && Math.Abs(deltaX) > boundsWidth * 0.5)
+        {
+            _lastDragScreenPos = currentScreenPos;
+            return;
+        }
 
         // 如果移动距离太小，视为静止，防抖动
         if (Math.Abs(deltaX) < 2)
             return;
+
 
         // 1. 计算倍率
         double speed = DragSpeed;
@@ -152,44 +260,42 @@ public partial class DraggableValueBox : UserControl
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
             speed *= 10.0;
 
-        // 2. 计算新值
-        double newValue = _startDragValue + (deltaX * speed);
-
-        // 【新增代码】: 实施数值钳制 (Clamp)
-        // 如果小于 Min，就死死定在 Min；如果大于 Max，就死死定在 Max
-        if (newValue < Minimum) newValue = Minimum;
-        if (newValue > Maximum) newValue = Maximum;
+        // 2. 计算新值（增量式：基于当前 Value）
+        double newValue = Value + (deltaX * speed);
 
 
         // Ctrl 吸附逻辑 (可选：吸附到整数)
         // if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         //    newValue = Math.Round(newValue);
 
-        // 3. 更新界面
-        DisplayText = newValue.ToString(NumberFormat);
-        Value = newValue;
+        // 3. 更新界面（增量式更新）
+        Value = newValue; // Value 会被 CoerceValue 钳制，并在 OnValueChanged 同步 DisplayText
 
-        // --- 4. 屏幕边缘回环 (Infinite Wrap) ---
-        double screenWidth = SystemParameters.PrimaryScreenWidth;
+        // 先更新基准点（正常情况下一帧一帧推进）
+        _lastDragScreenPos = currentScreenPos;
+
         bool warped = false;
         Point newPos = currentScreenPos;
 
-        if (currentScreenPos.X <= 2) // 碰到左边缘
+        const int edgePadding = 4;
+        if (currentScreenPos.X <= bounds.Left + edgePadding)
         {
-            newPos.X = screenWidth - 2;
+            newPos.X = bounds.Right - edgePadding;
             warped = true;
         }
-        else if (currentScreenPos.X >= screenWidth - 2) // 碰到右边缘
+        else if (currentScreenPos.X >= bounds.Right - edgePadding)
         {
-            newPos.X = 2;
+            newPos.X = bounds.Left + edgePadding;
             warped = true;
         }
 
         if (warped)
         {
             SetCursorPos((int)newPos.X, (int)newPos.Y);
-            // 重要：修正起始点，防止数值跳变
-            _startDragScreenPos = new Point(newPos.X - deltaX, _startDragScreenPos.Y);
+
+            // 回环后立刻把基准点设为目标位置，避免下一帧出现巨额 delta
+            _lastDragScreenPos = newPos;
+            return;
         }
     }
 
@@ -201,44 +307,73 @@ public partial class DraggableValueBox : UserControl
         IsDragging = false;
         Container.ReleaseMouseCapture();
         Mouse.OverrideCursor = null; // 恢复光标
-        //EnterEditMode();
+
+        // 如果几乎没移动，把它当点击（可选：单击编辑）。这里保守一点不自动进编辑，避免误触。
     }
 
     // --- 编辑模式逻辑 ---
-    private void EnterEditMode()
+    private void BeginEdit()
     {
-        //// 找到里面的 TextBox 和 TextBlock
-        //var textBox = FindVisualChild<TextBox>(Container);
-        //var border = FindVisualChild<Border>(Container);
+        // 进入编辑时，编辑框显示“当前显示文本”，避免 double 精度尾巴
+        EditBox.Text = DisplayText;
 
-        //if (textBox != null && border != null)
-        //{
-        //    border.Visibility = Visibility.Collapsed;
-        //    textBox.Visibility = Visibility.Visible;
-        //    textBox.Focus();
-        //    textBox.SelectAll();
+        HookWindowClick();
 
-        //    // 记录当前编辑框，并开始监听窗口全局点击
-        //    var parentWindow = Window.GetWindow(this);
-        //    if (parentWindow != null)
-        //    {
-        //        parentWindow.PreviewMouseDown += ParentWindow_PreviewMouseDown;
-        //    }
-        //    IsEditable = true;
-        //}
+        // Focus 需要等可见性切换后执行，Dispatcher 更稳
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            EditBox.Focus();
+            EditBox.SelectAll();
+        }), System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    private void EndEdit()
+    {
+        UnhookWindowClick();
     }
 
     private void EditBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
         {
-            //FinishEdit();
+            FinishEdit(commit: true);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            FinishEdit(commit: false);
+            e.Handled = true;
         }
     }
 
     private void EditBox_LostFocus(object sender, RoutedEventArgs e)
     {
-        //FinishEdit();
+        if (IsEditable)
+        {
+            FinishEdit(commit: true);
+        }
+    }
+
+    private void FinishEdit(bool commit)
+    {
+        if (!IsEditable)
+        {
+            return;
+        }
+
+        if (commit)
+        {
+            var text = (EditBox.Text ?? string.Empty).Trim();
+            if (TryParseDouble(text, out var val))
+            {
+                Value = val; // DP 内部会 Coerce
+            }
+        }
+
+        // 无论提交/取消，都用当前 Value 刷新显示文本
+        SyncDisplayText();
+        IsEditable = false;
+        Keyboard.ClearFocus();
     }
 
     //private void FinishEdit()
@@ -259,28 +394,65 @@ public partial class DraggableValueBox : UserControl
     //    IsEditable = false;
     //}
 
-    // 【新增】全局点击拦截
-    private void ParentWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    private void HookWindowClick()
     {
-        //var clickedElement = e.OriginalSource as DependencyObject;
-
-        //if (IsChildOf(_currentEditingTextBox, clickedElement))
-        //{
-        //    return;
-        //}
-
-        //FinishEdit();
+        _parentWindow ??= Window.GetWindow(this);
+        if (_parentWindow != null)
+        {
+            _parentWindow.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
+            _parentWindow.PreviewMouseDown += ParentWindow_PreviewMouseDown;
+        }
     }
 
-    // 辅助方法：判断 clicked 是否在 parent 内部
-    private bool IsChildOf(DependencyObject parent, DependencyObject clicked)
+    private void UnhookWindowClick()
     {
-        while (clicked != null)
+        if (_parentWindow != null)
         {
-            if (clicked == parent) return true;
-            clicked = VisualTreeHelper.GetParent(clicked);
+            _parentWindow.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
+        }
+        _parentWindow = null;
+    }
+
+    // 全局点击拦截：点击编辑框外部 -> 提交并退出
+    private void ParentWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!IsEditable)
+        {
+            return;
+        }
+
+        var clicked = e.OriginalSource as DependencyObject;
+        if (clicked != null && IsDescendantOf(clicked, EditBox))
+        {
+            return;
+        }
+
+        FinishEdit(commit: true);
+    }
+
+    private static bool IsDescendantOf(DependencyObject descendant, DependencyObject ancestor)
+    {
+        var current = descendant;
+        while (current != null)
+        {
+            if (current == ancestor)
+            {
+                return true;
+            }
+            current = VisualTreeHelper.GetParent(current);
         }
         return false;
+    }
+
+    private static bool TryParseDouble(string text, out double value)
+    {
+        // 先用当前文化（中文环境可能用逗号），再 fallback 到 Invariant
+        if (double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value))
+        {
+            return true;
+        }
+
+        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 
     //// 辅助查找子控件
@@ -300,5 +472,57 @@ public partial class DraggableValueBox : UserControl
 
     [DllImport("User32.dll")]
     private static extern bool SetCursorPos(int X, int Y);
+
+    [DllImport("User32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [DllImport("User32.dll")]
+    private static extern int GetSystemMetrics(int nIndex);
+
+    // 虚拟屏幕（多显示器）物理像素边界
+    private const int SM_XVIRTUALSCREEN = 76;
+    private const int SM_YVIRTUALSCREEN = 77;
+    private const int SM_CXVIRTUALSCREEN = 78;
+    private const int SM_CYVIRTUALSCREEN = 79;
+
+    private static POINT GetCursorPosPixels()
+    {
+        if (GetCursorPos(out var pt))
+        {
+            return pt;
+        }
+        return default;
+    }
+
+    private static RECT GetVirtualScreenBoundsPixels()
+    {
+        var left = GetSystemMetrics(SM_XVIRTUALSCREEN);
+        var top = GetSystemMetrics(SM_YVIRTUALSCREEN);
+        var width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        var height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        return new RECT
+        {
+            Left = left,
+            Top = top,
+            Right = left + width,
+            Bottom = top + height
+        };
+    }
 }
 

@@ -21,7 +21,13 @@ namespace Axphi.Components
         // --- 依赖属性 (Dependency Property) ---
         // 让我们可以像使用原生控件一样绑定 Text="{Binding ...}"
         public static readonly DependencyProperty TextProperty =
-            DependencyProperty.Register("Text", typeof(string), typeof(ClickToEditTextBox), new PropertyMetadata(string.Empty));
+            DependencyProperty.Register(
+                "Text",
+                typeof(string),
+                typeof(ClickToEditTextBox),
+                new FrameworkPropertyMetadata(
+                    string.Empty,
+                    FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         public string Text
         {
@@ -34,6 +40,13 @@ namespace Axphi.Components
         public ClickToEditTextBox()
         {
             InitializeComponent();
+
+            Unloaded += (_, _) =>
+            {
+                // 控件被移除时，确保移除窗口全局监听，避免泄漏/幽灵提交
+                var parentWindow = Window.GetWindow(this);
+                parentWindow?.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
+            };
         }
 
         // --- 1. 进入编辑模式 ---
@@ -90,6 +103,17 @@ namespace Axphi.Components
             {
                 CommitAndClose();
                 e.Handled = true; // 防止回车继续传给父控件
+            }
+            else if (e.Key == Key.Escape)
+            {
+                // 放弃本次编辑，直接退出，不提交
+                InputBox.Visibility = Visibility.Hidden;
+                DisplayBlock.Visibility = Visibility.Visible;
+
+                var parentWindow = Window.GetWindow(this);
+                parentWindow?.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
+                Keyboard.ClearFocus();
+                e.Handled = true;
             }
         }
 

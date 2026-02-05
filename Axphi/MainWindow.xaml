@@ -142,13 +142,13 @@
                                 </Canvas>
                             </Border>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 10 0 0">
-                                <comp:DraggableValueBox Value="{Binding ViewModel.X1}" Height="30" DragSpeed="0.01" NumberFormat="0.0" Maximum="123" />
+                                <comp:DraggableValueBox Value="{Binding ViewModel.X1}" DragSpeed="0.01" NumberFormat="0.00" Maximum="123" />
                                 <TextBlock Text=", " />
-                                <comp:DraggableValueBox Value="{Binding ViewModel.Y1}" Height="30" DragSpeed="0.01" NumberFormat="0.0" Maximum="123" />
+                                <comp:DraggableValueBox Value="{Binding ViewModel.Y1}" DragSpeed="0.01" NumberFormat="0.00" Maximum="123" />
                                 <TextBlock Text=", " />
-                                <comp:DraggableValueBox Value="{Binding ViewModel.X2}" Height="30" DragSpeed="0.01" NumberFormat="0.0" Maximum="123" />
+                                <comp:DraggableValueBox Value="{Binding ViewModel.X2}" DragSpeed="0.01" NumberFormat="0.00" Maximum="123" />
                                 <TextBlock Text=", " />
-                                <comp:DraggableValueBox Value="{Binding ViewModel.Y2}" Height="30" DragSpeed="0.01" NumberFormat="0.0" Maximum="123" />
+                                <comp:DraggableValueBox Value="{Binding ViewModel.Y2}" DragSpeed="0.01" NumberFormat="0.00" Maximum="123" />
                             </StackPanel>
                         </StackPanel>
 

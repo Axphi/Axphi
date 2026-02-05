@@ -14,6 +14,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Globalization;
+using System.ComponentModel;
 
 
 namespace Axphi;
@@ -43,7 +44,25 @@ public partial class MainWindow : Window
         ProjectManager = projectManager;
         DataContext = this;
         InitializeComponent();
+
+        // 初始化：让下面数值与画布控制点保持一致
+        ViewModel.X1 = _p1.X;
+        ViewModel.Y1 = _p1.Y;
+        ViewModel.X2 = _p2.X;
+        ViewModel.Y2 = _p2.Y;
+
+        ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         UpdateVisuals();
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(MainViewModel.X1) or nameof(MainViewModel.Y1) or nameof(MainViewModel.X2) or nameof(MainViewModel.Y2))
+        {
+            _p1 = new Point(ViewModel.X1, ViewModel.Y1);
+            _p2 = new Point(ViewModel.X2, ViewModel.Y2);
+            UpdateVisuals();
+        }
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -323,24 +342,18 @@ public partial class MainWindow : Window
         // 屏幕Y向下增加，数学Y向上增加，所以要反过来算：(总高 - 鼠标Y) / 总高
         double yNorm = (h - mousePos.Y) / h;
 
-        // --- 实施约束：X 值不允许小于 0 或大于 1 ---
-        if (xNorm < 0) xNorm = 0;
-        if (xNorm > 1) xNorm = 1;
-
         // --- 更新数据 ---
-        // 判断当前拖的是哪个点，更新对应的 _p1 或 _p2
+        // 统一更新到 ViewModel（并由 ViewModel 的钳制 + PropertyChanged 驱动刷新 UI）
         if (_draggingThumb == Thumb1)
         {
-            _p1 = new Point(xNorm, yNorm);
+            ViewModel.X1 = xNorm;
+            ViewModel.Y1 = yNorm;
         }
         else if (_draggingThumb == Thumb2)
         {
-            _p2 = new Point(xNorm, yNorm);
+            ViewModel.X2 = xNorm;
+            ViewModel.Y2 = yNorm;
         }
-
-        // --- 刷新画面 ---
-        // 数据变了，重新画图
-        UpdateVisuals();
     }
     
     // Helper 方法：解析字符串并更新 _p1, _p2

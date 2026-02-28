@@ -164,6 +164,9 @@ public partial class MainWindow : Window
     private void CloseSelf()
         => Close();
 
+
+
+
     
     //wtfbro我开始瞎写了
     private Point _p1 = new Point(0.75, 0.25);

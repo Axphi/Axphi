@@ -4,9 +4,11 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:ws="https://schemas.elecho.dev/wpfsuite"
+             xmlns:comp="clr-namespace:Axphi.Components"
              mc:Ignorable="d" >
 
-    <Grid>
+    <Grid
+        d:Width="500">
         <StackPanel
         Margin="4,0,0,0"
         Orientation="Horizontal"
@@ -23,43 +25,9 @@
         </StackPanel>
         <StackPanel
         Margin="4"
-        HorizontalAlignment="Right"
+        HorizontalAlignment="Right" 
         Orientation="Horizontal">
-            <StackPanel.Resources>
-                <Style x:Key="CaptionButton" TargetType="{x:Type ws:Button}">
-                    <Setter Property="Width" Value="28" />
-                    <Setter Property="Height" Value="26" />
-                    <Setter Property="Margin" Value="1,0,0,0" />
-                    <Setter Property="CornerRadius" Value="4" />
-                    <Setter Property="BorderThickness" Value="1" />
-                    <Setter Property="BorderBrush" Value="Transparent" />
-                    <Setter Property="HoverBorderBrush" Value="#3d3d3d" />
-                    <Setter Property="PressedBorderBrush" Value="Transparent" />
-                    <Setter Property="Background" Value="#2e2e2e" />
-                    <Setter Property="HoverBackground" Value="#3d3d3d" />
-                    <Setter Property="PressedBackground" Value="#4f4f4f" />
-                    <Setter Property="Foreground" Value="#b2b2b2" />
-                    <Setter Property="Foreground" Value="#b2b2b2" />
-                    <Setter Property="HoverForeground" Value="#fafafa" />
-                </Style>
-            </StackPanel.Resources>
-            <ws:Button
-            ws:WindowOption.IsMinimumButton="True"
-            Command="{Binding MinimizeSelfCommand}"
-            Content="-"
-            Style="{StaticResource CaptionButton}" />
-            <ws:Button
-            ws:WindowOption.IsMaximumButton="True"
-            Command="{Binding MaximizeRestoreSelfCommand}"
-            Content="+"
-            Style="{StaticResource CaptionButton}" />
-            <ws:Button
-            ws:WindowOption.IsCloseButton="True"
-            Command="{Binding CloseSelfCommand}"
-            Content="x"
-            HoverBackground="#e81123"
-            HoverBorderBrush="#e81123"
-            Style="{StaticResource CaptionButton}" />
+            <comp:WindowControl/>
         </StackPanel>
     </Grid>
 </UserControl>

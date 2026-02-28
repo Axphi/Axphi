@@ -14,6 +14,15 @@ public partial class BezierViewModel : ObservableObject
     [ObservableProperty]
     private double _y2;
 
+    public BezierViewModel()
+    {
+        // ≥ı º÷µ
+        X1 = 0.75;
+        Y1 = 0.25;
+        X2 = 0.25;
+        Y2 = 0.75;
+    }
+
 
     partial void OnX1Changed(double value)
     {

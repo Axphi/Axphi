@@ -47,11 +47,9 @@ public partial class MainWindow : Window
         _mainViewModel = mainViewModel;
         DataContext = mainViewModel;
 
-        // 初始化：让下面数值与画布控制点保持一致
-        mainViewModel.BezierViewModel.X1 = _p1.X;
-        mainViewModel.BezierViewModel.Y1 = _p1.Y;
-        mainViewModel.BezierViewModel.X2 = _p2.X;
-        mainViewModel.BezierViewModel.Y2 = _p2.Y;
+        
+        _p1 = new Point(mainViewModel.BezierViewModel.X1, mainViewModel.BezierViewModel.Y1);
+        _p2 = new Point(mainViewModel.BezierViewModel.X2, mainViewModel.BezierViewModel.Y2);
 
 
         mainViewModel.BezierViewModel.PropertyChanged += ViewModel_PropertyChanged;

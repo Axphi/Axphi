@@ -33,34 +33,37 @@ public partial class MainWindow : Window
     //private DispatcherTimer? _dispatcherTimer;
     //private Stopwatch? _renderStopwatch;
 
-    public MainViewModel ViewModel { get; }
-    public ProjectManager ProjectManager { get; }
+
+    private readonly MainViewModel _mainViewModel;
+
 
     public MainWindow(
-        MainViewModel viewModel,
-        ProjectManager projectManager)
+        MainViewModel mainViewModel)
     {
-        ViewModel = viewModel;
-        ProjectManager = projectManager;
-        DataContext = this;
+        
+        
         InitializeComponent();
 
-        // 初始化：让下面数值与画布控制点保持一致
-        ViewModel.X1 = _p1.X;
-        ViewModel.Y1 = _p1.Y;
-        ViewModel.X2 = _p2.X;
-        ViewModel.Y2 = _p2.Y;
+        _mainViewModel = mainViewModel;
+        DataContext = mainViewModel;
 
-        ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+        // 初始化：让下面数值与画布控制点保持一致
+        mainViewModel.BezierViewModel.X1 = _p1.X;
+        mainViewModel.BezierViewModel.Y1 = _p1.Y;
+        mainViewModel.BezierViewModel.X2 = _p2.X;
+        mainViewModel.BezierViewModel.Y2 = _p2.Y;
+
+
+        mainViewModel.BezierViewModel.PropertyChanged += ViewModel_PropertyChanged;
         UpdateVisuals();
     }
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(MainViewModel.X1) or nameof(MainViewModel.Y1) or nameof(MainViewModel.X2) or nameof(MainViewModel.Y2))
+        if (e.PropertyName is nameof(BezierViewModel.X1) or nameof(BezierViewModel.Y1) or nameof(BezierViewModel.X2) or nameof(BezierViewModel.Y2))
         {
-            _p1 = new Point(ViewModel.X1, ViewModel.Y1);
-            _p2 = new Point(ViewModel.X2, ViewModel.Y2);
+            _p1 = new Point(_mainViewModel.BezierViewModel.X1, _mainViewModel.BezierViewModel.Y1);
+            _p2 = new Point(_mainViewModel.BezierViewModel.X2, _mainViewModel.BezierViewModel.Y2);
             UpdateVisuals();
         }
     }
@@ -79,11 +82,11 @@ public partial class MainWindow : Window
     [RelayCommand]
     private void LoadDemoChart()
     {
-        ProjectManager.EditingProject = new Project()
+        _mainViewModel.ProjectManager.EditingProject = new Project()
         {
             Chart = DebuggingUtils.CreateDemoChart()
         };
-        ProjectManager.EditingProjectFilePath = null;
+        _mainViewModel.ProjectManager.EditingProjectFilePath = null;
     }
 
     [RelayCommand]
@@ -110,7 +113,7 @@ public partial class MainWindow : Window
         //_wasapiOut.Init(_musicReader);
 
         // 1. 业务数据逻辑：保存到 Project 对象 (保持不变)
-        ProjectManager.EditingProject.EncodedAudio = System.IO.File.ReadAllBytes(_importMusicDialog.FileName);
+        _mainViewModel.ProjectManager.EditingProject.EncodedAudio = System.IO.File.ReadAllBytes(_importMusicDialog.FileName);
 
         // 2. 播放器逻辑：直接调用控件的方法 (新逻辑)
         // MainChartDisplay 是你在 XAML 里给控件起的名字
@@ -120,12 +123,12 @@ public partial class MainWindow : Window
     [RelayCommand]
     private void SaveChart()
     {
-        if (ProjectManager.EditingProject is null)
+        if (_mainViewModel.ProjectManager.EditingProject is null)
         {
             return;
         }
 
-        if (ProjectManager.EditingProjectFilePath is null)
+        if (_mainViewModel.ProjectManager.EditingProjectFilePath is null)
         {
             _saveChartDialog ??= new SaveFileDialog()
             {
@@ -140,10 +143,10 @@ public partial class MainWindow : Window
                 return;
             }
 
-            ProjectManager.EditingProjectFilePath = _saveChartDialog.FileName;
+            _mainViewModel.ProjectManager.EditingProjectFilePath = _saveChartDialog.FileName;
         }
 
-        ProjectManager.SaveEditingProject(ProjectManager.EditingProjectFilePath);
+        _mainViewModel.ProjectManager.SaveEditingProject(_mainViewModel.ProjectManager.EditingProjectFilePath);
     }
 
     [RelayCommand]
@@ -332,13 +335,13 @@ public partial class MainWindow : Window
         // 更新到 ViewModel（X 会在 ViewModel 内部钳制到 0..1）
         if (_draggingThumb == Thumb1)
         {
-            ViewModel.X1 = xNorm;
-            ViewModel.Y1 = yNorm;
+            _mainViewModel.BezierViewModel.X1 = xNorm;
+            _mainViewModel.BezierViewModel.Y1 = yNorm;
         }
         else
         {
-            ViewModel.X2 = xNorm;
-            ViewModel.Y2 = yNorm;
+            _mainViewModel.BezierViewModel.X2 = xNorm;
+            _mainViewModel.BezierViewModel.Y2 = yNorm;
         }
     }
 

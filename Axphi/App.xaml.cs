@@ -19,7 +19,10 @@ public partial class App : Application
         var serviceCollection = new ServiceCollection();
 
         serviceCollection.AddSingleton<MainWindow>();
+
         serviceCollection.AddSingleton<MainViewModel>();
+
+        serviceCollection.AddSingleton<BezierViewModel>();
 
         serviceCollection.AddSingleton<ProjectManager>();
 

@@ -1,45 +1,27 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+using Axphi.Services; // 确保引入了 ProjectManager 所在的命名空间
 using CommunityToolkit.Mvvm.ComponentModel;
-using System;
 
-namespace Axphi.ViewModels;
-
-public partial class MainViewModel : ObservableObject
+namespace Axphi.ViewModels
 {
-    [ObservableProperty]
-    private double _x1;
-    [ObservableProperty]
-    private double _y1;
-    [ObservableProperty]
-    private double _x2;
-    [ObservableProperty]
-    private double _y2;
-
-
-    partial void OnX1Changed(double value)
+    public partial class MainViewModel : ObservableObject
     {
-        if (double.IsNaN(value) || double.IsInfinity(value))
-        {
-            return;
-        }
+        // 贝塞尔曲线 ViewModel
+        public BezierViewModel BezierViewModel { get; }
 
-        var clamped = Math.Clamp(value, 0.0, 1.0);
-        if (!clamped.Equals(value))
-        {
-            X1 = clamped;
-        }
-    }
+        // 项目管理器
+        public ProjectManager ProjectManager { get; }
 
-    partial void OnX2Changed(double value)
-    {
-        if (double.IsNaN(value) || double.IsInfinity(value))
+        // 通过依赖注入，把它们接进来
+        public MainViewModel(
+            BezierViewModel bezierVM,
+            ProjectManager projectManager)
         {
-            return;
-        }
-
-        var clamped = Math.Clamp(value, 0.0, 1.0);
-        if (!clamped.Equals(value))
-        {
-            X2 = clamped;
+            BezierViewModel = bezierVM;
+            ProjectManager = projectManager;
         }
     }
 }

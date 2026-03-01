@@ -15,6 +15,8 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System.Globalization;
 using System.ComponentModel;
+using CommunityToolkit.Mvvm.Messaging; // 必须加上这个
+using Axphi.ViewModels;                // 为了能认识 AudioLoadedMessage
 
 
 namespace Axphi;
@@ -24,8 +26,7 @@ namespace Axphi;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private SaveFileDialog? _saveChartDialog;
-    private OpenFileDialog? _importMusicDialog;
+    
 
     //private MediaFoundationReader? _musicReader;
     //private WasapiOut? _wasapiOut;
@@ -47,7 +48,13 @@ public partial class MainWindow : Window
         _mainViewModel = mainViewModel;
         DataContext = mainViewModel;
 
-        
+
+        WeakReferenceMessenger.Default.Register<AudioLoadedMessage>(this, (r, message) =>
+        {
+            // 收到 ViewModel 发来的消息后，让 UI 控件去加载音频
+            MainChartDisplay.LoadAudio(message.FilePath);
+        });
+
         _p1 = new Point(mainViewModel.BezierViewModel.X1, mainViewModel.BezierViewModel.Y1);
         _p2 = new Point(mainViewModel.BezierViewModel.X2, mainViewModel.BezierViewModel.Y2);
 
@@ -87,65 +94,8 @@ public partial class MainWindow : Window
         _mainViewModel.ProjectManager.EditingProjectFilePath = null;
     }
 
-    [RelayCommand]
-    private void ImportMusic()
-    {
-        
-        
-
-        _importMusicDialog ??= new OpenFileDialog()
-        {
-            Title = "Import music",
-            Filter = "Audio file|*.mp3;*.ogg;*.wav|Any|*.*",
-            CheckFileExists = true,
-        };
-
-        if (_importMusicDialog.ShowDialog(this) != true)
-        {
-            return;
-        }
-
-        //ProjectManager.EditingProject.EncodedAudio = System.IO.File.ReadAllBytes(_importMusicDialog.FileName);
-        //_musicReader = new MediaFoundationReader(_importMusicDialog.FileName);
-        //_wasapiOut ??= new WasapiOut();
-        //_wasapiOut.Init(_musicReader);
-
-        // 1. 业务数据逻辑：保存到 Project 对象 (保持不变)
-        _mainViewModel.ProjectManager.EditingProject.EncodedAudio = System.IO.File.ReadAllBytes(_importMusicDialog.FileName);
-
-        // 2. 播放器逻辑：直接调用控件的方法 (新逻辑)
-        // MainChartDisplay 是你在 XAML 里给控件起的名字
-        MainChartDisplay.LoadAudio(_importMusicDialog.FileName);
-    }
-
-    [RelayCommand]
-    private void SaveChart()
-    {
-        if (_mainViewModel.ProjectManager.EditingProject is null)
-        {
-            return;
-        }
-
-        if (_mainViewModel.ProjectManager.EditingProjectFilePath is null)
-        {
-            _saveChartDialog ??= new SaveFileDialog()
-            {
-                Title = "Save Chart",
-                FileName = "New Axphi Project",
-                Filter = "Axphi Project|*.axp|Any File|*.*",
-                CheckPathExists = true,
-            };
-
-            if (_saveChartDialog.ShowDialog(this) != true)
-            {
-                return;
-            }
-
-            _mainViewModel.ProjectManager.EditingProjectFilePath = _saveChartDialog.FileName;
-        }
-
-        _mainViewModel.ProjectManager.SaveEditingProject(_mainViewModel.ProjectManager.EditingProjectFilePath);
-    }
+    
+    
 
     [RelayCommand]
     private void MinimizeSelf()

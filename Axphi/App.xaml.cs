@@ -26,6 +26,10 @@ public partial class App : Application
 
         serviceCollection.AddSingleton<ProjectManager>();
 
+        serviceCollection.AddSingleton<IFileService, WindowsFileService>();
+
+        serviceCollection.AddSingleton<FileActionsViewModel>();
+
         return serviceCollection.BuildServiceProvider();
     }
 

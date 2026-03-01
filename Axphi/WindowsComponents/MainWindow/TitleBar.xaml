@@ -1,18 +1,18 @@
-﻿<UserControl x:Class="Axphi.WindowsComponents.MainWindow.TitleBar"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:ws="https://schemas.elecho.dev/wpfsuite"
-             xmlns:comp="clr-namespace:Axphi.Components"
-             mc:Ignorable="d" >
+﻿<UserControl
+    x:Class="Axphi.WindowsComponents.MainWindow.TitleBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:comp="clr-namespace:Axphi.Components"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ws="https://schemas.elecho.dev/wpfsuite"
+    mc:Ignorable="d">
 
-    <Grid
-        d:Width="500">
+    <Grid d:Width="500">
         <StackPanel
-        Margin="4,0,0,0"
-        Orientation="Horizontal"
-        WindowChrome.IsHitTestVisibleInChrome="True">
+            Margin="4,0,0,0"
+            Orientation="Horizontal"
+            WindowChrome.IsHitTestVisibleInChrome="True">
             <TextBlock VerticalAlignment="Center" Text="LOGO" />
             <ws:Menu Margin="4" VerticalAlignment="Center">
                 <ws:MenuItem Header="File">
@@ -24,10 +24,10 @@
             </ws:Menu>
         </StackPanel>
         <StackPanel
-        Margin="4"
-        HorizontalAlignment="Right" 
-        Orientation="Horizontal">
-            <comp:WindowControl/>
+            Margin="4"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <comp:WindowControl />
         </StackPanel>
     </Grid>
 </UserControl>

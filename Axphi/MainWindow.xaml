@@ -121,7 +121,7 @@
                     Header="Project">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <ws:Button Command="{Binding ImportMusicCommand}" Content="Import" />
+                            <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import" />
                         </StackPanel>
                     </StackPanel>
                 </comp:TabPane>

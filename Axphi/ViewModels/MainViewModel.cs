@@ -1,4 +1,6 @@
-﻿using Axphi.Services; // 确保引入了 ProjectManager 所在的命名空间
+﻿using Axphi.Data;
+using Axphi.Services; // 确保引入了 ProjectManager 所在的命名空间
+using Axphi.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -18,22 +20,30 @@ namespace Axphi.ViewModels
         public ProjectManager ProjectManager { get; }
 
         // 文件处理
-        private readonly IFileService FileService;
+        
         public FileActionsViewModel FileActions { get; }
 
         // 通过依赖注入，把它们接进来
         public MainViewModel(
             BezierViewModel bezierVM,
             ProjectManager projectManager,
-            IFileService fileService,
+            
             FileActionsViewModel fileActionsViewModel)
         {
             BezierViewModel = bezierVM;
             ProjectManager = projectManager;
-            FileService = fileService;
+            
             FileActions = fileActionsViewModel;
         }
+        [RelayCommand]
+        private void LoadDemoChart()
+        {
+            ProjectManager.EditingProject = new Project()
+            {
+                Chart = DebuggingUtils.CreateDemoChart()
+            };
+            ProjectManager.EditingProjectFilePath = null;
+        }
 
-        
     }
 }

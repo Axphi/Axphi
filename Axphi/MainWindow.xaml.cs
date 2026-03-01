@@ -84,33 +84,12 @@ public partial class MainWindow : Window
 
     
 
-    [RelayCommand]
-    private void LoadDemoChart()
-    {
-        _mainViewModel.ProjectManager.EditingProject = new Project()
-        {
-            Chart = DebuggingUtils.CreateDemoChart()
-        };
-        _mainViewModel.ProjectManager.EditingProjectFilePath = null;
-    }
+    
 
     
     
 
-    [RelayCommand]
-    private void MinimizeSelf()
-        => WindowState = WindowState.Minimized;
-
-    [RelayCommand]
-    private void MaximizeRestoreSelf() => WindowState = WindowState switch
-    {
-        WindowState.Maximized => WindowState.Normal,
-        _ => WindowState.Maximized
-    };
-
-    [RelayCommand]
-    private void CloseSelf()
-        => Close();
+    
 
 
 

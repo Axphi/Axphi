@@ -9,6 +9,7 @@ namespace Axphi.Data
     /// </summary>
     public class JudgementLine
     {
+        public int ID { get; set; }
         public string? Name { get; set; }
         public double Speed { get; set; } = 1;
 

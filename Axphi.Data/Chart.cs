@@ -8,8 +8,15 @@ namespace Axphi.Data
     public class Chart
     {
         /// <summary>
-        /// 音频偏移
+        /// 谱面版本
         /// </summary>
+        string formatVersion = "1.0";
+
+        // 关于时间的单位(int), 为 tick, 一个 tick 表示一个 128 分音符, 也就是 1.875 / bpm
+
+        /// <summary>
+        /// 音频偏移
+        /// </summary>  
         public int Offset { get; set; }
 
         /// <summary>

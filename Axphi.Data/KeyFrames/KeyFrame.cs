@@ -9,7 +9,7 @@
         public int Time { get; set; }
 
         /// <summary>
-        /// 从上一个 BPM 关键帧之间的插值方式
+        /// 从此关键帧到下一个关键帧之间的插值方式
         /// </summary>
         public BezierEasing? Easing { get; set; } = BezierEasing.Linear;
 

@@ -43,10 +43,10 @@
                     <Grid>
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <comp:BezierCurveEditor 
-    X1="{Binding BezierViewModel.X1, Mode=TwoWay}"
-    Y1="{Binding BezierViewModel.Y1, Mode=TwoWay}"
-    X2="{Binding BezierViewModel.X2, Mode=TwoWay}"
-    Y2="{Binding BezierViewModel.Y2, Mode=TwoWay}" />
+                                X1="{Binding BezierViewModel.X1, Mode=TwoWay}"
+                                Y1="{Binding BezierViewModel.Y1, Mode=TwoWay}"
+                                X2="{Binding BezierViewModel.X2, Mode=TwoWay}"
+                                Y2="{Binding BezierViewModel.Y2, Mode=TwoWay}" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 10 0 0">
                                 <comp:DraggableValueBox Value="{Binding BezierViewModel.X1}" DragSpeed="0.01" NumberFormat="0.00" Maximum="123" />
                                 <TextBlock Text=", " />

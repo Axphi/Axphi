@@ -244,8 +244,24 @@ namespace Axphi.Components
 
             var finalSpeed = note.CustomSpeed ?? speed;
 
-            // 既然现在都按 Tick 算了，Speed 通常也意味着 "每Tick移动多少距离"
-            var distance = -finalSpeed * ticksFromNow;
+            
+            // 1. 获取当前的 BPM（为了严谨，这里取第一个BPM，如果是变速曲你可能需要写个专门的方法获取当前时间的BPM）
+            double currentBpm = 120.0;
+            if (chart.BpmKeyFrames != null && chart.BpmKeyFrames.Any())
+            {
+                currentBpm = chart.BpmKeyFrames.First().Value;
+            }
+
+            // 2. 算出一个 Tick 等于多少秒
+            double secondsPerTick = 1.875 / currentBpm;
+
+            // 3. 将 Tick 差值转换回秒数
+            double secondsFromNow = ticksFromNow * secondsPerTick;
+
+            // 4. 用秒数去乘以速度 (这样 Speed 就依然是 "单位/秒" 的含义了)
+            var distance = -finalSpeed * secondsFromNow;
+
+            
             var pixelDistance = renderInfo.ChartUnitToPixel(distance);
 
             EasingUtils.CalculateObjectTransform(

@@ -116,25 +116,62 @@ namespace Axphi.Components
                 return;
             }
 
-            var time = Time;
+            //var time = Time;
+            //var renderInfo = CalculateRenderInfo();
+            // 1. 获取物理现实时间
+            var realTime = Time;
             var renderInfo = CalculateRenderInfo();
 
-            if (time > chart.Duration)
+            // 2. 将现实时间转换为底层逻辑运算用的 Tick (int)
+            int currentTick = CalculateCurrentTick(realTime, chart);
+
+            // 3. 进度比较和限制现在使用 currentTick 和 chart.Duration (两者都是 int)
+            if (currentTick > chart.Duration)
             {
-                time = chart.Duration;
+                currentTick = chart.Duration;
             }
 
-            RenderProgress(drawingContext, renderInfo, time / chart.Duration);
+            //if (time > chart.Duration)
+            //{
+            //    time = chart.Duration;
+            //}
+
+            //RenderProgress(drawingContext, renderInfo, time / chart.Duration);
+
+            // 4. 进度条计算，注意要强制转换为 double，防止整数除法结果为 0
+            double progress = chart.Duration == 0 ? 0 : (double)currentTick / chart.Duration;
+            RenderProgress(drawingContext, renderInfo, progress);
 
             var transformToCenter = new TranslateTransform(renderInfo.CanvasWidth / 2, renderInfo.CanvasHeight / 2);
             drawingContext.PushTransform(transformToCenter);
 
             foreach (var judgementLine in judgementLines)
             {
-                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, time);
+                //RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, time);
+                // 5. 往下传的是 currentTick (int)
+                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick);
             }
 
             drawingContext.Pop();
+        }
+
+        /// <summary>
+        /// 将播放器的 TimeSpan 物理时间实时换算为 谱面系统的 Tick (128分音符数量)
+        /// </summary>
+        private static int CalculateCurrentTick(TimeSpan realTime, Chart chart)
+        {
+            // 默认120 BPM，这里取第一个 BPM 值。
+            // (注: 若要支持歌曲中途变速，后续需要根据 realTime 计算处于哪个 BPM 区间进行累加)
+            double currentBpm = 120.0;
+            if (chart.BpmKeyFrames != null && chart.BpmKeyFrames.Any())
+            {
+                currentBpm = chart.BpmKeyFrames.First().Value;
+            }
+
+            double secondsPerTick = 1.875 / currentBpm;
+            double rawTick = realTime.TotalSeconds / secondsPerTick;
+
+            return (int)rawTick + chart.Offset;
         }
 
         private static void RenderProgress(DrawingContext drawingContext, RenderInfo renderInfo, double progress)
@@ -147,10 +184,10 @@ namespace Axphi.Components
 
         }
 
-        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, TimeSpan time)
+        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, int currentTick)
         {
             EasingUtils.CalculateObjectTransform(
-                time, chart.KeyFrameEasingDirection,
+                currentTick, chart.KeyFrameEasingDirection,
                 line.AnimatableProperties,
                 out var offset, out var scale, out var rotationAngle, out var opacity);
 
@@ -177,7 +214,9 @@ namespace Axphi.Components
             {
                 foreach (var note in notes)
                 {
-                    RenderNote(drawingContext, renderInfo, chart, note, time, line.Speed);
+                    //RenderNote(drawingContext, renderInfo, chart, note, time, line.Speed);
+                    // 传递 currentTick
+                    RenderNote(drawingContext, renderInfo, chart, note, currentTick, line.Speed);
                 }
             }
 
@@ -185,22 +224,32 @@ namespace Axphi.Components
             drawingContext.Pop();
         }
 
-        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, TimeSpan time, double speed)
+        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, int currentTick, double speed)
         {
-            var timeFromNow = note.HitTime - time;
-            var timeSecToNow = timeFromNow.TotalSeconds;
-            if (Math.Abs(timeSecToNow) > 10)
+            //var timeFromNow = note.HitTime - currentTick;
+            //var timeSecToNow = timeFromNow.TotalSeconds;
+
+            // 现在的 HitTime 是 int, currentTick 也是 int
+            var ticksFromNow = note.HitTime - currentTick;
+
+            //if (Math.Abs(timeSecToNow) > 10)
+            //{
+            //    return;
+            //}
+            // 旧版是绝对值 > 10秒 就不渲染。10秒在120BPM下大约是 640个Tick。我们给个宽裕的 1000。
+            if (Math.Abs(ticksFromNow) > 1000)
             {
                 return;
             }
 
             var finalSpeed = note.CustomSpeed ?? speed;
 
-            var distance = -finalSpeed * timeSecToNow;
+            // 既然现在都按 Tick 算了，Speed 通常也意味着 "每Tick移动多少距离"
+            var distance = -finalSpeed * ticksFromNow;
             var pixelDistance = renderInfo.ChartUnitToPixel(distance);
 
             EasingUtils.CalculateObjectTransform(
-                time, chart.KeyFrameEasingDirection,
+                currentTick, chart.KeyFrameEasingDirection,
                 note.AnimatableProperties,
                 out var offset, out var scale, out var rotationAngle, out var opacity);
 

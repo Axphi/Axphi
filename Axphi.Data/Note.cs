@@ -13,15 +13,15 @@ namespace Axphi.Data
         {
         }
 
-        public Note(NoteKind kind, TimeSpan hitTime)
+        public Note(NoteKind kind, int hitTime)
         {
             Kind = kind;
             HitTime = hitTime;
         }
 
         public NoteKind Kind { get; set; }
-        public TimeSpan HitTime { get; set; }
-        public TimeSpan HoldDuration { get; set; }
+        public int HitTime { get; set; }
+        public int HoldDuration { get; set; }
         public double? CustomSpeed { get; set; }
 
         /// <summary>

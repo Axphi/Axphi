@@ -3,7 +3,6 @@ using Axphi.Services; // 确保引入了 ProjectManager 所在的命名空间
 using Axphi.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.Messaging; // Messenger 需要用到这个
 using System;
 using System.Collections.Generic;

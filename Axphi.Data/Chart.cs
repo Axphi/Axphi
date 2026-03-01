@@ -10,12 +10,12 @@ namespace Axphi.Data
         /// <summary>
         /// 音频偏移
         /// </summary>
-        public TimeSpan Offset { get; set; }
+        public int Offset { get; set; }
 
         /// <summary>
         /// 时长
         /// </summary>
-        public TimeSpan Duration { get; set; }
+        public int Duration { get; set; }
 
         /// <summary>
         /// 歌曲名称

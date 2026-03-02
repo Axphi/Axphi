@@ -102,22 +102,22 @@ namespace Axphi.Utilities
             finalRotationAngle = properties.Rotation.FallbackValue;
             finalOpacity = properties.Opacity.FallbackValue;
 
-            if (properties.Offset.KeyFrames is { } offsetKeyFrames)
+            if (properties.Offset.RenderKeyFrames is { } offsetKeyFrames)
             {
                 CalculateObjectSingleTransform(time, easingDirection, properties.Offset.FallbackValue, offsetKeyFrames, MathUtils.Lerp, out finalOffset);
             }
 
-            if (properties.Scale.KeyFrames is { } scaleKeyFrames)
+            if (properties.Scale.RenderKeyFrames is { } scaleKeyFrames)
             {
                 CalculateObjectSingleTransform(time, easingDirection, properties.Scale.FallbackValue, scaleKeyFrames, MathUtils.Lerp, out finalScale);
             }
 
-            if (properties.Rotation.KeyFrames is { } rotationKeyFrames)
+            if (properties.Rotation.RenderKeyFrames is { } rotationKeyFrames)
             {
                 CalculateObjectSingleTransform(time, easingDirection, properties.Rotation.FallbackValue, rotationKeyFrames, MathUtils.Lerp, out finalRotationAngle);
             }
 
-            if (properties.Opacity.KeyFrames is { } opacityKeyFrames)
+            if (properties.Opacity.RenderKeyFrames is { } opacityKeyFrames)
             {
                 CalculateObjectSingleTransform(time, easingDirection, properties.Opacity.FallbackValue, opacityKeyFrames, MathUtils.Lerp, out finalOpacity);
             }

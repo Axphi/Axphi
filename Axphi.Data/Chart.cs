@@ -1,4 +1,5 @@
 ﻿using Axphi.Data.KeyFrames;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Axphi.Data
 {
@@ -72,6 +73,6 @@ namespace Axphi.Data
         /// <summary>
         /// 插值方向
         /// </summary>
-        public KeyFrameEasingDirection KeyFrameEasingDirection { get; set; }
+        public KeyFrameEasingDirection KeyFrameEasingDirection { get; set; } = KeyFrameEasingDirection.ToNext;
     }
 }

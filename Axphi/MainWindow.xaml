@@ -77,14 +77,16 @@
                         </StackPanel>
                     </comp:TabPane.Header>
 
-                    <comp:ChartTimeline />
+                    
 
                 </comp:TabPane>
 
                 <comp:TabPane
                     Grid.Row="1"
                     Grid.Column="1"
-                    Header="Timeline" />
+                    Header="Timeline" >
+                    <comp:ChartTimeline />
+                </comp:TabPane>
                 <comp:TabPane
                     Grid.Row="1"
                     Grid.Column="2"

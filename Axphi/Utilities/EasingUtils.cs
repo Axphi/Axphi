@@ -83,6 +83,11 @@ namespace Axphi.Utilities
             SelectKeyFrameEasing(easingDirection, firstKeyFrame, secondKeyFrame, out var easing);
 
             var start = firstKeyFrame?.Value ?? initialValue;
+
+            // 【核心修复】先把 finalValue 稳稳地定在这个基础值上！
+            // 这样即使后面是 null 进不去 if，它也会保持最后一个帧的状态，而不是回弹！
+            finalValue = start;
+
             if (secondKeyFrame is not null)
             {
                 CalculateEasingY(easing, t, out var y);

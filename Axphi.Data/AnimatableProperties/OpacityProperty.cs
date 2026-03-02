@@ -4,9 +4,9 @@ namespace Axphi.Data.AnimatableProperties
 {
     public sealed class OpacityProperty : AnimatableProperty<double, OpacityKeyFrame>
     {
-        public OpacityProperty()
+        public OpacityProperty(): base(1)
         {
-            InitialValue = 1;
+            
         }
     }
 }

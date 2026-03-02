@@ -2,5 +2,11 @@
 
 namespace Axphi.Data.AnimatableProperties
 {
-    public sealed class RotationProperty : AnimatableProperty<double, RotationKeyFrame>;
+    public sealed class RotationProperty : AnimatableProperty<double, RotationKeyFrame>
+    {
+        public RotationProperty() : base(0)
+        {
+        }
+    }
+
 }

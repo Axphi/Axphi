@@ -18,6 +18,14 @@
             Y2 = 0.5
         };
 
+        public static readonly BezierEasing Ease = new BezierEasing()
+        {
+            X1 = 0.5,
+            Y1 = 0.0,
+            X2 = 0.5,
+            Y2 = 1.0
+        };
+
         public double Calculate(double t)
         {
             // 边界情况处理

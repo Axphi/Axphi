@@ -10,7 +10,7 @@ namespace Axphi.Data
         /// <summary>
         /// 谱面版本
         /// </summary>
-        string formatVersion = "1.0";
+        public string formatVersion = "1.0";
 
         // 关于时间的单位(int), 为 tick, 一个 tick 表示一个 128 分音符, 也就是 1.875 / bpm
 

@@ -24,6 +24,8 @@ namespace Axphi.Utilities
         {
             return new Chart()
             {
+                formatVersion = "1.0",
+
                 //Duration = TimeSpan.FromSeconds(60),
                 Duration = SecToTick(60),
 
@@ -33,7 +35,7 @@ namespace Axphi.Utilities
                     new KeyFrame<double>()
                     {
                         Time = 0,      // 第 0 个 Tick 开始
-                        Value = 120.0  // BPM 设定为 120
+                        Value = 128.0  // BPM 设定为 120
                     }
                 },
 
@@ -52,6 +54,14 @@ namespace Axphi.Utilities
                                         //Time = TimeSpan.FromSeconds(5),
                                         Time = SecToTick(5),
                                         Value = new Vector(0, 1.5),
+
+                                        Easing = new BezierEasing()
+                                        {
+                                            X1 = 0.5,
+                                            Y1 = 0.0,
+                                            X2 = 0.5,
+                                            Y2 = 1.0
+                                        }
                                     },
 
                                     new Data.KeyFrames.OffsetKeyFrame()

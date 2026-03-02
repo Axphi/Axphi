@@ -22,7 +22,7 @@ namespace Axphi.Utilities
 
         public static Chart CreateDemoChart()
         {
-            return new Chart()  
+            return new Chart()
             {
                 formatVersion = "1.0",
 
@@ -51,9 +51,10 @@ namespace Axphi.Utilities
                                 {
                                     new Data.KeyFrames.OffsetKeyFrame()
                                     {
-                                        
+
                                         Time = SecToTick(0),
                                         Value = new Vector(0, 0),
+                                        Easing = BezierEasing.Ease
                                     },
 
                                     new Data.KeyFrames.OffsetKeyFrame()

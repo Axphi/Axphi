@@ -71,62 +71,53 @@
         // x(u) = 3(1-u)^2 u * x1 + 3(1-u) u^2 * x2 + u^3
         // x(u) = t
         // 求 u
-        private static double GetSampleRate(double cp1, double cp2, double p)
+        public static double GetSampleRateNew(double cp1, double cp2, double p)
         {
-            double
-                a = 3 * cp1 - 3 * cp2 + 1,
-                b = -6 * cp1 + 3 * cp2,
-                c = 3 * cp1,
-                d = -p;
-            double
-                A = b * b - 3 * a * c,
-                B = b * c - 9 * a * d,
-                C = c * c - 3 * b * d;
-            double
-                delta = B * B - 4 * A * C;
-            if (A == B)
+            // 提前计算多项式系数，取代之前的重复传参计算
+            double cx = 3d * cp1;
+            double bx = 3d * (cp2 - cp1) - cx;
+            double ax = 1d - cx - bx;
+
+            const double NewtonEpsilon = 1e-7d;
+            double u = p;
+
+            // 1. 牛顿迭代
+            for (int i = 0; i < 8; i++)
             {
-                double x = -c / b; // -b/3a -c/b -3d/c
-                double rst = x;
-                return rst;
+                // 极致内联展开：直接计算当前 X 和误差
+                double currentX = ((ax * u + bx) * u + cx) * u - p;
+                if (Math.Abs(currentX) < NewtonEpsilon)
+                    return u;
+
+                // 极致内联展开：计算斜率
+                double currentSlope = (3d * ax * u + 2d * bx) * u + cx;
+                if (Math.Abs(currentSlope) < 0.001d)
+                    break;
+
+                u -= currentX / currentSlope;
             }
-            else if (delta > 0)
+
+            // 2. 二分法兜底
+            double t0 = 0.0d;
+            double t1 = 1.0d;
+            u = p;
+
+            if (u < t0) return t0;
+            if (u > t1) return t1;
+
+            while (t0 < t1)
             {
-                //double I = double.NaN;
-                double
-                    y1 = A * b + 3 * a * ((-B + Math.Sqrt(delta)) / 2),
-                    y2 = A * b + 3 * a * ((-B - Math.Sqrt(delta)) / 2);
-                double
-                    xtmp1 = MathCbrt(y1) + MathCbrt(y2); //,
-                                                         //xtmp2 = Cubic(y1) - Cubic(y2);
-                double   // what the fuck is I? virtual number wtf... imposible for now (((
-                    x1 = (-b - xtmp1) / (3 * a); //,
-                                                 //x2 = (-2 * b + xtmp1 + Math.Sqrt(3) * xtmp2 * I) / (6 * a),
-                                                 //x3 = (-2 * b + xtmp1 - Math.Sqrt(3) * xtmp2 * I) / (6 * a);
-                double rst = x1;
-                return rst;
+                double currentX = ((ax * u + bx) * u + cx) * u;
+                if (Math.Abs(currentX - p) < NewtonEpsilon)
+                    return u;
+
+                if (p > currentX) t0 = u;
+                else t1 = u;
+
+                u = (t1 - t0) * 0.5d + t0;
             }
-            else if (delta == 0)
-            {
-                double k = B / A;
-                double
-                    x1 = -b / a + k,
-                    x2 = -k / 2;
-                double rst = PickAppropriateRate(cp1, cp2, p, x1, x2);
-                return rst;
-            }
-            else  // delta < 0
-            {
-                double
-                    t = (2 * A * b - 3 * a * B) / (2 * A * Math.Sqrt(A)),
-                    sita = Math.Acos(t);
-                double
-                    x1 = (-b - 2 * Math.Sqrt(A) * Math.Cos(sita / 3)) / (3 * a),
-                    x2 = (-b + Math.Sqrt(A) * (Math.Cos(sita / 3) + Math.Sqrt(3) * Math.Sin(sita / 3))) / (3 * a),
-                    x3 = (-b + Math.Sqrt(A) * (Math.Cos(sita / 3) - Math.Sqrt(3) * Math.Sin(sita / 3))) / (3 * a);
-                double rst = PickAppropriateRate(cp1, cp2, p, x1, x2, x3);
-                return rst;
-            }
+
+            return u;
         }
     }
 

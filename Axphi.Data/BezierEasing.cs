@@ -48,20 +48,7 @@
             // return 3 * cp1 * rate - 3 * cp1 * 2 * rate * rate + 3 * cp1 * rate * rate * rate + 3 * cp2 * rate * rate - 3 * cp2 * rate * rate * rate + rate * rate * rate;
         }
 
-        private static double PickAppropriateRate(double cp1, double cp2, double p, params double[] rates)
-        {
-            double result = double.NaN;
-            double diffNow = double.MaxValue;
-            foreach (var rate in rates)
-                if (!double.IsNaN(rate) && Math.Abs(GetSamplePoint(cp1, cp2, rate) - p) < diffNow)
-                    result = rate;
-            return result;
-        }
-
-        private static double MathCbrt(double num)
-        {
-            return num < 0 ? -Math.Pow(-num, 1d / 3) : Math.Pow(num, 1d / 3);
-        }
+        
 
 
 
@@ -71,7 +58,7 @@
         // x(u) = 3(1-u)^2 u * x1 + 3(1-u) u^2 * x2 + u^3
         // x(u) = t
         // 求 u
-        public static double GetSampleRateNew(double cp1, double cp2, double p)
+        public static double GetSampleRate(double cp1, double cp2, double p)
         {
             // 提前计算多项式系数，取代之前的重复传参计算
             double cx = 3d * cp1;

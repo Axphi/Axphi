@@ -77,7 +77,7 @@ namespace Axphi.Utilities
             out T finalValue)
             where T : struct
         {
-            finalValue = initialValue;
+            
 
             SelectTransitionKeyFrames<T>(time, keyFrames, out var firstKeyFrame, out var secondKeyFrame, out var t);
             SelectKeyFrameEasing(easingDirection, firstKeyFrame, secondKeyFrame, out var easing);

@@ -63,6 +63,14 @@
             return num < 0 ? -Math.Pow(-num, 1d / 3) : Math.Pow(num, 1d / 3);
         }
 
+
+
+        // 传入 cp1, cp2, p
+        // 求解: ( x1 = cp1, x2 = cp2, t = p )
+        // 已知:
+        // x(u) = 3(1-u)^2 u * x1 + 3(1-u) u^2 * x2 + u^3
+        // x(u) = t
+        // 求 u
         private static double GetSampleRate(double cp1, double cp2, double p)
         {
             double

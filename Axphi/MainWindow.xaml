@@ -1,4 +1,4 @@
-<Window
+﻿<Window
     x:Class="Axphi.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -63,9 +63,22 @@
 
                 <comp:TabPane
                     Grid.Row="1"
-                    Grid.Column="0"
-                    Header="Line">
+                    Grid.Column="0">
+
+                    <comp:TabPane.Header>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Line" VerticalAlignment="Center" />
+
+                            <ws:Button Content="+" 
+                                       Margin="10,0,0,0" 
+                                       Padding="8,0"
+                                       Command="{Binding AddJudgementLineCommand}" 
+                                       ToolTip="添加判定线图层"/>
+                        </StackPanel>
+                    </comp:TabPane.Header>
+
                     <comp:ChartTimeline />
+
                 </comp:TabPane>
 
                 <comp:TabPane

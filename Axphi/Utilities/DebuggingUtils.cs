@@ -3,9 +3,11 @@ using Axphi.Data.KeyFrames;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media.Animation;
 
 namespace Axphi.Utilities
 {
@@ -63,23 +65,48 @@ namespace Axphi.Utilities
                                         Time = SecToTick(5),
                                         Value = new Vector(0, 1.5),
 
-                                        Easing = new BezierEasing()
-                                        {
-                                            X1 = 0.5,
-                                            Y1 = 0.0,
-                                            X2 = 0.5,
-                                            Y2 = 1.0
-                                        }
+                                        Easing = BezierEasing.Ease
+                                        
                                     },
 
                                     new Data.KeyFrames.OffsetKeyFrame()
                                     {
-                                        //Time = TimeSpan.FromSeconds(8),
                                         Time = SecToTick(8),
                                         Value = new Vector(0, -1.5),
+                                        Easing = BezierEasing.Ease
+                                    },
+                                    new Data.KeyFrames.OffsetKeyFrame()
+                                    {
+                                        Time = SecToTick(10),
+                                        Value = new Vector(0, -1.5),
+                                        Easing = BezierEasing.Ease
+                                    },
+                                    new Data.KeyFrames.OffsetKeyFrame()
+                                    {
+                                        Time = SecToTick(12),
+                                        Value = new Vector(-1.5, -1.5),
+                                        Easing = BezierEasing.Ease
+                                    },
+                                }
+                            },
+                            Rotation=
+                            {
+                                KeyFrames=
+                                {
+                                    new Data.KeyFrames.RotationKeyFrame()
+                                    {
+                                        Time = SecToTick(8),
+                                        Value = 0,
+                                        Easing = BezierEasing.Ease
+                                    },
+                                    new Data.KeyFrames.RotationKeyFrame()
+                                    {
+                                        Time = SecToTick(10),
+                                        Value = 90,
                                     }
                                 }
-                            }
+                            },
+
                         },
                         Notes = new List<Note>()
                         {

@@ -42,49 +42,98 @@
                     Header="Flow">
                     <Grid>
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <comp:BezierCurveEditor 
+                            <comp:BezierCurveEditor
                                 X1="{Binding BezierViewModel.X1, Mode=TwoWay}"
-                                Y1="{Binding BezierViewModel.Y1, Mode=TwoWay}"
                                 X2="{Binding BezierViewModel.X2, Mode=TwoWay}"
+                                Y1="{Binding BezierViewModel.Y1, Mode=TwoWay}"
                                 Y2="{Binding BezierViewModel.Y2, Mode=TwoWay}" />
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0 10 0 0">
-                                <comp:DraggableValueBox Value="{Binding BezierViewModel.X1}" DragSpeed="0.01" NumberFormat="0.00" Maximum="123" />
+                            <StackPanel
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal">
+                                <comp:DraggableValueBox
+                                    DragSpeed="0.01"
+                                    Maximum="123"
+                                    NumberFormat="0.00"
+                                    Value="{Binding BezierViewModel.X1}" />
                                 <TextBlock Text=", " />
-                                <comp:DraggableValueBox Value="{Binding BezierViewModel.Y1}" DragSpeed="0.01" NumberFormat="0.00" Maximum="123" />
+                                <comp:DraggableValueBox
+                                    DragSpeed="0.01"
+                                    Maximum="123"
+                                    NumberFormat="0.00"
+                                    Value="{Binding BezierViewModel.Y1}" />
                                 <TextBlock Text=", " />
-                                <comp:DraggableValueBox Value="{Binding BezierViewModel.X2}" DragSpeed="0.01" NumberFormat="0.00" Maximum="123" />
+                                <comp:DraggableValueBox
+                                    DragSpeed="0.01"
+                                    Maximum="123"
+                                    NumberFormat="0.00"
+                                    Value="{Binding BezierViewModel.X2}" />
                                 <TextBlock Text=", " />
-                                <comp:DraggableValueBox Value="{Binding BezierViewModel.Y2}" DragSpeed="0.01" NumberFormat="0.00" Maximum="123" />
+                                <comp:DraggableValueBox
+                                    DragSpeed="0.01"
+                                    Maximum="123"
+                                    NumberFormat="0.00"
+                                    Value="{Binding BezierViewModel.Y2}" />
                             </StackPanel>
                         </StackPanel>
 
                     </Grid>
                 </comp:TabPane>
 
-                <comp:TabPane
-                    Grid.Row="1"
-                    Grid.Column="0">
+                <comp:TabPane Grid.Row="1" Grid.Column="0">
 
                     <comp:TabPane.Header>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="Line" VerticalAlignment="Center" />
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Text="Line" />
 
-                            <ws:Button Content="+" 
-                                       Margin="10,0,0,0" 
-                                       Padding="8,0"
-                                       Command="{Binding AddJudgementLineCommand}" 
-                                       ToolTip="添加判定线图层"/>
+                            <ws:Button
+                                Margin="10,0,0,0"
+                                Padding="8,0"
+                                Command="{Binding Timeline.AddJudgementLineCommand}"
+                                Content="+"
+                                ToolTip="添加判定线图层" />
                         </StackPanel>
                     </comp:TabPane.Header>
 
-                    
+                    <ScrollViewer Margin="2" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Timeline.CurrentChart.JudgementLines}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        Height="40"
+                                        Margin="0,0,0,2"
+                                        Background="#2d2d2d"
+                                        BorderBrush="#444"
+                                        BorderThickness="0,0,0,1">
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="4" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Rectangle Grid.Column="0" Fill="#FFD700" />
+
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Foreground="#d6d6d6"
+                                                Text="判定线图层" />
+                                        </Grid>
+
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
 
                 </comp:TabPane>
 
                 <comp:TabPane
                     Grid.Row="1"
                     Grid.Column="1"
-                    Header="Timeline" >
+                    Header="Timeline">
                     <comp:ChartTimeline />
                 </comp:TabPane>
                 <comp:TabPane

@@ -30,6 +30,8 @@ public partial class App : Application
 
         serviceCollection.AddSingleton<FileActionsViewModel>();
 
+        serviceCollection.AddSingleton<TimelineViewModel>();
+
         return serviceCollection.BuildServiceProvider();
     }
 

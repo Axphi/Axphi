@@ -2,6 +2,7 @@
 using Axphi.Data.KeyFrames;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -41,7 +42,7 @@ namespace Axphi.Utilities
                     }
                 },
 
-                JudgementLines = new List<JudgementLine>()
+                JudgementLines = new ObservableCollection<JudgementLine>()
                 {
                     new JudgementLine()
                     {

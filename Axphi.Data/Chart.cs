@@ -1,4 +1,5 @@
 ﻿using Axphi.Data.KeyFrames;
+using System.Collections.ObjectModel; // 别忘了引入这个命名空间
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Axphi.Data
@@ -68,7 +69,8 @@ namespace Axphi.Data
         /// <summary>
         /// 判定线
         /// </summary>
-        public List<JudgementLine>? JudgementLines { get; set; }
+        /// // 新代码：全面换装 ObservableCollection 大喇叭！
+        public ObservableCollection<JudgementLine>? JudgementLines { get; set; }
 
         /// <summary>
         /// 插值方向

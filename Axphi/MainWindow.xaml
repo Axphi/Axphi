@@ -218,16 +218,36 @@
 
                                                 <StackPanel Visibility="{Binding IsChecked, ElementName=ExpandButton, Converter={StaticResource BoolToVis}}" Margin="24,0,0,0" Background="#252525">
                                                     <Grid Height="20">
-                                                        <TextBlock Text="Offset (位移)" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                        <TextBlock Text="Position" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
+                                                            <TextBlock Text=", " Foreground="#888" VerticalAlignment="Center"/>
+                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
+                                                        </StackPanel>
                                                     </Grid>
+
                                                     <Grid Height="20">
-                                                        <TextBlock Text="Scale (缩放)" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                        <TextBlock Text="Scale" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                            <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleX, Mode=TwoWay}" />
+                                                            <TextBlock Text=", " Foreground="#888" VerticalAlignment="Center"/>
+                                                            <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleY, Mode=TwoWay}" />
+                                                        </StackPanel>
                                                     </Grid>
+
                                                     <Grid Height="20">
-                                                        <TextBlock Text="Rotation (旋转)" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                        <TextBlock Text="Rotation" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentRotation, Mode=TwoWay}" />
+                                                            <TextBlock Text="°" Foreground="#888" VerticalAlignment="Center"/>
+                                                        </StackPanel>
                                                     </Grid>
+
                                                     <Grid Height="20">
-                                                        <TextBlock Text="Opacity (透明度)" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                        <TextBlock Text="Opacity" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                            <comp:DraggableValueBox DragSpeed="0.01" Maximum="1" Minimum="0" NumberFormat="0.00" Value="{Binding CurrentOpacity, Mode=TwoWay}" />
+                                                        </StackPanel>
                                                     </Grid>
                                                 </StackPanel>
                                             </StackPanel>

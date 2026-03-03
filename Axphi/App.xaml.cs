@@ -32,6 +32,10 @@ public partial class App : Application
 
         serviceCollection.AddSingleton<TimelineViewModel>();
 
+        
+
+
+
         return serviceCollection.BuildServiceProvider();
     }
 

@@ -25,19 +25,26 @@ namespace Axphi.ViewModels
         // 注册时间轴子 ViewModel
         public TimelineViewModel Timeline { get; } = new TimelineViewModel();
 
+        
+
         // 通过依赖注入，把它们接进来
         public MainViewModel(
             BezierViewModel bezierVM,
             ProjectManager projectManager,
             
             FileActionsViewModel fileActionsViewModel,
-            TimelineViewModel timelineViewModel)
+            TimelineViewModel timelineViewModel
+
+
+            )
         {
             BezierViewModel = bezierVM;
             ProjectManager = projectManager;
             
             FileActions = fileActionsViewModel;
             Timeline = timelineViewModel;
+            
+
         }
         [RelayCommand]
         private void LoadDemoChart()

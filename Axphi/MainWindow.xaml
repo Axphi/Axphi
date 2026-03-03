@@ -29,13 +29,17 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="ThumbBorder" Background="#555555" CornerRadius="0" Margin="2,0"/>
+                        <Border
+                            x:Name="ThumbBorder"
+                            Margin="2,0"
+                            Background="#555555"
+                            CornerRadius="0" />
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="#888888"/>
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="#888888" />
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="#AAAAAA"/>
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="#AAAAAA" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -44,19 +48,19 @@
         </Style>
 
         <Style TargetType="ScrollBar">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
             <Style.Triggers>
                 <Trigger Property="Orientation" Value="Vertical">
-                    <Setter Property="MinWidth" Value="0"/>
-                    <Setter Property="Width" Value="8"/>
+                    <Setter Property="MinWidth" Value="0" />
+                    <Setter Property="Width" Value="8" />
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ScrollBar">
                                 <Grid Background="{TemplateBinding Background}">
                                     <Track x:Name="PART_Track" IsDirectionReversed="true">
                                         <Track.Thumb>
-                                            <Thumb Style="{StaticResource ModernScrollThumb}"/>
+                                            <Thumb Style="{StaticResource ModernScrollThumb}" />
                                         </Track.Thumb>
                                     </Track>
                                 </Grid>
@@ -66,7 +70,7 @@
                 </Trigger>
 
                 <Trigger Property="Orientation" Value="Horizontal">
-                    <Setter Property="Height" Value="10"/>
+                    <Setter Property="Height" Value="10" />
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ScrollBar">
@@ -76,13 +80,17 @@
                                             <Thumb Style="{StaticResource ModernScrollThumb}">
                                                 <Thumb.Template>
                                                     <ControlTemplate TargetType="Thumb">
-                                                        <Border x:Name="ThumbBorder" Background="#555555" CornerRadius="3" Margin="0,2"/>
+                                                        <Border
+                                                            x:Name="ThumbBorder"
+                                                            Margin="0,2"
+                                                            Background="#555555"
+                                                            CornerRadius="3" />
                                                         <ControlTemplate.Triggers>
                                                             <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="ThumbBorder" Property="Background" Value="#888888"/>
+                                                                <Setter TargetName="ThumbBorder" Property="Background" Value="#888888" />
                                                             </Trigger>
                                                             <Trigger Property="IsDragging" Value="True">
-                                                                <Setter TargetName="ThumbBorder" Property="Background" Value="#AAAAAA"/>
+                                                                <Setter TargetName="ThumbBorder" Property="Background" Value="#AAAAAA" />
                                                             </Trigger>
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>
@@ -98,8 +106,8 @@
             </Style.Triggers>
         </Style>
     </Window.Resources>
-    
-    
+
+
 
     <ws:WindowContentAdapter>
         <DockPanel>
@@ -159,7 +167,10 @@
                     </Grid>
                 </comp:TabPane>
 
-                <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
+                <Grid
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*" />
                         <ColumnDefinition Width="2.8*" />
@@ -167,19 +178,28 @@
 
                     <comp:TabPane Grid.Column="0">
                         <comp:TabPane.Header>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Line" VerticalAlignment="Center" />
-                                <ws:Button Content="+" Margin="10,0,0,0" Padding="8,0" Command="{Binding Timeline.AddJudgementLineCommand}" ToolTip="添加图层"/>
+                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center" Text="Line" />
+                                <ws:Button
+                                    Margin="10,0,0,0"
+                                    Padding="8,0"
+                                    Command="{Binding Timeline.AddJudgementLineCommand}"
+                                    Content="+"
+                                    ToolTip="添加图层" />
                             </StackPanel>
                         </comp:TabPane.Header>
                     </comp:TabPane>
 
-                    <comp:TabPane Grid.Column="1" Header="Timeline">
-                    </comp:TabPane>
+                    <comp:TabPane Grid.Column="1" Header="Timeline" />
 
-                    <ScrollViewer Grid.Column="0" Grid.ColumnSpan="2" Margin="2,35,2,2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+                    <ScrollViewer
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Margin="2,35,2,2"
+                        HorizontalScrollBarVisibility="Hidden"
+                        VerticalScrollBarVisibility="Auto">
 
-                        <ItemsControl ItemsSource="{Binding Timeline.CurrentChart.JudgementLines}">
+                        <ItemsControl ItemsSource="{Binding Timeline.Tracks}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
 
@@ -189,7 +209,12 @@
                                             <ColumnDefinition Width="2.8*" />
                                         </Grid.ColumnDefinitions>
 
-                                        <Border Grid.Column="0" Margin="0,0,2,2" Background="#2d2d2d" BorderBrush="#444" BorderThickness="0,0,0,1">
+                                        <Border
+                                            Grid.Column="0"
+                                            Margin="0,0,2,2"
+                                            Background="#2d2d2d"
+                                            BorderBrush="#444"
+                                            BorderThickness="0,0,0,1">
                                             <StackPanel>
                                                 <Grid Height="20" Background="Transparent">
                                                     <Grid.ColumnDefinitions>
@@ -198,10 +223,20 @@
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
                                                     <Rectangle Grid.Column="0" Fill="#FFD700" />
-                                                    <ToggleButton x:Name="ExpandButton" Grid.Column="1" Cursor="Hand">
+                                                    <ToggleButton
+                                                        x:Name="ExpandButton"
+                                                        Grid.Column="1"
+                                                        Cursor="Hand">
                                                         <ToggleButton.Template>
                                                             <ControlTemplate TargetType="ToggleButton">
-                                                                <TextBlock x:Name="ArrowText" Text="&gt;" Foreground="#d6d6d6" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas" FontWeight="Bold"/>
+                                                                <TextBlock
+                                                                    x:Name="ArrowText"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"
+                                                                    FontFamily="Consolas"
+                                                                    FontWeight="Bold"
+                                                                    Foreground="#d6d6d6"
+                                                                    Text="&gt;" />
                                                                 <ControlTemplate.Triggers>
                                                                     <Trigger Property="IsChecked" Value="True">
                                                                         <Setter TargetName="ArrowText" Property="Text" Value="v" />
@@ -213,57 +248,145 @@
                                                             </ControlTemplate>
                                                         </ToggleButton.Template>
                                                     </ToggleButton>
-                                                    <TextBlock Grid.Column="2" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="#d6d6d6" Text="判定线图层" />
+                                                    <TextBlock
+                                                        Grid.Column="2"
+                                                        Margin="5,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        Foreground="#d6d6d6"
+                                                        Text="{Binding TrackName}" />
                                                 </Grid>
 
-                                                <StackPanel Visibility="{Binding IsChecked, ElementName=ExpandButton, Converter={StaticResource BoolToVis}}" Margin="24,0,0,0" Background="#252525">
+                                                <StackPanel
+                                                    Margin="24,0,0,0"
+                                                    Background="#252525"
+                                                    Visibility="{Binding IsChecked, ElementName=ExpandButton, Converter={StaticResource BoolToVis}}">
                                                     <Grid Height="20">
-                                                        <TextBlock Text="Position" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
-                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
-                                                            <TextBlock Text=", " Foreground="#888" VerticalAlignment="Center"/>
-                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
+                                                        <TextBlock
+                                                            Margin="5,0,0,0"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="11"
+                                                            Foreground="#aaa"
+                                                            Text="Position" />
+                                                        <StackPanel
+                                                            Margin="0,0,10,0"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Center"
+                                                            Orientation="Horizontal">
+                                                            <comp:DraggableValueBox
+                                                                DragSpeed="1"
+                                                                NumberFormat="0.0"
+                                                                Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
+                                                            <TextBlock
+                                                                VerticalAlignment="Center"
+                                                                Foreground="#888"
+                                                                Text=", " />
+                                                            <comp:DraggableValueBox
+                                                                DragSpeed="1"
+                                                                NumberFormat="0.0"
+                                                                Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
                                                         </StackPanel>
                                                     </Grid>
 
                                                     <Grid Height="20">
-                                                        <TextBlock Text="Scale" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
-                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                            <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleX, Mode=TwoWay}" />
-                                                            <TextBlock Text=", " Foreground="#888" VerticalAlignment="Center"/>
-                                                            <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleY, Mode=TwoWay}" />
+                                                        <TextBlock
+                                                            Margin="5,0,0,0"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="11"
+                                                            Foreground="#aaa"
+                                                            Text="Scale" />
+                                                        <StackPanel
+                                                            Margin="0,0,10,0"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Center"
+                                                            Orientation="Horizontal">
+                                                            <comp:DraggableValueBox
+                                                                DragSpeed="0.01"
+                                                                NumberFormat="0.00"
+                                                                Value="{Binding CurrentScaleX, Mode=TwoWay}" />
+                                                            <TextBlock
+                                                                VerticalAlignment="Center"
+                                                                Foreground="#888"
+                                                                Text=", " />
+                                                            <comp:DraggableValueBox
+                                                                DragSpeed="0.01"
+                                                                NumberFormat="0.00"
+                                                                Value="{Binding CurrentScaleY, Mode=TwoWay}" />
                                                         </StackPanel>
                                                     </Grid>
 
                                                     <Grid Height="20">
-                                                        <TextBlock Text="Rotation" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
-                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentRotation, Mode=TwoWay}" />
-                                                            <TextBlock Text="°" Foreground="#888" VerticalAlignment="Center"/>
+                                                        <TextBlock
+                                                            Margin="5,0,0,0"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="11"
+                                                            Foreground="#aaa"
+                                                            Text="Rotation" />
+                                                        <StackPanel
+                                                            Margin="0,0,10,0"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Center"
+                                                            Orientation="Horizontal">
+                                                            <comp:DraggableValueBox
+                                                                DragSpeed="1"
+                                                                NumberFormat="0.0"
+                                                                Value="{Binding CurrentRotation, Mode=TwoWay}" />
+                                                            <TextBlock
+                                                                VerticalAlignment="Center"
+                                                                Foreground="#888"
+                                                                Text="°" />
                                                         </StackPanel>
                                                     </Grid>
 
                                                     <Grid Height="20">
-                                                        <TextBlock Text="Opacity" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
-                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                            <comp:DraggableValueBox DragSpeed="0.01" Maximum="1" Minimum="0" NumberFormat="0.00" Value="{Binding CurrentOpacity, Mode=TwoWay}" />
+                                                        <TextBlock
+                                                            Margin="5,0,0,0"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="11"
+                                                            Foreground="#aaa"
+                                                            Text="Opacity" />
+                                                        <StackPanel
+                                                            Margin="0,0,10,0"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Center"
+                                                            Orientation="Horizontal">
+                                                            <comp:DraggableValueBox
+                                                                DragSpeed="0.01"
+                                                                Maximum="1"
+                                                                Minimum="0"
+                                                                NumberFormat="0.00"
+                                                                Value="{Binding CurrentOpacity, Mode=TwoWay}" />
                                                         </StackPanel>
                                                     </Grid>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Border>
 
-                                        <Border Grid.Column="1" Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
+                                        <Border
+                                            Grid.Column="1"
+                                            Margin="0,0,0,2"
+                                            Background="#1e1e1e"
+                                            BorderBrush="#444"
+                                            BorderThickness="0,0,0,1">
                                             <StackPanel>
-                                                <Grid Height="20" Background="#252525">
-                                                    
-                                                </Grid>
+                                                <Grid Height="20" Background="#252525" />
 
                                                 <StackPanel Visibility="{Binding IsChecked, ElementName=ExpandButton, Converter={StaticResource BoolToVis}}">
-                                                    <Border Height="20" BorderBrush="#333" BorderThickness="0,1,0,0"/>
-                                                    <Border Height="20" BorderBrush="#333" BorderThickness="0,1,0,0"/>
-                                                    <Border Height="20" BorderBrush="#333" BorderThickness="0,1,0,0"/>
-                                                    <Border Height="20" BorderBrush="#333" BorderThickness="0,1,0,0"/>
+                                                    <Border
+                                                        Height="20"
+                                                        BorderBrush="#333"
+                                                        BorderThickness="0,1,0,0" />
+                                                    <Border
+                                                        Height="20"
+                                                        BorderBrush="#333"
+                                                        BorderThickness="0,1,0,0" />
+                                                    <Border
+                                                        Height="20"
+                                                        BorderBrush="#333"
+                                                        BorderThickness="0,1,0,0" />
+                                                    <Border
+                                                        Height="20"
+                                                        BorderBrush="#333"
+                                                        BorderThickness="0,1,0,0" />
                                                 </StackPanel>
                                             </StackPanel>
                                         </Border>
@@ -275,7 +398,7 @@
                     </ScrollViewer>
                 </Grid>
 
-                
+
                 <comp:TabPane
                     Grid.Row="1"
                     Grid.Column="2"

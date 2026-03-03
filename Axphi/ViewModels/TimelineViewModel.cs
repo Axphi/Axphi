@@ -12,6 +12,9 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private Chart _currentChart;
 
+        // ================= 新增：专供 UI 绑定的轨道视图模型集合 =================
+        public ObservableCollection<TrackViewModel> Tracks { get; } = new ObservableCollection<TrackViewModel>();
+
         // 构造函数：初始化时，可以先给个空谱面，或者由外部传进来
         public TimelineViewModel()
         {
@@ -29,11 +32,16 @@ namespace Axphi.ViewModels
         {
             if (CurrentChart == null || CurrentChart.JudgementLines == null) return;
 
+            // 1. 实例化底层的纯净数据
             // 新建一条判定线
             var newLine = new JudgementLine();
 
             // 把新线加进集合，界面会自动更新！
             CurrentChart.JudgementLines.Add(newLine);
+
+            // 2. 实例化这个数据的“代理人”，并加进 UI 集合里！
+            var newTrackVM = new TrackViewModel(newLine, $"判定线图层 {Tracks.Count + 1}");
+            Tracks.Add(newTrackVM);
         }
     }
 }

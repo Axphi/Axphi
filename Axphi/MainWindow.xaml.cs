@@ -56,29 +56,42 @@ public partial class MainWindow : Window
         base.OnSourceInitialized(e);
     }
 
-    // ====== 新增：监听全局的鼠标滚轮事件 ======
+    // ====== 监听全局的鼠标滚轮事件 (支持以鼠标为轴心缩放) ======
+    // ====== 监听全局的鼠标滚轮事件 (带防频闪同步黑科技) ======
     protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
     {
         base.OnPreviewMouseWheel(e);
 
-        // 检查是不是按住了 Alt 键
         if (Keyboard.Modifiers == ModifierKeys.Alt)
         {
-            // 获取大管家 ViewModel
             if (this.DataContext is MainViewModel vm)
             {
-                // 滚轮向上 (放大)，每次放大 10%
-                if (e.Delta > 0)
-                {
-                    vm.Timeline.ZoomScale *= 1.1;
-                }
-                // 滚轮向下 (缩小)，每次缩小 10%
-                else if (e.Delta < 0)
-                {
-                    vm.Timeline.ZoomScale /= 1.1;
-                }
+                double mouseX = e.GetPosition(GlobalScroll).X;
+                double oldScale = vm.Timeline.ZoomScale;
+                double oldOffset = GlobalScroll.Value;
 
-                // 标记事件已处理，防止触发页面上下滚动
+                double newScale = oldScale;
+                if (e.Delta > 0) newScale *= 1.1;
+                else if (e.Delta < 0) newScale /= 1.1;
+
+                if (newScale < 0.01) newScale = 0.01;
+                if (newScale > 100.0) newScale = 100.0;
+
+                // 核心计算公式不变
+                double ratio = newScale / oldScale;
+                double newOffset = (oldOffset + mouseX) * ratio - mouseX;
+
+                // ================= 【解决频闪的终极黑科技】 =================
+                // 1. 我们不再使用 BeginInvoke 延迟了！
+                // 2. 为了防止滚动条在同步赋值时把我们截断，我们先“预判”它放大后的总长度，并强行撑开它的 Maximum！
+                double expectedNewMaximum = GlobalScroll.Maximum * ratio;
+                GlobalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedNewMaximum);
+
+                // 3. 现在，Maximum 足够大了，我们立刻在同一帧内，同时更新 比例 和 位置！
+                // 这样刻度尺在下一次渲染时，拿到的就是完美匹配的“新比例 + 新坐标”，绝不会产生废片！
+                vm.Timeline.ZoomScale = newScale;
+                GlobalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newOffset);
+
                 e.Handled = true;
             }
         }

@@ -69,8 +69,10 @@ namespace Axphi.ViewModels
             // 秒数 转 Tick (记得加上谱面的 Offset)
             double secondsPerTick = 1.875 / currentBpm;
 
-            // 注意：这里我们不用 (int) 强转，保留小数，这样游标移动才会是丝滑的，而不是一格一格跳！
-            double currentTick = (CurrentPlayTimeSeconds / secondsPerTick) + CurrentChart.Offset;
+            
+
+            // 修改后：强行把小数抹掉，让它永远精确咬合在整数的 Tick 刻度上！
+            int currentTick = (int)((CurrentPlayTimeSeconds / secondsPerTick) + CurrentChart.Offset);
 
             // Tick 转 物理像素
             PlayheadPositionX = currentTick * BasePixelsPerTick * ZoomScale;

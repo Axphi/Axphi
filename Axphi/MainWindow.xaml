@@ -169,13 +169,22 @@
                     </Grid>
                 </comp:TabPane>
 
-                <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
+                
+
+                <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="2,0,2,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*" />
                         <ColumnDefinition Width="2.8*" />
                     </Grid.ColumnDefinitions>
 
-                    <comp:TabPane Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="25" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <comp:TabPane Grid.Row="0" Grid.Column="0">
                         <comp:TabPane.Header>
                             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                                 <TextBlock VerticalAlignment="Center" Text="Line" />
@@ -183,11 +192,21 @@
                             </StackPanel>
                         </comp:TabPane.Header>
                     </comp:TabPane>
+                    <comp:TabPane Grid.Row="0" Grid.Column="1" Header="Timeline" />
 
-                    <comp:TabPane Grid.Column="1" Header="Timeline" />
+                    <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e">
+                        <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" ScrollChanged="TrackScrollViewer_ScrollChanged">
+                            <comp:TimelineRuler 
+                                Width="{Binding Timeline.TotalPixelWidth}" 
+                                ZoomScale="{Binding Timeline.ZoomScale}"
+                                TotalTicks="{Binding Timeline.TotalDurationTicks}"
+                                HorizontalAlignment="Left"
+                                VisibleOffsetX="{Binding Value, ElementName=GlobalScroll}"
+                                ViewportWidth="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"/>
+                        </ScrollViewer>
+                    </Border>
 
-                    <ScrollViewer Grid.Column="0" Grid.ColumnSpan="2" Margin="2,35,2,20" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-
+                    <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding Timeline.Tracks}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -223,7 +242,6 @@
                                                     </ToggleButton>
                                                     <TextBlock Grid.Column="2" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="#d6d6d6" Text="{Binding TrackName}" />
                                                 </Grid>
-
                                                 <StackPanel Margin="24,0,0,0" Background="#252525" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                                                     <Grid Height="20">
                                                         <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Position" />
@@ -268,7 +286,6 @@
                                                             </Rectangle.LayoutTransform>
                                                         </Rectangle>
                                                     </Grid>
-
                                                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                                                         <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />
                                                         <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />
@@ -285,15 +302,11 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <ScrollBar Grid.Column="1" 
-                               Orientation="Horizontal" 
-                               VerticalAlignment="Bottom"
-                               Height="12"
-                               Margin="0,0,0,2"
-                               Minimum="0"
-                               Maximum="{Binding Timeline.TotalPixelWidth}"
-                               ViewportSize="800"
-                               ValueChanged="GlobalScrollBar_ValueChanged" />
+                    <ScrollBar x:Name="GlobalScroll"
+                               Grid.Row="3" Grid.Column="1" Height="12" Margin="0,0,0,2"
+                               Orientation="Horizontal" VerticalAlignment="Bottom"
+                               Minimum="0" Maximum="{Binding Timeline.TotalPixelWidth}"
+                               ViewportSize="800" ValueChanged="GlobalScrollBar_ValueChanged" />
                 </Grid>
 
 

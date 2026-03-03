@@ -216,7 +216,7 @@
                                             <ColumnDefinition Width="2.8*" />
                                         </Grid.ColumnDefinitions>
 
-                                        <Border Grid.Column="0" Margin="0,0,2,2" Background="#2d2d2d" BorderBrush="#444" BorderThickness="0,0,0,1">
+                                        <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1">
                                             <StackPanel>
                                                 <Grid Height="20" Background="Transparent">
                                                     <Grid.ColumnDefinitions>
@@ -279,7 +279,7 @@
                                         <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" ScrollChanged="TrackScrollViewer_ScrollChanged">
                                             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
                                                 <StackPanel>
-                                                    <Grid Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" Background="#252525">
+                                                    <Grid Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" Background="#374561">
                                                         <Rectangle Width="8" Height="8" Margin="100,0,0,0" HorizontalAlignment="Left" Fill="#FFD700" ToolTip="这是一个关键帧">
                                                             <Rectangle.LayoutTransform>
                                                                 <RotateTransform Angle="45" />

@@ -22,6 +22,10 @@
         <WindowChrome />
     </WindowChrome.WindowChrome>
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
     <ws:WindowContentAdapter>
         <DockPanel>
             <mainWinComp:TitleBar DockPanel.Dock="Top" />
@@ -100,28 +104,100 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border
-                                        Height="20"
                                         Margin="0,0,0,2"
                                         Background="#2d2d2d"
                                         BorderBrush="#444"
                                         BorderThickness="0,0,0,1">
 
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="4" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
+                                        <StackPanel>
 
-                                            <Rectangle Grid.Column="0" Fill="#FFD700" />
+                                            <Grid Height="20" Background="Transparent">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="4" />
+                                                    <ColumnDefinition Width="20" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
 
-                                            <TextBlock
-                                                Grid.Column="1"
-                                                Margin="10,0,0,0"
-                                                VerticalAlignment="Center"
-                                                Foreground="#d6d6d6"
-                                                Text="判定线图层" />
-                                        </Grid>
+                                                <Rectangle Grid.Column="0" Fill="#FFD700" />
 
+                                                <ToggleButton
+                                                    x:Name="ExpandButton"
+                                                    Grid.Column="1"
+                                                    Cursor="Hand">
+                                                    <ToggleButton.Template>
+                                                        <ControlTemplate TargetType="ToggleButton">
+                                                            <TextBlock
+                                                                x:Name="ArrowText"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"
+                                                                FontFamily="Consolas"
+                                                                FontWeight="Bold"
+                                                                Foreground="#d6d6d6"
+                                                                Text="&gt;" />
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsChecked" Value="True">
+                                                                    <Setter TargetName="ArrowText" Property="Text" Value="v" />
+                                                                </Trigger>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="ArrowText" Property="Foreground" Value="#FFD700" />
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </ToggleButton.Template>
+                                                </ToggleButton>
+
+                                                <TextBlock
+                                                    Grid.Column="2"
+                                                    Margin="5,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="#d6d6d6"
+                                                    Text="判定线图层" />
+                                            </Grid>
+
+                                            <StackPanel
+                                                Margin="24,0,0,0"
+                                                Background="#252525"
+                                                Visibility="{Binding IsChecked, ElementName=ExpandButton, Converter={StaticResource BoolToVis}}">
+
+                                                <Grid Height="20">
+                                                    <TextBlock
+                                                        Margin="5,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Foreground="#aaa"
+                                                        Text="Offset (位移)" />
+                                                </Grid>
+
+                                                <Grid Height="20">
+                                                    <TextBlock
+                                                        Margin="5,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Foreground="#aaa"
+                                                        Text="Scale (缩放)" />
+                                                </Grid>
+
+                                                <Grid Height="20">
+                                                    <TextBlock
+                                                        Margin="5,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Foreground="#aaa"
+                                                        Text="Rotation (旋转)" />
+                                                </Grid>
+
+                                                <Grid Height="20">
+                                                    <TextBlock
+                                                        Margin="5,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Foreground="#aaa"
+                                                        Text="Opacity (透明度)" />
+                                                </Grid>
+
+                                            </StackPanel>
+
+                                        </StackPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

@@ -56,5 +56,6 @@ namespace Axphi.ViewModels
             ProjectManager.EditingProjectFilePath = null;
         }
 
+
     }
 }

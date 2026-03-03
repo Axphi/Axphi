@@ -56,4 +56,32 @@ public partial class MainWindow : Window
         base.OnSourceInitialized(e);
     }
 
+    // ====== 新增：监听全局的鼠标滚轮事件 ======
+    protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
+    {
+        base.OnPreviewMouseWheel(e);
+
+        // 检查是不是按住了 Alt 键
+        if (Keyboard.Modifiers == ModifierKeys.Alt)
+        {
+            // 获取大管家 ViewModel
+            if (this.DataContext is MainViewModel vm)
+            {
+                // 滚轮向上 (放大)，每次放大 10%
+                if (e.Delta > 0)
+                {
+                    vm.Timeline.ZoomScale *= 1.1;
+                }
+                // 滚轮向下 (缩小)，每次缩小 10%
+                else if (e.Delta < 0)
+                {
+                    vm.Timeline.ZoomScale /= 1.1;
+                }
+
+                // 标记事件已处理，防止触发页面上下滚动
+                e.Handled = true;
+            }
+        }
+    }
+
 }

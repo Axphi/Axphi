@@ -12,6 +12,26 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private Chart _currentChart;
 
+        // 1. 缩放比例 (Zoom)：相当于按住 Alt 滚轮修改的值，默认是 1.0
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(TotalPixelWidth))] // 当 Zoom 改变时，通知界面重新获取总宽度
+        private double _zoomScale = 1.0;
+
+        // 2. 谱面总长度 (以 128分音符/Tick 为单位)
+        // 假设一首 2 分钟的 120BPM 歌曲，大约有 240 拍 * 32 = 7680 个 Tick。我们先给个默认值 10000 够长了。
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(TotalPixelWidth))]
+        private int _totalDurationTicks = 10000;
+
+        // 3. 基础缩放系数：1 个 Tick 默认占多少像素？
+        // 如果给 1.0，那 10000 个 Tick 就是 10000 像素，太长了。我们默认给个 0.5 像素试试。
+        private const double BasePixelsPerTick = 0.5;
+
+        // 4. 【核心魔法】计算出右侧轨道的物理总像素宽度！UI 会绑定这个值！
+        public double TotalPixelWidth => TotalDurationTicks * BasePixelsPerTick * ZoomScale;
+
+
+
         // ================= 新增：专供 UI 绑定的轨道视图模型集合 =================
         public ObservableCollection<TrackViewModel> Tracks { get; } = new ObservableCollection<TrackViewModel>();
 

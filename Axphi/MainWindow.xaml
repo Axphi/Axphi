@@ -70,7 +70,9 @@
                 </Trigger>
 
                 <Trigger Property="Orientation" Value="Horizontal">
-                    <Setter Property="Height" Value="10" />
+                    <Setter Property="MinHeight" Value="0" />
+                    <Setter Property="Height" Value="8" />
+
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ScrollBar">
@@ -84,7 +86,7 @@
                                                             x:Name="ThumbBorder"
                                                             Margin="0,2"
                                                             Background="#555555"
-                                                            CornerRadius="3" />
+                                                            CornerRadius="0" />
                                                         <ControlTemplate.Triggers>
                                                             <Trigger Property="IsMouseOver" Value="True">
                                                                 <Setter TargetName="ThumbBorder" Property="Background" Value="#888888" />
@@ -196,7 +198,7 @@
                         Grid.Column="0"
                         Grid.ColumnSpan="2"
                         Margin="2,35,2,2"
-                        HorizontalScrollBarVisibility="Hidden"
+                        HorizontalScrollBarVisibility="Auto"
                         VerticalScrollBarVisibility="Auto">
 
                         <ItemsControl ItemsSource="{Binding Timeline.Tracks}">
@@ -368,26 +370,53 @@
                                             BorderBrush="#444"
                                             BorderThickness="0,0,0,1">
                                             <StackPanel>
-                                                <Grid Height="20" Background="#252525" />
+
+                                                <Grid
+                                                    Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    Height="20"
+                                                    HorizontalAlignment="Left"
+                                                    Background="#252525">
+
+                                                    <Rectangle
+                                                        Width="8"
+                                                        Height="8"
+                                                        Margin="100,0,0,0"
+                                                        HorizontalAlignment="Left"
+                                                        Fill="#FFD700"
+                                                        ToolTip="这是一个关键帧">
+                                                        <Rectangle.LayoutTransform>
+                                                            <RotateTransform Angle="45" />
+                                                        </Rectangle.LayoutTransform>
+                                                    </Rectangle>
+                                                </Grid>
 
                                                 <StackPanel Visibility="{Binding IsChecked, ElementName=ExpandButton, Converter={StaticResource BoolToVis}}">
                                                     <Border
+                                                        Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         Height="20"
+                                                        HorizontalAlignment="Left"
                                                         BorderBrush="#333"
                                                         BorderThickness="0,1,0,0" />
                                                     <Border
+                                                        Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         Height="20"
+                                                        HorizontalAlignment="Left"
                                                         BorderBrush="#333"
                                                         BorderThickness="0,1,0,0" />
                                                     <Border
+                                                        Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         Height="20"
+                                                        HorizontalAlignment="Left"
                                                         BorderBrush="#333"
                                                         BorderThickness="0,1,0,0" />
                                                     <Border
+                                                        Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         Height="20"
+                                                        HorizontalAlignment="Left"
                                                         BorderBrush="#333"
                                                         BorderThickness="0,1,0,0" />
                                                 </StackPanel>
+
                                             </StackPanel>
                                         </Border>
 

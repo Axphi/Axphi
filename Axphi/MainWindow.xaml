@@ -84,134 +84,107 @@
                     </Grid>
                 </comp:TabPane>
 
-                <comp:TabPane Grid.Row="1" Grid.Column="0">
+                <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*" />
+                        <ColumnDefinition Width="2.8*" />
+                    </Grid.ColumnDefinitions>
 
-                    <comp:TabPane.Header>
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center" Text="Line" />
+                    <comp:TabPane Grid.Column="0">
+                        <comp:TabPane.Header>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Line" VerticalAlignment="Center" />
+                                <ws:Button Content="+" Margin="10,0,0,0" Padding="8,0" Command="{Binding Timeline.AddJudgementLineCommand}" ToolTip="添加图层"/>
+                            </StackPanel>
+                        </comp:TabPane.Header>
+                    </comp:TabPane>
 
-                            <ws:Button
-                                Margin="10,0,0,0"
-                                Padding="8,0"
-                                Command="{Binding Timeline.AddJudgementLineCommand}"
-                                Content="+"
-                                ToolTip="添加判定线图层" />
-                        </StackPanel>
-                    </comp:TabPane.Header>
+                    <comp:TabPane Grid.Column="1" Header="Timeline">
+                    </comp:TabPane>
 
-                    <ScrollViewer Margin="2" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Column="0" Grid.ColumnSpan="2" Margin="2,35,2,2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+
                         <ItemsControl ItemsSource="{Binding Timeline.CurrentChart.JudgementLines}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border
-                                        Margin="0,0,0,2"
-                                        Background="#2d2d2d"
-                                        BorderBrush="#444"
-                                        BorderThickness="0,0,0,1">
 
-                                        <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1*" />
+                                            <ColumnDefinition Width="2.8*" />
+                                        </Grid.ColumnDefinitions>
 
-                                            <Grid Height="20" Background="Transparent">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="4" />
-                                                    <ColumnDefinition Width="20" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-
-                                                <Rectangle Grid.Column="0" Fill="#FFD700" />
-
-                                                <ToggleButton
-                                                    x:Name="ExpandButton"
-                                                    Grid.Column="1"
-                                                    Cursor="Hand">
-                                                    <ToggleButton.Template>
-                                                        <ControlTemplate TargetType="ToggleButton">
-                                                            <TextBlock
-                                                                x:Name="ArrowText"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"
-                                                                FontFamily="Consolas"
-                                                                FontWeight="Bold"
-                                                                Foreground="#d6d6d6"
-                                                                Text="&gt;" />
-                                                            <ControlTemplate.Triggers>
-                                                                <Trigger Property="IsChecked" Value="True">
-                                                                    <Setter TargetName="ArrowText" Property="Text" Value="v" />
-                                                                </Trigger>
-                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="ArrowText" Property="Foreground" Value="#FFD700" />
-                                                                </Trigger>
-                                                            </ControlTemplate.Triggers>
-                                                        </ControlTemplate>
-                                                    </ToggleButton.Template>
-                                                </ToggleButton>
-
-                                                <TextBlock
-                                                    Grid.Column="2"
-                                                    Margin="5,0,0,0"
-                                                    VerticalAlignment="Center"
-                                                    Foreground="#d6d6d6"
-                                                    Text="判定线图层" />
-                                            </Grid>
-
-                                            <StackPanel
-                                                Margin="24,0,0,0"
-                                                Background="#252525"
-                                                Visibility="{Binding IsChecked, ElementName=ExpandButton, Converter={StaticResource BoolToVis}}">
-
-                                                <Grid Height="20">
-                                                    <TextBlock
-                                                        Margin="5,0,0,0"
-                                                        VerticalAlignment="Center"
-                                                        FontSize="11"
-                                                        Foreground="#aaa"
-                                                        Text="Offset (位移)" />
+                                        <Border Grid.Column="0" Margin="0,0,2,2" Background="#2d2d2d" BorderBrush="#444" BorderThickness="0,0,0,1">
+                                            <StackPanel>
+                                                <Grid Height="20" Background="Transparent">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="4" />
+                                                        <ColumnDefinition Width="20" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Rectangle Grid.Column="0" Fill="#FFD700" />
+                                                    <ToggleButton x:Name="ExpandButton" Grid.Column="1" Cursor="Hand">
+                                                        <ToggleButton.Template>
+                                                            <ControlTemplate TargetType="ToggleButton">
+                                                                <TextBlock x:Name="ArrowText" Text="&gt;" Foreground="#d6d6d6" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas" FontWeight="Bold"/>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsChecked" Value="True">
+                                                                        <Setter TargetName="ArrowText" Property="Text" Value="v" />
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="ArrowText" Property="Foreground" Value="#FFD700" />
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </ToggleButton.Template>
+                                                    </ToggleButton>
+                                                    <TextBlock Grid.Column="2" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="#d6d6d6" Text="判定线图层" />
                                                 </Grid>
 
-                                                <Grid Height="20">
-                                                    <TextBlock
-                                                        Margin="5,0,0,0"
-                                                        VerticalAlignment="Center"
-                                                        FontSize="11"
-                                                        Foreground="#aaa"
-                                                        Text="Scale (缩放)" />
-                                                </Grid>
-
-                                                <Grid Height="20">
-                                                    <TextBlock
-                                                        Margin="5,0,0,0"
-                                                        VerticalAlignment="Center"
-                                                        FontSize="11"
-                                                        Foreground="#aaa"
-                                                        Text="Rotation (旋转)" />
-                                                </Grid>
-
-                                                <Grid Height="20">
-                                                    <TextBlock
-                                                        Margin="5,0,0,0"
-                                                        VerticalAlignment="Center"
-                                                        FontSize="11"
-                                                        Foreground="#aaa"
-                                                        Text="Opacity (透明度)" />
-                                                </Grid>
-
+                                                <StackPanel Visibility="{Binding IsChecked, ElementName=ExpandButton, Converter={StaticResource BoolToVis}}" Margin="24,0,0,0" Background="#252525">
+                                                    <Grid Height="20">
+                                                        <TextBlock Text="Offset (位移)" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                    </Grid>
+                                                    <Grid Height="20">
+                                                        <TextBlock Text="Scale (缩放)" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                    </Grid>
+                                                    <Grid Height="20">
+                                                        <TextBlock Text="Rotation (旋转)" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                    </Grid>
+                                                    <Grid Height="20">
+                                                        <TextBlock Text="Opacity (透明度)" Foreground="#aaa" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
+                                                    </Grid>
+                                                </StackPanel>
                                             </StackPanel>
+                                        </Border>
 
-                                        </StackPanel>
-                                    </Border>
+                                        <Border Grid.Column="1" Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
+                                            <StackPanel>
+                                                <Grid Height="20" Background="#252525">
+                                                    <Rectangle Width="8" Height="8" Fill="#FFD700" HorizontalAlignment="Left" Margin="100,0,0,0" ToolTip="这是一个关键帧">
+                                                        <Rectangle.LayoutTransform>
+                                                            <RotateTransform Angle="45"/>
+                                                        </Rectangle.LayoutTransform>
+                                                    </Rectangle>
+                                                </Grid>
+
+                                                <StackPanel Visibility="{Binding IsChecked, ElementName=ExpandButton, Converter={StaticResource BoolToVis}}">
+                                                    <Border Height="20" BorderBrush="#333" BorderThickness="0,1,0,0"/>
+                                                    <Border Height="20" BorderBrush="#333" BorderThickness="0,1,0,0"/>
+                                                    <Border Height="20" BorderBrush="#333" BorderThickness="0,1,0,0"/>
+                                                    <Border Height="20" BorderBrush="#333" BorderThickness="0,1,0,0"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+
+                                    </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
+                </Grid>
 
-                </comp:TabPane>
-
-                <comp:TabPane
-                    Grid.Row="1"
-                    Grid.Column="1"
-                    Header="Timeline">
-                    <comp:ChartTimeline />
-                </comp:TabPane>
+                
                 <comp:TabPane
                     Grid.Row="1"
                     Grid.Column="2"

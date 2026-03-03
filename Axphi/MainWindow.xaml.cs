@@ -84,4 +84,31 @@ public partial class MainWindow : Window
         }
     }
 
+    // ================= 轨道滚动同步逻辑 =================
+
+    // 用来收集所有右侧轨道的“隐形小滚轮”
+    private readonly HashSet<ScrollViewer> _trackScrollViewers = new();
+
+    // 每一行轨道生成时，把自己上报给集合
+    private void TrackScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (sender is ScrollViewer sv)
+        {
+            _trackScrollViewers.Add(sv);
+        }
+    }
+
+    // 当底部总滚动条被拖拽时，强制所有轨道一起滚！
+    private void GlobalScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        // 拿到当前滚动条的进度值
+        double offset = e.NewValue;
+
+        // 让所有收集到的黑轨道同步滚动
+        foreach (var sv in _trackScrollViewers)
+        {
+            sv.ScrollToHorizontalOffset(offset);
+        }
+    }
+
 }

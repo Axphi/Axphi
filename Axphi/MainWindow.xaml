@@ -302,6 +302,25 @@
                         </ItemsControl>
                     </ScrollViewer>
 
+                    <ScrollViewer Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" 
+                                  HorizontalScrollBarVisibility="Hidden" 
+                                  VerticalScrollBarVisibility="Disabled"
+                                  ScrollChanged="TrackScrollViewer_ScrollChanged"
+                                  IsHitTestVisible="False">
+                        <Canvas Width="{Binding Timeline.TotalPixelWidth}">
+                            <Rectangle Width="1.5" 
+                                       Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}" 
+                                       Fill="#FF3333" 
+                                       Canvas.Left="{Binding Timeline.PlayheadPositionX}" />
+
+                            <Polygon Points="-6,0 6,0 0,8" 
+                                     Fill="#FF3333" 
+                                     Canvas.Left="{Binding Timeline.PlayheadPositionX}" 
+                                     Canvas.Top="0" />
+                        </Canvas>
+
+                    </ScrollViewer>
+
                     <ScrollBar x:Name="GlobalScroll"
                                Grid.Row="3" Grid.Column="1" Height="12" Margin="0,0,0,2"
                                Orientation="Horizontal" VerticalAlignment="Bottom"

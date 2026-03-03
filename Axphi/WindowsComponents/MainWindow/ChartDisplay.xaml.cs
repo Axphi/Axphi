@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿using Axphi.ViewModels;
+using CommunityToolkit.Mvvm.Input;
 using NAudio.Utils;
 using NAudio.Wave; // 需要引用 NAudio
 using System;
@@ -6,6 +7,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace Axphi.WindowsComponents.MainWindow
 {
@@ -84,20 +86,38 @@ namespace Axphi.WindowsComponents.MainWindow
             // 归零
             if (_musicReader != null) _musicReader.Position = 0;
             InternalChartRenderer.Time = default;
+
+            // ============ 【新增】强行让时间轴大管家也归零 ============
+            if (this.DataContext is MainViewModel vm)
+            {
+                vm.Timeline.CurrentPlayTimeSeconds = 0;
+            }
         }
 
         private void RenderTimerCallback(object? sender, EventArgs e)
         {
-            // 优先使用音频时间
+            // 1. 先统一获取当前的时间
+            TimeSpan currentTime;
             if (_wasapiOut is not null && _wasapiOut.PlaybackState == PlaybackState.Playing)
             {
-                InternalChartRenderer.Time = _wasapiOut.GetPositionTimeSpan();
-                return;
+                currentTime = _wasapiOut.GetPositionTimeSpan();
+            }
+            else
+            {
+                // 没有音频时使用秒表时间
+                _renderStopwatch ??= new Stopwatch();
+                currentTime = _renderStopwatch.Elapsed;
             }
 
-            // 没有音频时使用秒表时间
-            _renderStopwatch ??= new Stopwatch();
-            InternalChartRenderer.Time = _renderStopwatch.Elapsed;
+            // 2. 喂给上半部分的画面渲染器
+            InternalChartRenderer.Time = currentTime;
+
+            // ============ 3. 【新增】喂给下半部分 Timeline 的游标 ============
+            if (this.DataContext is MainViewModel vm)
+            {
+                // 直接把刚才拿到的 currentTime 转换成秒，传给大管家！
+                vm.Timeline.CurrentPlayTimeSeconds = currentTime.TotalSeconds;
+            }
         }
 
         private void CleanUpResources()

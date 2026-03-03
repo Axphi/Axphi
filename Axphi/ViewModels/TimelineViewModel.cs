@@ -30,7 +30,51 @@ namespace Axphi.ViewModels
         // 4. 【核心魔法】计算出右侧轨道的物理总像素宽度！UI 会绑定这个值！
         public double TotalPixelWidth => TotalDurationTicks * BasePixelsPerTick * ZoomScale;
 
+        // === 游标核心属性 ===
 
+        // 接收来自 ChartDisplay 的实时播放秒数
+        [ObservableProperty]
+        private double _currentPlayTimeSeconds;
+
+        // 供 XAML 里红色游标绑定的 X 物理坐标
+        [ObservableProperty]
+        private double _playheadPositionX;
+
+        // 1. 当播放器的时间改变时，重新计算游标位置
+        partial void OnCurrentPlayTimeSecondsChanged(double value)
+        {
+            UpdatePlayheadPosition();
+        }
+
+        // 2. 当你按 Alt+滚轮 缩放时，游标位置也必须跟着伸缩！
+        partial void OnZoomScaleChanged(double value)
+        {
+            // 注意：因为 TotalPixelWidth 用了 NotifyPropertyChangedFor
+            // 它会自动更新，但我们必须手动调用更新游标
+            UpdatePlayheadPosition();
+        }
+
+        // 核心换算公式（完全复刻你 ChartRenderer 里的算法）
+        private void UpdatePlayheadPosition()
+        {
+            if (CurrentChart == null) return;
+
+            // 获取当前 BPM (暂时取第一个)
+            double currentBpm = 120.0;
+            if (CurrentChart.BpmKeyFrames != null && CurrentChart.BpmKeyFrames.Any())
+            {
+                currentBpm = CurrentChart.BpmKeyFrames.First().Value;
+            }
+
+            // 秒数 转 Tick (记得加上谱面的 Offset)
+            double secondsPerTick = 1.875 / currentBpm;
+
+            // 注意：这里我们不用 (int) 强转，保留小数，这样游标移动才会是丝滑的，而不是一格一格跳！
+            double currentTick = (CurrentPlayTimeSeconds / secondsPerTick) + CurrentChart.Offset;
+
+            // Tick 转 物理像素
+            PlayheadPositionX = currentTick * BasePixelsPerTick * ZoomScale;
+        }
 
         // ================= 新增：专供 UI 绑定的轨道视图模型集合 =================
         public ObservableCollection<TrackViewModel> Tracks { get; } = new ObservableCollection<TrackViewModel>();

@@ -124,4 +124,77 @@ public partial class MainWindow : Window
         }
     }
 
+
+    // ================= 游标拖拽逻辑 (Scrubbing) =================
+
+    // 拖拽进行中：实时更新画面，丝滑预览
+    private void Playhead_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        if (this.DataContext is MainViewModel vm)
+        {
+            // 1. 算出拖拽后的新 X 坐标
+            double newX = vm.Timeline.PlayheadPositionX + e.HorizontalChange;
+            if (newX < 0) newX = 0;
+            if (newX > vm.Timeline.TotalPixelWidth) newX = vm.Timeline.TotalPixelWidth;
+
+            // 2. 像素 反推回 Tick
+            // TotalPixelWidth 已经包含了 ZoomScale 的加成，所以直接除以总 Ticks 就是每 Tick 的实际像素宽
+            double pixelsPerTick = vm.Timeline.TotalPixelWidth / (double)vm.Timeline.TotalDurationTicks;
+            double currentTick = newX / pixelsPerTick;
+
+            // 3. Tick 反推回 秒数
+            var chart = vm.ProjectManager.EditingProject.Chart;
+            if (chart == null) return;
+
+            double currentBpm = 120.0;
+            if (chart.BpmKeyFrames != null && chart.BpmKeyFrames.Any())
+            {
+                currentBpm = chart.BpmKeyFrames.First().Value;
+            }
+
+            double secondsPerTick = 1.875 / currentBpm;
+            double seconds = (currentTick - chart.Offset) * secondsPerTick;
+            if (seconds < 0) seconds = 0;
+
+            // 4. 更新大管家的时间，红线会立刻跟着鼠标走！
+            vm.Timeline.CurrentPlayTimeSeconds = seconds;
+
+            // 5. 实时驱动画面渲染器（这就是高帧率丝滑预览的关键！）
+            MainChartDisplay.InternalChartRenderer.Time = TimeSpan.FromSeconds(seconds);
+        }
+    }
+
+    // 拖拽松手时：让音乐跟上！
+    // 拖拽松手时
+    private void Playhead_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    {
+        if (this.DataContext is MainViewModel vm)
+        {
+            // 告诉音频播放器跳到这个时间
+            MainChartDisplay.SeekTo(TimeSpan.FromSeconds(vm.Timeline.CurrentPlayTimeSeconds));
+        }
+
+        // 【新增】智能恢复：如果捏住之前在播放，松手后自动继续播放！
+        if (_wasPlayingBeforeDrag)
+        {
+            MainChartDisplay.ForceResume();
+        }
+    }
+
+
+    // 记住拖拽游标前，音乐是否正在播放
+    private bool _wasPlayingBeforeDrag = false;
+    // 刚捏住游标的一瞬间
+    private void Playhead_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+    {
+        // 记录按下鼠标那一刻的状态
+        _wasPlayingBeforeDrag = MainChartDisplay.IsPlaying;
+
+        // 如果正在播放，强行打断施法，进入暂停模式！
+        if (_wasPlayingBeforeDrag)
+        {
+            MainChartDisplay.ForcePause();
+        }
+    }
+
 }

@@ -305,18 +305,24 @@
                     <ScrollViewer Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" 
                                   HorizontalScrollBarVisibility="Hidden" 
                                   VerticalScrollBarVisibility="Disabled"
-                                  ScrollChanged="TrackScrollViewer_ScrollChanged"
-                                  IsHitTestVisible="False">
-                        <Canvas Width="{Binding Timeline.TotalPixelWidth}">
-                            <Rectangle Width="1.5" 
-                                       Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}" 
-                                       Fill="#FF3333" 
-                                       Canvas.Left="{Binding Timeline.PlayheadPositionX}" />
+                                  ScrollChanged="TrackScrollViewer_ScrollChanged">
 
-                            <Polygon Points="-6,0 6,0 0,8" 
-                                     Fill="#FF3333" 
-                                     Canvas.Left="{Binding Timeline.PlayheadPositionX}" 
-                                     Canvas.Top="0" />
+                        <Canvas Width="{Binding Timeline.TotalPixelWidth}">
+                            <Thumb Canvas.Left="{Binding Timeline.PlayheadPositionX}" 
+                                   Cursor="SizeWE"
+                                   DragStarted="Playhead_DragStarted"
+                                   DragDelta="Playhead_DragDelta"
+                                   DragCompleted="Playhead_DragCompleted">
+                                <Thumb.Template>
+                                    <ControlTemplate TargetType="Thumb">
+                                        <Grid Width="16" Margin="-8,0,0,0" Background="Transparent">
+                                            <Rectangle Width="1.5" Fill="#FF3333" HorizontalAlignment="Center" 
+                                                       Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"/>
+                                            <Polygon Points="0,0 16,0 8,10" Fill="#FF3333" VerticalAlignment="Top" />
+                                        </Grid>
+                                    </ControlTemplate>
+                                </Thumb.Template>
+                            </Thumb>
                         </Canvas>
 
                     </ScrollViewer>

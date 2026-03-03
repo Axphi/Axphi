@@ -19,6 +19,9 @@ namespace Axphi.WindowsComponents.MainWindow
         private DispatcherTimer? _dispatcherTimer;
         private Stopwatch? _renderStopwatch;
 
+
+        // 【新增】用来记住你刚刚拖拽到了哪里
+        private TimeSpan _manualTimeOffset = TimeSpan.Zero;
         public ChartDisplay()
         {
             InitializeComponent();
@@ -83,6 +86,10 @@ namespace Axphi.WindowsComponents.MainWindow
             _renderStopwatch?.Reset();
             _wasapiOut?.Stop();
 
+
+            // 【新增】彻底归零
+            _manualTimeOffset = TimeSpan.Zero;
+
             // 归零
             if (_musicReader != null) _musicReader.Position = 0;
             InternalChartRenderer.Time = default;
@@ -96,26 +103,16 @@ namespace Axphi.WindowsComponents.MainWindow
 
         private void RenderTimerCallback(object? sender, EventArgs e)
         {
-            // 1. 先统一获取当前的时间
-            TimeSpan currentTime;
-            if (_wasapiOut is not null && _wasapiOut.PlaybackState == PlaybackState.Playing)
-            {
-                currentTime = _wasapiOut.GetPositionTimeSpan();
-            }
-            else
-            {
-                // 没有音频时使用秒表时间
-                _renderStopwatch ??= new Stopwatch();
-                currentTime = _renderStopwatch.Elapsed;
-            }
+            _renderStopwatch ??= new Stopwatch();
 
-            // 2. 喂给上半部分的画面渲染器
+            // 核心魔法：不论有没有音乐，统一用 "空降锚点时间 + 秒表本次跑过的时间"
+            // 这样红线不仅绝对不会闪回，而且移动会极其丝滑（因为秒表精度极高）
+            TimeSpan currentTime = _manualTimeOffset + _renderStopwatch.Elapsed;
+
             InternalChartRenderer.Time = currentTime;
 
-            // ============ 3. 【新增】喂给下半部分 Timeline 的游标 ============
             if (this.DataContext is MainViewModel vm)
             {
-                // 直接把刚才拿到的 currentTime 转换成秒，传给大管家！
                 vm.Timeline.CurrentPlayTimeSeconds = currentTime.TotalSeconds;
             }
         }
@@ -127,6 +124,50 @@ namespace Axphi.WindowsComponents.MainWindow
             _wasapiOut = null;
             _musicReader?.Dispose();
             _musicReader = null;
+        }
+
+
+        /// <summary>
+        /// 供游标拖拽完成后，强行让音频和画面空降到指定时间
+        /// </summary>
+        public void SeekTo(TimeSpan time)
+        {
+            if (_musicReader != null)
+            {
+                _musicReader.CurrentTime = time;
+            }
+
+            // 1. 记住你拖拽到的目标时间
+            _manualTimeOffset = time;
+
+            // 2. 极其关键：重置秒表！
+            // 这样下次播放时，秒表会从 0 开始，加上上面的 Offset，完美衔接！
+            if (_renderStopwatch != null)
+            {
+                if (_renderStopwatch.IsRunning)
+                    _renderStopwatch.Restart(); // 边播边拖的情况
+                else
+                    _renderStopwatch.Reset();   // 暂停时拖的情况
+            }
+
+            InternalChartRenderer.Time = time;
+        }
+
+        // === 【新增】供外部调用的播放控制 API ===
+
+        // 检查当前是否正在播放
+        public bool IsPlaying => _dispatcherTimer?.IsEnabled == true;
+
+        // 强制暂停
+        public void ForcePause()
+        {
+            if (IsPlaying) PlayPauseChartRendering(); // 直接复用你之前写的播放/暂停逻辑
+        }
+
+        // 强制恢复播放
+        public void ForceResume()
+        {
+            if (!IsPlaying) PlayPauseChartRendering();
         }
     }
 }

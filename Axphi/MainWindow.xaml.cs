@@ -101,8 +101,8 @@ public partial class MainWindow : Window
 
     // 用来收集所有右侧轨道的“隐形小滚轮”
     private readonly HashSet<ScrollViewer> _horizontaltrackScrollViewers = new();
-
     
+
 
     // 每一行轨道生成时（Loaded），把自己上报给集合；Unloaded 时移除
     private void HorizontalTrackScrollViewer_Loaded(object sender, RoutedEventArgs e)
@@ -121,6 +121,8 @@ public partial class MainWindow : Window
             _horizontaltrackScrollViewers.Remove(sv);
         }
     }
+
+
     
 
     // 当底部总滚动条被拖拽时，强制所有轨道一起滚！
@@ -137,9 +139,62 @@ public partial class MainWindow : Window
     }
 
 
+    private readonly HashSet<ScrollViewer> _verticalTrackScrollViewers = new();
+    // 注册/注销 Vertical ScrollViewer 的 Loaded/Unloaded 处理器
+    private void VerticalTrackScrollViewer_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ScrollViewer sv)
+        {
+            // 加入集合（HashSet 会去重）
+            _verticalTrackScrollViewers.Add(sv);
+
+            // 订阅 ScrollChanged 以便在用户滚动（鼠标/触摸）时更新全局 scrollbar 的范围与值
+            sv.ScrollChanged += VerticalTrackScrollViewer_ScrollChanged;
+
+            // 初始化全局 scrollbar 的范围/视口（防止刚显示时值不正确）
+            GlobalVerticalScroll.Minimum = 0;
+            GlobalVerticalScroll.Maximum = sv.ScrollableHeight;
+            GlobalVerticalScroll.ViewportSize = sv.ViewportHeight;
+            GlobalVerticalScroll.SmallChange = 16;
+            GlobalVerticalScroll.LargeChange = sv.ViewportHeight;
+        }
+    }
 
 
+    private void VerticalTrackScrollViewer_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ScrollViewer sv)
+        {
+            _verticalTrackScrollViewers.Remove(sv);
+            sv.ScrollChanged -= VerticalTrackScrollViewer_ScrollChanged;
+        }
+    }
 
+    private void VerticalTrackScrollViewer_ScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        if (sender is not ScrollViewer sv) return;
+
+        // 更新全局 scrollbar 的元信息（maximum / viewport）
+        GlobalVerticalScroll.Maximum = sv.ScrollableHeight;
+        GlobalVerticalScroll.ViewportSize = sv.ViewportHeight;
+
+        // 如果这是唯一或主控 ScrollViewer，则把值同步到全局 scrollbar
+        // 直接设置 Value 会触发 GlobalVerticalScrollBar_ValueChanged，但那只会把值推回各个 sv（幂等）
+        GlobalVerticalScroll.Value = sv.VerticalOffset;
+    }
+
+    // 全局 Vertical Scroll 的 ValueChanged：把值推进所有注册的 ScrollViewer
+    private void GlobalVerticalScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        double offset = e.NewValue;
+
+        foreach (var sv in _verticalTrackScrollViewers)
+        {
+            // 保护：确保 offset 在合法范围内
+            double safeOffset = Math.Max(0, Math.Min(offset, sv.ScrollableHeight));
+            sv.ScrollToVerticalOffset(safeOffset);
+        }
+    }
 
 
 

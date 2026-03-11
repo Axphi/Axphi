@@ -96,6 +96,12 @@ namespace Axphi.Utilities
                                 {
                                     new Data.KeyFrames.RotationKeyFrame()
                                     {
+                                        Time = SecToTick(0),
+                                        Value = 0,
+                                        Easing = BezierEasing.Ease
+                                    },
+                                    new Data.KeyFrames.RotationKeyFrame()
+                                    {
                                         Time = SecToTick(8),
                                         Value = 0,
                                         Easing = BezierEasing.Ease
@@ -121,6 +127,10 @@ namespace Axphi.Utilities
                                     {
                                         KeyFrames =
                                         {
+                                            new Data.KeyFrames.OffsetKeyFrame()
+                                            {
+                                                Time = SecToTick(0),
+                                            },
                                             new Data.KeyFrames.OffsetKeyFrame()
                                             {
                                                 Time = SecToTick(1),
@@ -153,6 +163,10 @@ namespace Axphi.Utilities
                                         {
                                             new Data.KeyFrames.ScaleKeyFrame()
                                             {
+                                                Time = SecToTick(0),
+                                            },
+                                            new Data.KeyFrames.ScaleKeyFrame()
+                                            {
                                                 Time = SecToTick(2),
                                             },
                                             new Data.KeyFrames.ScaleKeyFrame()
@@ -177,6 +191,11 @@ namespace Axphi.Utilities
                                     {
                                         KeyFrames =
                                         {
+                                            new Data.KeyFrames.RotationKeyFrame()
+                                            {
+                                                Time = SecToTick(0),
+                                                Value = 0
+                                            },
                                             new Data.KeyFrames.RotationKeyFrame()
                                             {
                                                 Time = SecToTick(3.5),

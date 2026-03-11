@@ -327,7 +327,7 @@
 
                     </ScrollViewer>
 
-                    <ScrollBar x:Name="GlobalScroll"
+                    <ScrollBar x:Name="GlobalHorizontalScroll"
                                Grid.Row="3" Grid.Column="1" Height="12" Margin="0,0,0,2"
                                Orientation="Horizontal" VerticalAlignment="Bottom"
                                Minimum="0" Maximum="{Binding Timeline.TotalPixelWidth}"

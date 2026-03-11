@@ -66,9 +66,9 @@ public partial class MainWindow : Window
         {
             if (this.DataContext is MainViewModel vm)
             {
-                double mouseX = e.GetPosition(GlobalScroll).X;
+                double mouseX = e.GetPosition(GlobalHorizontalScroll).X;
                 double oldScale = vm.Timeline.ZoomScale;
-                double oldOffset = GlobalScroll.Value;
+                double oldOffset = GlobalHorizontalScroll.Value;
 
                 double newScale = oldScale;
                 if (e.Delta > 0) newScale *= 1.1;
@@ -84,13 +84,13 @@ public partial class MainWindow : Window
                 // ================= 【解决频闪的终极黑科技】 =================
                 // 1. 我们不再使用 BeginInvoke 延迟了！
                 // 2. 为了防止滚动条在同步赋值时把我们截断，我们先“预判”它放大后的总长度，并强行撑开它的 Maximum！
-                double expectedNewMaximum = GlobalScroll.Maximum * ratio;
-                GlobalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedNewMaximum);
+                double expectedNewMaximum = GlobalHorizontalScroll.Maximum * ratio;
+                GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedNewMaximum);
 
                 // 3. 现在，Maximum 足够大了，我们立刻在同一帧内，同时更新 比例 和 位置！
                 // 这样刻度尺在下一次渲染时，拿到的就是完美匹配的“新比例 + 新坐标”，绝不会产生废片！
                 vm.Timeline.ZoomScale = newScale;
-                GlobalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newOffset);
+                GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newOffset);
 
                 e.Handled = true;
             }

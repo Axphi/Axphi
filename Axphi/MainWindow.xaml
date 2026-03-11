@@ -195,7 +195,7 @@
                     <comp:TabPane Grid.Row="0" Grid.Column="1" Header="Timeline" />
 
                     <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e">
-                        <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Loaded="TrackScrollViewer_Loaded" Unloaded="TrackScrollViewer_Unloaded">
+                        <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Loaded="HorizontalTrackScrollViewer_Loaded" Unloaded="HorizontalTrackScrollViewer_Unloaded">
                             <comp:TimelineRuler 
                                 Width="{Binding Timeline.TotalPixelWidth}" 
                                 ZoomScale="{Binding Timeline.ZoomScale}"
@@ -276,7 +276,7 @@
                                             </StackPanel>
                                         </Border>
 
-                                        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Loaded="TrackScrollViewer_Loaded" Unloaded="TrackScrollViewer_Unloaded">
+                                        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Loaded="HorizontalTrackScrollViewer_Loaded" Unloaded="HorizontalTrackScrollViewer_Unloaded">
                                             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
                                                 <StackPanel>
                                                     <Grid Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" Background="#374561">
@@ -305,7 +305,7 @@
                     <ScrollViewer Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" 
                                   HorizontalScrollBarVisibility="Hidden" 
                                   VerticalScrollBarVisibility="Disabled"
-                                  Loaded="TrackScrollViewer_Loaded" Unloaded="TrackScrollViewer_Unloaded">
+                                  Loaded="HorizontalTrackScrollViewer_Loaded" Unloaded="HorizontalTrackScrollViewer_Unloaded">
 
                         <Canvas Width="{Binding Timeline.TotalPixelWidth}">
                             <Thumb Canvas.Left="{Binding Timeline.PlayheadPositionX}" 
@@ -331,7 +331,7 @@
                                Grid.Row="3" Grid.Column="1" Height="12" Margin="0,0,0,2"
                                Orientation="Horizontal" VerticalAlignment="Bottom"
                                Minimum="0" Maximum="{Binding Timeline.TotalPixelWidth}"
-                               ViewportSize="800" ValueChanged="GlobalScrollBar_ValueChanged" />
+                               ViewportSize="800" ValueChanged="GlobalHorizontalScrollBar_ValueChanged" />
                 </Grid>
 
 

@@ -196,15 +196,14 @@
                     <comp:TabPane Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Header="Timeline" />
 
                     <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e">
-                        <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Loaded="HorizontalTrackScrollViewer_Loaded" Unloaded="HorizontalTrackScrollViewer_Unloaded">
+                        <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True">
                             <comp:TimelineRuler 
-                                Width="{Binding Timeline.TotalPixelWidth}" 
-                                ZoomScale="{Binding Timeline.ZoomScale}"
+                                VirtualTotalWidth="{Binding Timeline.TotalPixelWidth}"
                                 TotalTicks="{Binding Timeline.TotalDurationTicks}"
-                                HorizontalAlignment="Left"
+                                HorizontalAlignment="Stretch" 
                                 VisibleOffsetX="{Binding Value, ElementName=GlobalHorizontalScroll}"
-                                ViewportWidth="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"/>
-                        </ScrollViewer>
+                                ViewportWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border}}"/>
+                        </Border>
                     </Border>
 
                     <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">

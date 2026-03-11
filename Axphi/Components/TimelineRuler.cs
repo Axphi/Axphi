@@ -6,16 +6,7 @@ namespace Axphi.Components
 {
     public class TimelineRuler : FrameworkElement
     {
-        // === 1. 接收外部大管家的缩放比例 ===
-        public static readonly DependencyProperty ZoomScaleProperty =
-            DependencyProperty.Register("ZoomScale", typeof(double), typeof(TimelineRuler),
-                new FrameworkPropertyMetadata(1.0, FrameworkPropertyMetadataOptions.AffectsRender)); // AffectsRender: 值一变，自动触发重绘！
-
-        public double ZoomScale
-        {
-            get => (double)GetValue(ZoomScaleProperty);
-            set => SetValue(ZoomScaleProperty, value);
-        }
+        
 
         // === 2. 接收总长度 (Tick) ===
         public static readonly DependencyProperty TotalTicksProperty =
@@ -47,6 +38,16 @@ namespace Axphi.Components
             DependencyProperty.Register("ViewportWidth", typeof(double), typeof(TimelineRuler),
                 new FrameworkPropertyMetadata(1000.0, FrameworkPropertyMetadataOptions.AffectsRender));
 
+        // 新增一个依赖属性，用来接收虚拟总宽度
+        public static readonly DependencyProperty VirtualTotalWidthProperty =
+            DependencyProperty.Register("VirtualTotalWidth", typeof(double), typeof(TimelineRuler),
+                new FrameworkPropertyMetadata(1000.0, FrameworkPropertyMetadataOptions.AffectsRender));
+        public double VirtualTotalWidth
+        {
+            get => (double)GetValue(VirtualTotalWidthProperty);
+            set => SetValue(VirtualTotalWidthProperty, value);
+        }
+
         public double ViewportWidth
         {
             get => (double)GetValue(ViewportWidthProperty);
@@ -59,10 +60,14 @@ namespace Axphi.Components
         {
             base.OnRender(dc);
 
-            if (TotalTicks <= 0 || ActualWidth <= 0) return;
+            // 修改这里的判断条件
+            if (TotalTicks <= 0 || VirtualTotalWidth <= 0) return;
 
-            // 根据当前物理宽度和总 Ticks，算出每个 Tick 占多少像素
-            double pixelsPerTick = ActualWidth / TotalTicks;
+            
+
+            // 根据当前宽度和总 Ticks，算出每个 Tick 占多少像素
+            // 用虚拟总宽度来计算每个 Tick 的像素大小，而不是 ActualWidth
+            double pixelsPerTick = VirtualTotalWidth / TotalTicks;
 
             // 设定一个最小视觉间距，如果线挤得太密（小于 8 像素），就不画了
             double minSpacing = 8.0;
@@ -79,10 +84,14 @@ namespace Axphi.Components
             if (pixelsPerTick * step < minSpacing) step = 128; // 最底线：只画小节线 (Measure)
 
             // 准备好画笔
-            Pen measurePen = new Pen(Brushes.White, 1.5);      // 小节线：白色，粗
-            Pen beatPen = new Pen(Brushes.LightGray, 1.0);     // 拍线：浅灰，正常
-            Pen subPen = new Pen(Brushes.DimGray, 1.0);        // 细分线：暗灰，正常
+            
+
+            // 【优化 1】冻结画笔与复用字体！不要在 OnRender 里重复创建非冻结资源
+            Pen measurePen = new Pen(Brushes.White, 1.5); measurePen.Freeze();   // 小节线：白色，粗
+            Pen beatPen = new Pen(Brushes.LightGray, 1.0); beatPen.Freeze();     // 拍线：浅灰，正常
+            Pen subPen = new Pen(Brushes.DimGray, 1.0); subPen.Freeze();         // 细分线：暗灰，正常
             Typeface typeface = new Typeface("Consolas");
+            double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
 
             // ================== 【核心：视口剔除算法】 ==================
             // 将屏幕的可见像素范围，反推回 Tick 的范围
@@ -95,7 +104,9 @@ namespace Axphi.Components
             int endTick = (int)((VisibleOffsetX + ViewportWidth) / pixelsPerTick) + step;
             if (endTick > TotalTicks) endTick = TotalTicks;
 
-
+            // 【优化 2】核心黑科技：把整个画板往左平移 VisibleOffsetX
+            // 这样我们画出来的内容永远在屏幕 0 ~ ViewportWidth 之间，不需要几万像素的宽容度！
+            dc.PushTransform(new TranslateTransform(-VisibleOffsetX, 0));
 
             // 开始疯狂画线！(这步在底层极快)
             for (int i = 0; i <= endTick; i += step)
@@ -116,7 +127,7 @@ namespace Axphi.Components
                         typeface,
                         11, // 字体大小
                         Brushes.White,
-                        VisualTreeHelper.GetDpi(this).PixelsPerDip);
+                        dpi);
                     dc.DrawText(text, new Point(x + 3, 2));
                 }
                 // 1 拍 = 32 Ticks
@@ -144,6 +155,9 @@ namespace Axphi.Components
 
             // 画底部的基准横线（为了性能，也只画视野内的长度）
             dc.DrawLine(subPen, new Point(VisibleOffsetX, 24), new Point(VisibleOffsetX + ViewportWidth, 24));
+
+            // 弹出平移变换
+            dc.Pop();
         }
     }
 }

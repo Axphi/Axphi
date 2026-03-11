@@ -6,8 +6,9 @@ namespace Axphi.Data.AnimatableProperties
     public sealed class ScaleProperty : AnimatableProperty<Vector, ScaleKeyFrame>
     {
         
-        public ScaleProperty() : base(new Vector(1, 1))
+        public ScaleProperty()
         {
+            InitialValue = new Vector(1, 1);
         }
     }
 }

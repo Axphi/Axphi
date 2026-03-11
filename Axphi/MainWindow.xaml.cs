@@ -136,6 +136,16 @@ public partial class MainWindow : Window
         {
             sv.ScrollToHorizontalOffset(offset);
         }
+
+        // ==========================================
+        // 【修改位置：新增这一段】
+        // 滚动条往右滚了 offset 距离，我们就把游标往左视觉平移 -offset 距离
+        // 这样它就能精准出现在屏幕里了！
+        // ==========================================
+        if (PlayheadTransform != null)
+        {
+            PlayheadTransform.X = -offset;
+        }
     }
 
 

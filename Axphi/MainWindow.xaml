@@ -169,7 +169,7 @@
                     </Grid>
                 </comp:TabPane>
 
-                
+
 
                 <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="2,0,2,0">
                     <Grid.ColumnDefinitions>
@@ -302,22 +302,26 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <ScrollViewer Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" 
-                                  HorizontalScrollBarVisibility="Hidden" 
-                                  VerticalScrollBarVisibility="Disabled"
-                                  Loaded="HorizontalTrackScrollViewer_Loaded" Unloaded="HorizontalTrackScrollViewer_Unloaded">
 
-                        <Canvas Width="{Binding Timeline.TotalPixelWidth}">
-                            <Thumb Canvas.Left="{Binding Timeline.PlayheadPositionX}" 
-                                   Cursor="SizeWE"
-                                   DragStarted="Playhead_DragStarted"
-                                   DragDelta="Playhead_DragDelta"
-                                   DragCompleted="Playhead_DragCompleted">
+                    <Grid Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" ClipToBounds="True">
+
+                        <Canvas>
+                            <Thumb x:Name="PlayheadThumb" 
+                                    Canvas.Left="{Binding Timeline.PlayheadPositionX}" 
+                                    Cursor="SizeWE"
+                                    DragStarted="Playhead_DragStarted"
+                                    DragDelta="Playhead_DragDelta"
+                                    DragCompleted="Playhead_DragCompleted"
+                                    Panel.ZIndex="999">
+                                <Thumb.RenderTransform>
+                                    <TranslateTransform x:Name="PlayheadTransform" X="0"/>
+                                </Thumb.RenderTransform>
+
                                 <Thumb.Template>
                                     <ControlTemplate TargetType="Thumb">
                                         <Grid Width="16" Margin="-8,0,0,0" Background="Transparent">
                                             <Rectangle Width="1.5" Fill="#FF3333" HorizontalAlignment="Center" 
-                                                       Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"/>
+                                                    Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"/>
                                             <Polygon Points="0,0 16,0 8,10" Fill="#FF3333" VerticalAlignment="Top" />
                                         </Grid>
                                     </ControlTemplate>
@@ -325,7 +329,7 @@
                             </Thumb>
                         </Canvas>
 
-                    </ScrollViewer>
+                    </Grid>
 
                     <ScrollBar x:Name="GlobalHorizontalScroll"
                                Grid.Row="3" Grid.Column="1" Height="12" Margin="0,0,0,2"

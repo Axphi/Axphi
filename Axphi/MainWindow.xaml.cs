@@ -281,4 +281,31 @@ public partial class MainWindow : Window
         }
     }
 
+    private void InnerTrack_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        // 保护机制：如果你按住了 Alt (触发你的全局缩放)，或者 Shift，说明你有其他意图，我们不干预
+        if (Keyboard.Modifiers == ModifierKeys.Alt || Keyboard.Modifiers == ModifierKeys.Shift)
+        {
+            return;
+        }
+
+        // 1. 强行截断！不准内部 ScrollViewer 吞噬这个纯上下滚动事件
+        e.Handled = true;
+
+        // 2. 伪造/克隆一个一模一样的新滚轮事件
+        var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+        {
+            RoutedEvent = UIElement.MouseWheelEvent,
+            Source = sender
+        };
+
+        // 3. 获取当前控件的父级，并把新事件强行“甩”给父级，让它继续向上冒泡，
+        // 直到被最外层的那个垂直 ScrollViewer 捕获到！
+        if (sender is UIElement element)
+        {
+            var parent = VisualTreeHelper.GetParent(element) as UIElement;
+            parent?.RaiseEvent(eventArg);
+        }
+    }
+
 }

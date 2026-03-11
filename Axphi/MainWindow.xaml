@@ -202,7 +202,7 @@
                                 ZoomScale="{Binding Timeline.ZoomScale}"
                                 TotalTicks="{Binding Timeline.TotalDurationTicks}"
                                 HorizontalAlignment="Left"
-                                VisibleOffsetX="{Binding Value, ElementName=GlobalScroll}"
+                                VisibleOffsetX="{Binding Value, ElementName=GlobalHorizontalScroll}"
                                 ViewportWidth="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"/>
                         </ScrollViewer>
                     </Border>

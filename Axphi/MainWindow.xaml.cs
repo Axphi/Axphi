@@ -102,14 +102,26 @@ public partial class MainWindow : Window
     // 用来收集所有右侧轨道的“隐形小滚轮”
     private readonly HashSet<ScrollViewer> _trackScrollViewers = new();
 
-    // 每一行轨道生成时，把自己上报给集合
-    private void TrackScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    
+
+    // 每一行轨道生成时（Loaded），把自己上报给集合；Unloaded 时移除
+    private void TrackScrollViewer_Loaded(object sender, RoutedEventArgs e)
     {
         if (sender is ScrollViewer sv)
         {
+            // HashSet 会自动去重
             _trackScrollViewers.Add(sv);
         }
     }
+
+    private void TrackScrollViewer_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ScrollViewer sv)
+        {
+            _trackScrollViewers.Remove(sv);
+        }
+    }
+    
 
     // 当底部总滚动条被拖拽时，强制所有轨道一起滚！
     private void GlobalScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

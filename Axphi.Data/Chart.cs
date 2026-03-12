@@ -19,22 +19,22 @@ namespace Axphi.Data
         /// <summary>
         /// 音频偏移
         /// </summary>  
-        public int Offset { get; set; }
+        public int Offset { get; set; } = 0;
 
         /// <summary>
         /// 时长
         /// </summary>
-        public int Duration { get; set; }
+        public int Duration { get; set; } = 0;
 
         /// <summary>
         /// 歌曲名称
         /// </summary>
-        public string? SoneName { get; set; }
+        public string SoneName { get; set; } = string.Empty;
 
         /// <summary>
         /// 难度
         /// </summary>
-        public Rank Rank { get; set; }
+        public Rank Rank { get; set; } = new Rank();
 
         /// <summary>
         /// 自定义难度文本
@@ -44,33 +44,32 @@ namespace Axphi.Data
         /// <summary>
         /// 定数
         /// </summary>
-        public double Level { get; set; }
+        public double Level { get; set; } = 0.0;
 
         /// <summary>
         /// 曲师
         /// </summary>
-        public string? Composer { get; set; }
+        public string Composer { get; set; } = string.Empty;
 
         /// <summary>
         /// 谱师
         /// </summary>
-        public string? Charter { get; set; }
+        public string Charter { get; set; } = string.Empty;
 
         /// <summary>
         /// 画师
         /// </summary>
-        public string? Illustrator { get; set; }
+        public string Illustrator { get; set; } = string.Empty;
 
         /// <summary>
         /// BPM 关键帧
         /// </summary>
-        public List<KeyFrame<double>>? BpmKeyFrames { get; set; }
+        public List<KeyFrame<double>> BpmKeyFrames { get; set; } = new();
 
         /// <summary>
         /// 判定线
         /// </summary>
-        /// // 新代码：全面换装 ObservableCollection 大喇叭！
-        public ObservableCollection<JudgementLine>? JudgementLines { get; set; }
+        public List<JudgementLine> JudgementLines { get; set; } = new();
 
         /// <summary>
         /// 插值方向

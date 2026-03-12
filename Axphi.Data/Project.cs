@@ -11,7 +11,7 @@ namespace Axphi.Data
         /// <summary>
         /// 谱面
         /// </summary>
-        public Chart? Chart { get; set; }
+        public Chart Chart { get; set; } = new Chart();
 
         /// <summary>
         /// 音频

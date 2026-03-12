@@ -23,7 +23,7 @@ namespace Axphi.ViewModels
         public FileActionsViewModel FileActions { get; }
 
         // 注册时间轴子 ViewModel
-        public TimelineViewModel Timeline { get; } = new TimelineViewModel();
+        public TimelineViewModel Timeline { get; }
 
         
 

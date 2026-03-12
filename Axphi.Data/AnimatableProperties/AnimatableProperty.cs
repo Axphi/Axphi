@@ -23,8 +23,9 @@ namespace Axphi.Data.AnimatableProperties
 
     public partial class AnimatableProperty<T, TKeyFrame> : ObservableObject
         where T : struct
-        where TKeyFrame : KeyFrame<T>, new() // 需要 new() 约束来创建幽灵帧
+        where TKeyFrame : KeyFrame<T>
     {
+        // 待重构
         public T InitialValue { get; set; }
 
         public ObservableCollection<TKeyFrame> KeyFrames { get; } = new();

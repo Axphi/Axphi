@@ -28,7 +28,7 @@ namespace Axphi.Data.AnimatableProperties
         // 待重构
         public T InitialValue { get; set; }
 
-        public ObservableCollection<TKeyFrame> KeyFrames { get; } = new();
+        public List<TKeyFrame> KeyFrames { get; } = new();
 
 
     }

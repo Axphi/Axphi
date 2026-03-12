@@ -207,11 +207,7 @@
                                             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
                                                 <StackPanel>
                                                     <Grid Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" Background="#374561">
-                                                        <Rectangle Width="8" Height="8" Margin="100,0,0,0" HorizontalAlignment="Left" Fill="#FFD700" ToolTip="这是一个关键帧">
-                                                            <Rectangle.LayoutTransform>
-                                                                <RotateTransform Angle="45" />
-                                                            </Rectangle.LayoutTransform>
-                                                        </Rectangle>
+                                                        <!-- 这里是图层 -->
                                                     </Grid>
                                                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                                                         <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />

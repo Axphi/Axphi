@@ -136,7 +136,7 @@ namespace Axphi.ViewModels
             // 发出消息
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             // 2. 实例化这个数据的“代理人”，并加进 UI 集合里！
-            var newTrackVM = new TrackViewModel(newLine, $"判定线图层 {Tracks.Count + 1}");
+            var newTrackVM = new TrackViewModel(newLine, $"判定线图层 {Tracks.Count + 1}",this);
             Tracks.Add(newTrackVM);
         }
 
@@ -162,7 +162,7 @@ namespace Axphi.ViewModels
                 {
                     var line = CurrentChart.JudgementLines[i];
                     // 名字自动按序号排：判定线图层 1, 判定线图层 2...
-                    var newTrackVM = new TrackViewModel(line, $"判定线图层 {i + 1}");
+                    var newTrackVM = new TrackViewModel(line, $"判定线图层 {i + 1}",this);
                     Tracks.Add(newTrackVM);
                 }
             }
@@ -173,6 +173,15 @@ namespace Axphi.ViewModels
             // 5. 顺便大喊一声，让右侧的渲染器也强制刷新一下画面！
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
-        // ===================================================
+
+
+        // 在 TimelineViewModel.cs 里加上这个方法 (上一回合提过，确认一下你加上了)
+        public int GetCurrentTick()
+        {
+            if (CurrentChart == null) return 0;
+            double currentBpm = CurrentChart.BpmKeyFrames?.FirstOrDefault()?.Value ?? 120.0;
+            double secondsPerTick = 1.875 / currentBpm;
+            return (int)((CurrentPlayTimeSeconds / secondsPerTick) + CurrentChart.Offset);
+        }
     }
 }

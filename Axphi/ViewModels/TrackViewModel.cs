@@ -1,13 +1,23 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Axphi.Data;
+using Axphi.Data.KeyFrames; // 引入你的 OffsetKeyFrame
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging; // 用来发重绘消息
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Axphi.Data;
+using System.Windows;
 
 namespace Axphi.ViewModels
 {
     public partial class TrackViewModel : ObservableObject
     {
+
+        // 保存引用
+        private readonly TimelineViewModel _timeline;
+
+
+
         // ================= 1. 底层数据源 =================
         // 这个属性是只读的，它紧紧抓住那个不会被污染的底层老实人
         public JudgementLine Data { get; }
@@ -39,10 +49,11 @@ namespace Axphi.ViewModels
         private double _currentOpacity = 1.0; // 默认透明度给 1
 
         // ================= 4. 构造函数 =================
-        public TrackViewModel(JudgementLine data, string name)
+        public TrackViewModel(JudgementLine data, string name,TimelineViewModel timeline)
         {
             Data = data;
             TrackName = name;
+            _timeline = timeline;
         }
 
         // ================= 5. 核心拦截器 (黑魔法) =================
@@ -59,7 +70,46 @@ namespace Axphi.ViewModels
             System.Diagnostics.Debug.WriteLine($"轨道 {TrackName} 的 OffsetX 被拖拽成了: {value}");
         }
 
-        // （未来其他属性的拦截器也是同理，比如 partial void OnCurrentOffsetYChanged...）
+        
+        
+
+        // ================= 添加 Offset (Position) 关键帧 =================
+        [RelayCommand]
+        private void AddPositionKeyframe()
+        {
+            // 1. 问爸爸：现在是第几个 Tick？
+            int currentTick = _timeline.GetCurrentTick();
+
+            // 2. 顺藤摸瓜，拿到你底层数据里的 Offset KeyFrames 集合
+            var offsetKeyframes = Data.AnimatableProperties.Offset.KeyFrames;
+
+            // 3. 找找看当前 Tick 是不是已经有关键帧了
+            var existingFrame = offsetKeyframes.FirstOrDefault(k => k.Time == currentTick);
+
+            if (existingFrame != null)
+            {
+                // 如果有，直接修改它的值
+                existingFrame.Value = new Vector(CurrentOffsetX, CurrentOffsetY);
+                System.Diagnostics.Debug.WriteLine($"修改了 Tick {currentTick} 处的 Offset 关键帧");
+            }
+            else
+            {
+                // 如果没有，New 一个新的存进去！
+                var newFrame = new OffsetKeyFrame()
+                {
+                    Time = currentTick,
+                    Value = new Vector(CurrentOffsetX, CurrentOffsetY)
+                };
+
+                // 加进 ObservableCollection！未来绑定 UI 极其方便！
+                offsetKeyframes.Add(newFrame);
+                System.Diagnostics.Debug.WriteLine($"新建了 Tick {currentTick} 处的 Offset 关键帧");
+            }
+
+            // 4. 发广播通知右侧的 ChartRenderer 重新画一下谱面
+            // (借用一下你之前写的 JudgementLinesChangedMessage)
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
     }
 }
 

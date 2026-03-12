@@ -8,12 +8,10 @@
     xmlns:mainWinComp="clr-namespace:Axphi.WindowsComponents.MainWindow"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ws="https://schemas.elecho.dev/wpfsuite"
-    
     Title="Axphi"
     Width="1200"
     Height="650"
-    d:DataContext="{d:DesignInstance Type=local:MainWindow,
-                                     IsDesignTimeCreatable=False}"
+    d:DataContext="{d:DesignInstance Type=local:MainWindow, IsDesignTimeCreatable=False}"
     ws:WindowOption.IsCaptionMenuVisible="False"
     Background="#1f1f1f"
     Foreground="#d6d6d6"
@@ -120,12 +118,12 @@
 
                     <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e">
                         <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True">
-                            <comp:TimelineRuler 
+                            <comp:TimelineRuler
                                 VirtualTotalWidth="{Binding Timeline.TotalPixelWidth}"
                                 TotalTicks="{Binding Timeline.TotalDurationTicks}"
-                                HorizontalAlignment="Stretch" 
+                                HorizontalAlignment="Stretch"
                                 VisibleOffsetX="{Binding Value, ElementName=GlobalHorizontalScroll}"
-                                ViewportWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border}}"/>
+                                ViewportWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border}}" />
                         </Border>
                     </Border>
 
@@ -168,6 +166,13 @@
                                                 <StackPanel Margin="24,0,0,0" Background="#252525" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                                                     <Grid Height="20">
                                                         <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Position" />
+                                                        <Button Command="{Binding AddPositionKeyframeCommand}"
+                                                                Width="12" Height="12"
+                                                                Background="Transparent" BorderThickness="0"
+                                                                Cursor="Hand" ToolTip="添加/更新关键帧">
+                                                            <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
+                                                                  Fill="#888" Stretch="Fill" />
+                                                        </Button>
                                                         <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
                                                             <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
                                                             <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
@@ -207,7 +212,7 @@
                                             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
                                                 <StackPanel>
                                                     <Grid Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" Background="#374561">
-                                                        <!-- 这里是图层 -->
+                                                        <!--  这里是图层  -->
                                                     </Grid>
                                                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                                                         <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />
@@ -229,22 +234,22 @@
                     <Grid Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" ClipToBounds="True">
 
                         <Canvas>
-                            <Thumb x:Name="PlayheadThumb" 
-                                    Canvas.Left="{Binding Timeline.PlayheadPositionX}" 
-                                    Cursor="SizeWE"
-                                    DragStarted="Playhead_DragStarted"
-                                    DragDelta="Playhead_DragDelta"
-                                    DragCompleted="Playhead_DragCompleted"
-                                    Panel.ZIndex="999">
+                            <Thumb x:Name="PlayheadThumb"
+                                   Canvas.Left="{Binding Timeline.PlayheadPositionX}"
+                                   Cursor="SizeWE"
+                                   DragStarted="Playhead_DragStarted"
+                                   DragDelta="Playhead_DragDelta"
+                                   DragCompleted="Playhead_DragCompleted"
+                                   Panel.ZIndex="999">
                                 <Thumb.RenderTransform>
-                                    <TranslateTransform x:Name="PlayheadTransform" X="0"/>
+                                    <TranslateTransform x:Name="PlayheadTransform" X="0" />
                                 </Thumb.RenderTransform>
 
                                 <Thumb.Template>
                                     <ControlTemplate TargetType="Thumb">
                                         <Grid Width="16" Margin="-8,0,0,0" Background="Transparent">
-                                            <Rectangle Width="1.5" Fill="#FF3333" HorizontalAlignment="Center" 
-                                                    Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"/>
+                                            <Rectangle Width="1.5" Fill="#FF3333" HorizontalAlignment="Center"
+                                                       Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}" />
                                             <Polygon Points="0,0 16,0 8,10" Fill="#FF3333" VerticalAlignment="Top" />
                                         </Grid>
                                     </ControlTemplate>
@@ -264,7 +269,7 @@
                     <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"
                                Grid.Row="1" Grid.Column="2" Width="12" Margin="2,0,0,0"
                                Orientation="Vertical" HorizontalAlignment="Right"
-                               Minimum="0" 
+                               Minimum="0"
                                ValueChanged="GlobalVerticalScrollBar_ValueChanged" />
                 </Grid>
 

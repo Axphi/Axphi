@@ -13,4 +13,5 @@ namespace Axphi.ViewModels
     public record JudgementLinesChangedMessage;
     public record ProjectLoadedMessage();
     public record ZoomScaleChangedMessage(double NewZoomScale);
+    public record ForcePausePlaybackMessage;
 }

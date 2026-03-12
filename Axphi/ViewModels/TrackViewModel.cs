@@ -96,7 +96,8 @@ namespace Axphi.ViewModels
         {
             // 如果是播放器在推着数值走，千万别动！
             if (_isSyncing) return;
-
+            // 核心：不管三七二十一，只要人类动手了，立刻大喊一声“刹车！”
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
             // 如果是人手在拖拽：直接调用我们写好的“添加/修改关键帧”逻辑！
             AddPositionKeyframe();
         }
@@ -104,6 +105,7 @@ namespace Axphi.ViewModels
         partial void OnCurrentOffsetYChanged(double value)
         {
             if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
             AddPositionKeyframe();
         }
 
@@ -111,12 +113,14 @@ namespace Axphi.ViewModels
         partial void OnCurrentScaleXChanged(double value)
         {
             if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
             AddScaleKeyframe();
         }
 
         partial void OnCurrentScaleYChanged(double value)
         {
             if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
             AddScaleKeyframe();
         }
 
@@ -124,6 +128,7 @@ namespace Axphi.ViewModels
         partial void OnCurrentRotationChanged(double value)
         {
             if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
             AddRotationKeyframe();
         }
 
@@ -131,6 +136,7 @@ namespace Axphi.ViewModels
         partial void OnCurrentOpacityChanged(double value)
         {
             if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
             AddOpacityKeyframe();
         }
 

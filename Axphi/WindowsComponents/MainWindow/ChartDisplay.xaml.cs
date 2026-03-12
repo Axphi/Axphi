@@ -42,6 +42,15 @@ namespace Axphi.WindowsComponents.MainWindow
                 }
             });
             // ===================================================
+            // ================= 【新增：监听刹车指令】 =================
+            WeakReferenceMessenger.Default.Register<ChartDisplay, ForcePausePlaybackMessage>(this, (recipient, message) =>
+            {
+                // 直接调用你写好的强制暂停方法！
+                // 因为你的 ForcePause 里面已经写了 if (IsPlaying) 的判断，
+                // 所以就算一秒钟收到 100 封信，也绝对安全，不会来回切换！
+                recipient.ForcePause();
+            });
+            // =========================================================
         }
 
         // --- 供外部调用的 API ---

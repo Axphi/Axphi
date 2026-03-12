@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows;
+using Axphi.Utilities; // 引入 EasingUtils 所在的命名空间
 
 namespace Axphi.ViewModels
 {
@@ -16,6 +17,9 @@ namespace Axphi.ViewModels
 
         // 保存引用
         private readonly TimelineViewModel _timeline;
+
+        // 【新增】免死金牌标志位
+        private bool _isSyncing = false;
 
         // ================= 专供 UI 绑定的小菱形替身集合 =================
         // 把原来直接装底层 KeyFrame 的集合，换成装保镖的集合
@@ -93,13 +97,13 @@ namespace Axphi.ViewModels
             // 2. 去 Data 里面找当前时间有没有关键帧
             // 3. 如果有，直接修改那个关键帧的 X 值
             // 4. 如果没有，就 new 一个新的关键帧塞进去！
+            if (_isSyncing) return; // 如果是播放器在推着数值走，直接 return，啥也不干！
 
-            // 可以先打个日志测试一下
-            System.Diagnostics.Debug.WriteLine($"轨道 {TrackName} 的 OffsetX 被拖拽成了: {value}");
+            // TODO: 如果是人在拖拽，走我们以后的“自动生成关键帧/修改关键帧”逻辑
         }
 
-        
-        
+
+
 
         // ================= 添加 Offset (Position) 关键帧 =================
         [RelayCommand]
@@ -206,6 +210,29 @@ namespace Axphi.ViewModels
                 UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
             }
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        // 【新增】暴露给大管家调用的同步方法
+        public void SyncValuesToTime(int currentTick, KeyFrameEasingDirection direction)
+        {
+            _isSyncing = true; // 举起免死金牌：现在是机器在更新数据，不是人在拖拽！
+
+            // 召唤你底层写好的算力神兽！直接白嫖它的插值结果！
+            EasingUtils.CalculateObjectTransform(
+                currentTick,
+                direction,
+                Data.AnimatableProperties,
+                out var offset, out var scale, out var rotationAngle, out var opacity);
+
+            // 把算出来的精确数值，直接塞给前端 UI 绑定的属性！
+            CurrentOffsetX = offset.X;
+            CurrentOffsetY = offset.Y;
+            CurrentScaleX = scale.X;
+            CurrentScaleY = scale.Y;
+            CurrentRotation = rotationAngle;
+            CurrentOpacity = opacity;
+
+            _isSyncing = false; // 放下免死金牌
         }
     }
 }

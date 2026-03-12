@@ -50,6 +50,18 @@ namespace Axphi.ViewModels
         partial void OnCurrentPlayTimeSecondsChanged(double value)
         {
             UpdatePlayheadPosition();
+
+            //  【新增】算出当前的 Tick
+            int currentTick = GetCurrentTick();
+
+            //  【新增】拿到当前谱面的缓动方向设置
+            var easingDirection = CurrentChart?.KeyFrameEasingDirection ?? default;
+
+            //  【新增】大点兵！让所有的轨道根据当前时间更新自己的数值面板！
+            foreach (var track in Tracks)
+            {
+                track.SyncValuesToTime(currentTick, easingDirection);
+            }
         }
 
         // 2. 当你按 Alt+滚轮 缩放时，游标位置也必须跟着伸缩！

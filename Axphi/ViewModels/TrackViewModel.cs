@@ -114,10 +114,9 @@ namespace Axphi.ViewModels
             // 重点：我们从保镖集合里去找有没有当前时间的
             var existingWrapper = UIOffsetKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
 
-            // 3. 找找看当前 Tick 是不是已经有关键帧了
-            var existingFrame = offsetKeyframesData.FirstOrDefault(k => k.Time == currentTick);
+            
 
-            if (existingFrame != null)
+            if (existingWrapper != null)
             {
                 // 如果有，直接修改它的值
                 // 1. 修改底层 

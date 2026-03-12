@@ -1,5 +1,6 @@
 ﻿using Axphi.ViewModels;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using NAudio.Utils;
 using NAudio.Wave; // 需要引用 NAudio
 using System;
@@ -27,6 +28,20 @@ namespace Axphi.WindowsComponents.MainWindow
             InitializeComponent();
             // 可以在 Unloaded 事件中清理资源，防止内存泄漏
             this.Unloaded += (s, e) => CleanUpResources();
+
+            // ================= 【新增消息订阅】 =================
+            // 告诉邮局：我要监听 JudgementLinesChangedMessage
+            WeakReferenceMessenger.Default.Register<ChartDisplay, JudgementLinesChangedMessage>(this, (recipient, message) =>
+            {
+                // 性能优化：如果当前正在播放，那么 DispatcherTimer 每毫秒都在疯狂刷新
+                // 此时就不需要我们手动触发了。只有在暂停状态下才需要强行重绘！
+                if (!recipient.IsPlaying)
+                {
+                    // 核心魔法：命令底层的渲染器“标记为过期，准备重绘”
+                    recipient.InternalChartRenderer.InvalidateVisual();
+                }
+            });
+            // ===================================================
         }
 
         // --- 供外部调用的 API ---
@@ -124,6 +139,10 @@ namespace Axphi.WindowsComponents.MainWindow
             _wasapiOut = null;
             _musicReader?.Dispose();
             _musicReader = null;
+
+            // ================= 【新增注销逻辑】 =================
+            // 控件被销毁时，告诉邮局：“别给我发信了”，释放内存！
+            WeakReferenceMessenger.Default.UnregisterAll(this);
         }
 
 

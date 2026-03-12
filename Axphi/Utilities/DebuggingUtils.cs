@@ -42,7 +42,7 @@ namespace Axphi.Utilities
                     }
                 },
 
-                JudgementLines = new ObservableCollection<JudgementLine>()
+                JudgementLines = new List<JudgementLine>()
                 {
                     new JudgementLine()
                     {

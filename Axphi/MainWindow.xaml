@@ -37,7 +37,7 @@
             <mainWinComp:TitleBar DockPanel.Dock="Top" />
             <Grid Margin="2">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="2*" />
+                    <RowDefinition Height="1.618*" />
                     <RowDefinition Height="1*" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>

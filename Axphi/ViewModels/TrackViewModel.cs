@@ -175,6 +175,10 @@ namespace Axphi.ViewModels
                 };
 
                 offsetKeyframesData.Add(newFrame); // 存入底层
+
+                // 【核心修复】：每次添加完新的，立刻让底层 List 按时间 (Time) 重新排队！
+                offsetKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+
                 UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline)); // 生成 UI 显示
             }
 
@@ -188,7 +192,7 @@ namespace Axphi.ViewModels
         private void AddScaleKeyframe()
         {
             int currentTick = _timeline.GetCurrentTick();
-            var keyframesData = Data.AnimatableProperties.Scale.KeyFrames;
+            var scaleKeyframesData = Data.AnimatableProperties.Scale.KeyFrames;
             var existingWrapper = UIScaleKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
 
             if (existingWrapper != null)
@@ -199,7 +203,8 @@ namespace Axphi.ViewModels
             {
                 // 假设你有一个 ScaleKeyFrame 继承自 KeyFrame<Vector>
                 var newFrame = new ScaleKeyFrame() { Time = currentTick, Value = new Vector(CurrentScaleX, CurrentScaleY) };
-                keyframesData.Add(newFrame);
+                scaleKeyframesData.Add(newFrame);
+                scaleKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
                 UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
             }
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
@@ -210,7 +215,7 @@ namespace Axphi.ViewModels
         private void AddRotationKeyframe()
         {
             int currentTick = _timeline.GetCurrentTick();
-            var keyframesData = Data.AnimatableProperties.Rotation.KeyFrames;
+            var rotationKeyframesData = Data.AnimatableProperties.Rotation.KeyFrames;
             var existingWrapper = UIRotationKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
 
             if (existingWrapper != null)
@@ -221,7 +226,8 @@ namespace Axphi.ViewModels
             {
                 // 假设你有 RotationKeyFrame 继承自 KeyFrame<double>
                 var newFrame = new RotationKeyFrame() { Time = currentTick, Value = CurrentRotation };
-                keyframesData.Add(newFrame);
+                rotationKeyframesData.Add(newFrame);
+                rotationKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
                 UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
             }
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
@@ -232,7 +238,7 @@ namespace Axphi.ViewModels
         private void AddOpacityKeyframe()
         {
             int currentTick = _timeline.GetCurrentTick();
-            var keyframesData = Data.AnimatableProperties.Opacity.KeyFrames;
+            var opacityKeyframesData = Data.AnimatableProperties.Opacity.KeyFrames;
             var existingWrapper = UIOpacityKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
 
             if (existingWrapper != null)
@@ -243,7 +249,8 @@ namespace Axphi.ViewModels
             {
                 // 假设你有 OpacityKeyFrame 继承自 KeyFrame<double>
                 var newFrame = new OpacityKeyFrame() { Time = currentTick, Value = CurrentOpacity };
-                keyframesData.Add(newFrame);
+                opacityKeyframesData.Add(newFrame);
+                opacityKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
                 UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
             }
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());

@@ -113,7 +113,8 @@ namespace Axphi.ViewModels
                 {
                     recipient.CurrentChart = recipient._projectManager.EditingProject.Chart;
                     recipient.Tracks.Clear();
-                    // ... (把你之前写的重新生成 TrackUI 的逻辑放这里)
+                    // 收到换工程的广播后，立刻执行重建动作！
+                    recipient.ReloadTracksFromCurrentChart();
                 }
             });
 
@@ -138,5 +139,40 @@ namespace Axphi.ViewModels
             var newTrackVM = new TrackViewModel(newLine, $"判定线图层 {Tracks.Count + 1}");
             Tracks.Add(newTrackVM);
         }
+
+        // ================= 【新增的核心函数】 =================
+        /// <summary>
+        /// 根据当前 ProjectManager 里的真实谱面，重新生成左侧的所有 Track UI
+        /// </summary>
+        private void ReloadTracksFromCurrentChart()
+        {
+            if (_projectManager.EditingProject == null || _projectManager.EditingProject.Chart == null)
+                return;
+
+            // 1. 换绑剧本：把指针指向最新的真实谱面
+            CurrentChart = _projectManager.EditingProject.Chart;
+
+            // 2. 砸碎旧舞台：清空前端的 Track UI 集合 (这一步让旧 UI 被 GC 回收)
+            Tracks.Clear();
+
+            // 3. 请上新演员：遍历新谱面里的判定线，挨个给它们创建前端代理人
+            if (CurrentChart.JudgementLines != null)
+            {
+                for (int i = 0; i < CurrentChart.JudgementLines.Count; i++)
+                {
+                    var line = CurrentChart.JudgementLines[i];
+                    // 名字自动按序号排：判定线图层 1, 判定线图层 2...
+                    var newTrackVM = new TrackViewModel(line, $"判定线图层 {i + 1}");
+                    Tracks.Add(newTrackVM);
+                }
+            }
+
+            // 4. (可选) 让时间轴游标归零
+            CurrentPlayTimeSeconds = 0;
+
+            // 5. 顺便大喊一声，让右侧的渲染器也强制刷新一下画面！
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+        // ===================================================
     }
 }

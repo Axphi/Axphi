@@ -17,10 +17,15 @@ namespace Axphi.ViewModels
         // 保存引用
         private readonly TimelineViewModel _timeline;
 
-        // ================= 【新增】专供 UI 绑定的小菱形替身集合 =================
-        // 这个集合只存在于 ViewModel 中，不会被保存进工程文件，它纯粹是为了给界面画图用的
+        // ================= 专供 UI 绑定的小菱形替身集合 =================
         // 把原来直接装底层 KeyFrame 的集合，换成装保镖的集合
-        public ObservableCollection<KeyFrameUIWrapper> UIOffsetKeyframes { get; } = new ObservableCollection<KeyFrameUIWrapper>();
+        // ================= 1. 声明四个 UI 替身集合 =================
+        // Offset 和 Scale 是 X,Y 两个值，所以是 Vector
+        public ObservableCollection<KeyFrameUIWrapper<Vector>> UIOffsetKeyframes { get; } = new();
+        public ObservableCollection<KeyFrameUIWrapper<Vector>> UIScaleKeyframes { get; } = new();
+        // Rotation 和 Opacity 只有一个值，所以是 double
+        public ObservableCollection<KeyFrameUIWrapper<double>> UIRotationKeyframes { get; } = new();
+        public ObservableCollection<KeyFrameUIWrapper<double>> UIOpacityKeyframes { get; } = new();
 
         // ================= 1. 底层数据源 =================
         // 这个属性是只读的，它紧紧抓住那个不会被污染的底层老实人
@@ -61,13 +66,22 @@ namespace Axphi.ViewModels
 
             // 如果底层数据里已经有关键帧了，把它们请进 UI 替身集合里
             // 初始化时，把底层已有的关键帧全部包上一层保镖！
+            // ================= 2. 构造时，把底层已有的数据全部包上保镖 =================
             if (Data.AnimatableProperties.Offset.KeyFrames != null)
-            {
                 foreach (var kf in Data.AnimatableProperties.Offset.KeyFrames)
-                {
-                    UIOffsetKeyframes.Add(new KeyFrameUIWrapper(kf, _timeline));
-                }
-            }
+                    UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline));
+
+            if (Data.AnimatableProperties.Scale.KeyFrames != null)
+                foreach (var kf in Data.AnimatableProperties.Scale.KeyFrames)
+                    UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline));
+
+            if (Data.AnimatableProperties.Rotation.KeyFrames != null)
+                foreach (var kf in Data.AnimatableProperties.Rotation.KeyFrames)
+                    UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
+
+            if (Data.AnimatableProperties.Opacity.KeyFrames != null)
+                foreach (var kf in Data.AnimatableProperties.Opacity.KeyFrames)
+                    UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
         }
 
         // ================= 5. 核心拦截器 (黑魔法) =================
@@ -121,11 +135,77 @@ namespace Axphi.ViewModels
                 };
 
                 offsetKeyframesData.Add(newFrame); // 存入底层
-                UIOffsetKeyframes.Add(new KeyFrameUIWrapper(newFrame, _timeline)); // 生成 UI 显示
+                UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline)); // 生成 UI 显示
             }
 
             // 4. 发广播通知右侧的 ChartRenderer 重新画一下谱面
             // (借用一下你之前写的 JudgementLinesChangedMessage)
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        // ================= Scale 命令 =================
+        [RelayCommand]
+        private void AddScaleKeyframe()
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var keyframesData = Data.AnimatableProperties.Scale.KeyFrames;
+            var existingWrapper = UIScaleKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = new Vector(CurrentScaleX, CurrentScaleY);
+            }
+            else
+            {
+                // 假设你有一个 ScaleKeyFrame 继承自 KeyFrame<Vector>
+                var newFrame = new ScaleKeyFrame() { Time = currentTick, Value = new Vector(CurrentScaleX, CurrentScaleY) };
+                keyframesData.Add(newFrame);
+                UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
+            }
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        // ================= Rotation 命令 =================
+        [RelayCommand]
+        private void AddRotationKeyframe()
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var keyframesData = Data.AnimatableProperties.Rotation.KeyFrames;
+            var existingWrapper = UIRotationKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = CurrentRotation;
+            }
+            else
+            {
+                // 假设你有 RotationKeyFrame 继承自 KeyFrame<double>
+                var newFrame = new RotationKeyFrame() { Time = currentTick, Value = CurrentRotation };
+                keyframesData.Add(newFrame);
+                UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
+            }
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        // ================= Opacity 命令 =================
+        [RelayCommand]
+        private void AddOpacityKeyframe()
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var keyframesData = Data.AnimatableProperties.Opacity.KeyFrames;
+            var existingWrapper = UIOpacityKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = CurrentOpacity;
+            }
+            else
+            {
+                // 假设你有 OpacityKeyFrame 继承自 KeyFrame<double>
+                var newFrame = new OpacityKeyFrame() { Time = currentTick, Value = CurrentOpacity };
+                keyframesData.Add(newFrame);
+                UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
+            }
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
     }

@@ -181,6 +181,13 @@
                                                     </Grid>
                                                     <Grid Height="20">
                                                         <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Scale" />
+                                                        <Button Command="{Binding AddScaleKeyframeCommand}"
+                                                                Width="12" Height="12"
+                                                                Background="Transparent" BorderThickness="0"
+                                                                Cursor="Hand" ToolTip="添加/更新关键帧">
+                                                            <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
+                                                                  Fill="#888" Stretch="Fill" />
+                                                        </Button>
                                                         <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
                                                             <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleX, Mode=TwoWay}" />
                                                             <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
@@ -189,6 +196,13 @@
                                                     </Grid>
                                                     <Grid Height="20">
                                                         <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Rotation" />
+                                                        <Button Command="{Binding AddRotationKeyframeCommand}"
+                                                                Width="12" Height="12"
+                                                                Background="Transparent" BorderThickness="0"
+                                                                Cursor="Hand" ToolTip="添加/更新关键帧">
+                                                            <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
+                                                                  Fill="#888" Stretch="Fill" />
+                                                        </Button>
                                                         <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
                                                             <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentRotation, Mode=TwoWay}" />
                                                             <TextBlock VerticalAlignment="Center" Foreground="#888" Text="°" />
@@ -196,6 +210,13 @@
                                                     </Grid>
                                                     <Grid Height="20">
                                                         <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Opacity" />
+                                                        <Button Command="{Binding AddOpacityKeyframeCommand}"
+                                                                Width="12" Height="12"
+                                                                Background="Transparent" BorderThickness="0"
+                                                                Cursor="Hand" ToolTip="添加/更新关键帧">
+                                                            <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
+                                                                  Fill="#888" Stretch="Fill" />
+                                                        </Button>
                                                         <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
                                                             <comp:DraggableValueBox DragSpeed="0.01" Maximum="1" Minimum="0" NumberFormat="0.00" Value="{Binding CurrentOpacity, Mode=TwoWay}" />
                                                         </StackPanel>
@@ -215,7 +236,7 @@
                                                         <!--  这里是图层  -->
                                                     </Grid>
                                                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
-                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" >
+                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
                                                             <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
                                                                 <ItemsControl.ItemsPanel>
                                                                     <ItemsPanelTemplate>
@@ -243,9 +264,90 @@
                                                                 </ItemsControl.ItemContainerStyle>
                                                             </ItemsControl>
                                                         </Border>
-                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />
-                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />
-                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />
+                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                                                            <ItemsControl ItemsSource="{Binding UIScaleKeyframes}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <Canvas />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
+                                                                            <Rectangle.RenderTransform>
+                                                                                <TransformGroup>
+                                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                                    <TranslateTransform X="-4" Y="6" />
+                                                                                </TransformGroup>
+                                                                            </Rectangle.RenderTransform>
+                                                                        </Rectangle>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+
+                                                                <ItemsControl.ItemContainerStyle>
+                                                                    <Style TargetType="ContentPresenter">
+                                                                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                                                    </Style>
+                                                                </ItemsControl.ItemContainerStyle>
+                                                            </ItemsControl>
+                                                        </Border>
+                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                                                            <ItemsControl ItemsSource="{Binding UIRotationKeyframes}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <Canvas />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
+                                                                            <Rectangle.RenderTransform>
+                                                                                <TransformGroup>
+                                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                                    <TranslateTransform X="-4" Y="6" />
+                                                                                </TransformGroup>
+                                                                            </Rectangle.RenderTransform>
+                                                                        </Rectangle>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+
+                                                                <ItemsControl.ItemContainerStyle>
+                                                                    <Style TargetType="ContentPresenter">
+                                                                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                                                    </Style>
+                                                                </ItemsControl.ItemContainerStyle>
+                                                            </ItemsControl>
+                                                        </Border>
+                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                                                            <ItemsControl ItemsSource="{Binding UIOpacityKeyframes}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <Canvas />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
+                                                                            <Rectangle.RenderTransform>
+                                                                                <TransformGroup>
+                                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                                    <TranslateTransform X="-4" Y="6" />
+                                                                                </TransformGroup>
+                                                                            </Rectangle.RenderTransform>
+                                                                        </Rectangle>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+
+                                                                <ItemsControl.ItemContainerStyle>
+                                                                    <Style TargetType="ContentPresenter">
+                                                                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                                                    </Style>
+                                                                </ItemsControl.ItemContainerStyle>
+                                                            </ItemsControl>
+                                                        </Border>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </Border>

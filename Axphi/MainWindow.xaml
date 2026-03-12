@@ -21,6 +21,7 @@
         <WindowChrome />
     </WindowChrome.WindowChrome>
 
+    <!-- 资源 -->
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -31,10 +32,12 @@
         </ResourceDictionary>
     </Window.Resources>
 
-
+    <!-- 主页面 -->
     <ws:WindowContentAdapter>
         <DockPanel>
+            <!-- 标题栏 -->
             <mainWinComp:TitleBar DockPanel.Dock="Top" />
+            <!-- 核心区域 -->
             <Grid Margin="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="1.618*" />
@@ -46,6 +49,7 @@
                     <ColumnDefinition Width="1*" />
                 </Grid.ColumnDefinitions>
 
+                <!-- 贝塞尔工具 -->
                 <comp:TabPane
                     Grid.Row="0"
                     Grid.Column="0"
@@ -91,7 +95,7 @@
                 </comp:TabPane>
 
 
-
+                <!-- 时间线区 -->
                 <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="2,0,2,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*" />
@@ -106,6 +110,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
+                    <!-- 标题栏 -->
                     <comp:TabPane Grid.Row="0" Grid.Column="0">
                         <comp:TabPane.Header>
                             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -116,6 +121,7 @@
                     </comp:TabPane>
                     <comp:TabPane Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Header="Timeline" />
 
+                    <!-- 时间标尺 -->
                     <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e">
                         <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True">
                             <comp:TimelineRuler
@@ -127,6 +133,7 @@
                         </Border>
                     </Border>
 
+                    <!-- 图层区 -->
                     <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
                         <ItemsControl ItemsSource="{Binding Timeline.Tracks}">
                             <ItemsControl.ItemTemplate>
@@ -137,6 +144,7 @@
                                             <ColumnDefinition Width="2.8*" />
                                         </Grid.ColumnDefinitions>
 
+                                        <!-- 左侧 -->
                                         <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1">
                                             <StackPanel>
                                                 <Grid Height="20" Background="Transparent">
@@ -225,6 +233,7 @@
                                             </StackPanel>
                                         </Border>
 
+                                        <!-- 右侧 -->
                                         <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden"
                                                       VerticalScrollBarVisibility="Disabled"
                                                       Loaded="HorizontalTrackScrollViewer_Loaded"
@@ -360,6 +369,7 @@
                     </ScrollViewer>
 
 
+                    <!-- 游标 -->
                     <Grid Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" ClipToBounds="True">
 
                         <Canvas>
@@ -388,13 +398,14 @@
 
                     </Grid>
 
+                    <!-- 图层全局水平滚动条 -->
                     <ScrollBar x:Name="GlobalHorizontalScroll"
                                Grid.Row="3" Grid.Column="1" Height="12" Margin="0,0,0,2"
                                Orientation="Horizontal" VerticalAlignment="Bottom"
                                Minimum="0" Maximum="{Binding Timeline.TotalPixelWidth}"
                                ViewportSize="800" ValueChanged="GlobalHorizontalScrollBar_ValueChanged" />
 
-
+                    <!-- 图层全局垂直滚动条 -->
                     <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"
                                Grid.Row="1" Grid.Column="2" Width="12" Margin="2,0,0,0"
                                Orientation="Vertical" HorizontalAlignment="Right"
@@ -402,7 +413,7 @@
                                ValueChanged="GlobalVerticalScrollBar_ValueChanged" />
                 </Grid>
 
-
+                <!-- 右下角 -->
                 <comp:TabPane
                     Grid.Row="1"
                     Grid.Column="2"
@@ -414,6 +425,7 @@
                     </StackPanel>
                 </comp:TabPane>
 
+                <!-- 渲染窗口 -->
                 <DockPanel Grid.Row="0" Grid.Column="1">
 
                     <mainWinComp:ChartDisplay x:Name="MainChartDisplay" />

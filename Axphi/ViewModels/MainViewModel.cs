@@ -54,6 +54,7 @@ namespace Axphi.ViewModels
                 Chart = DebuggingUtils.CreateDemoChart()
             };
             ProjectManager.EditingProjectFilePath = null;
+            WeakReferenceMessenger.Default.Send(new ProjectLoadedMessage());
         }
 
 

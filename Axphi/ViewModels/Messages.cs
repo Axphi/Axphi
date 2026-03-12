@@ -7,6 +7,7 @@ namespace Axphi.ViewModels
 
     public record AudioLoadedMessage(string FilePath);
     public record JudgementLinesChangedMessage;
+    public record ProjectLoadedMessage();
     internal class Messages
     {
     }

@@ -106,10 +106,18 @@ namespace Axphi.ViewModels
             }
 
 
-            if (CurrentChart.JudgementLines == null)
+            WeakReferenceMessenger.Default.Register<TimelineViewModel, ProjectLoadedMessage>(this, (recipient, message) =>
             {
-                CurrentChart.JudgementLines = new List<JudgementLine>();
-            }
+                // 重新去抱 ProjectManager 的大腿！拿到最新的“谱面B”！
+                if (recipient._projectManager.EditingProject != null)
+                {
+                    recipient.CurrentChart = recipient._projectManager.EditingProject.Chart;
+                    recipient.Tracks.Clear();
+                    // ... (把你之前写的重新生成 TrackUI 的逻辑放这里)
+                }
+            });
+
+
         }
 
         // 核心命令：点击“+添加判定线”时触发

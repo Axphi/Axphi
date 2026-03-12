@@ -174,9 +174,9 @@
                                                                   Fill="#888" Stretch="Fill" />
                                                         </Button>
                                                         <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
+                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
                                                             <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
-                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
+                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
                                                         </StackPanel>
                                                     </Grid>
                                                     <Grid Height="20">
@@ -204,7 +204,7 @@
                                                                   Fill="#888" Stretch="Fill" />
                                                         </Button>
                                                         <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0" Value="{Binding CurrentRotation, Mode=TwoWay}" />
+                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentRotation, Mode=TwoWay}" />
                                                             <TextBlock VerticalAlignment="Center" Foreground="#888" Text="°" />
                                                         </StackPanel>
                                                     </Grid>

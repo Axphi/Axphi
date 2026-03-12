@@ -90,18 +90,49 @@ namespace Axphi.ViewModels
 
         // ================= 5. 核心拦截器 (黑魔法) =================
         // 当你在界面上按住 DraggableValueBox 左右拖拽时，这个方法会被疯狂触发！
+        // ================= 5. 核心拦截器：双向绑定的终极魔法 =================
+        // ----- Position (Offset) -----
         partial void OnCurrentOffsetXChanged(double value)
         {
-            // TODO: 我们下一阶段的核心逻辑将写在这里：
-            // 1. 获取当前时间轴播放到了哪一秒 (Tick)
-            // 2. 去 Data 里面找当前时间有没有关键帧
-            // 3. 如果有，直接修改那个关键帧的 X 值
-            // 4. 如果没有，就 new 一个新的关键帧塞进去！
-            if (_isSyncing) return; // 如果是播放器在推着数值走，直接 return，啥也不干！
+            // 如果是播放器在推着数值走，千万别动！
+            if (_isSyncing) return;
 
-            // TODO: 如果是人在拖拽，走我们以后的“自动生成关键帧/修改关键帧”逻辑
+            // 如果是人手在拖拽：直接调用我们写好的“添加/修改关键帧”逻辑！
+            AddPositionKeyframe();
         }
 
+        partial void OnCurrentOffsetYChanged(double value)
+        {
+            if (_isSyncing) return;
+            AddPositionKeyframe();
+        }
+
+        // ----- Scale -----
+        partial void OnCurrentScaleXChanged(double value)
+        {
+            if (_isSyncing) return;
+            AddScaleKeyframe();
+        }
+
+        partial void OnCurrentScaleYChanged(double value)
+        {
+            if (_isSyncing) return;
+            AddScaleKeyframe();
+        }
+
+        // ----- Rotation -----
+        partial void OnCurrentRotationChanged(double value)
+        {
+            if (_isSyncing) return;
+            AddRotationKeyframe();
+        }
+
+        // ----- Opacity -----
+        partial void OnCurrentOpacityChanged(double value)
+        {
+            if (_isSyncing) return;
+            AddOpacityKeyframe();
+        }
 
 
 

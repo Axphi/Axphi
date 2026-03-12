@@ -59,6 +59,11 @@ namespace Axphi.ViewModels
             //  【新增】拿到当前谱面的缓动方向设置
             var easingDirection = CurrentChart?.KeyFrameEasingDirection ?? default;
 
+            // ================= ✨ 塞入第二步：让 BPM 跟着播放器跑！ =================
+            BpmTrack?.SyncValuesToTime(currentTick);
+            // =======================================================================
+
+
             //  【新增】大点兵！让所有的轨道根据当前时间更新自己的数值面板！
             foreach (var track in Tracks)
             {
@@ -99,6 +104,11 @@ namespace Axphi.ViewModels
             // Tick 转 物理像素
             PlayheadPositionX = currentTick * BasePixelsPerTick * ZoomScale;
         }
+
+
+        // ✨ 全局唯一的 BPM 轨道！
+        [ObservableProperty]
+        private BpmTrackViewModel? _bpmTrack;
 
         // ================= 新增：专供 UI 绑定的轨道视图模型集合 =================
         public ObservableCollection<TrackViewModel> Tracks { get; } = new ObservableCollection<TrackViewModel>();
@@ -169,6 +179,10 @@ namespace Axphi.ViewModels
 
             // 1. 换绑剧本：把指针指向最新的真实谱面
             CurrentChart = _projectManager.EditingProject.Chart;
+
+            // ================= ✨ 塞入第一步：实例化 BPM 轨道！ =================
+            BpmTrack = new BpmTrackViewModel(CurrentChart, this);
+            // =====================================================================
 
             // 2. 砸碎旧舞台：清空前端的 Track UI 集合 (这一步让旧 UI 被 GC 回收)
             Tracks.Clear();

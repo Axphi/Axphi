@@ -21,7 +21,7 @@
         <WindowChrome />
     </WindowChrome.WindowChrome>
 
-    <!-- 资源 -->
+    <!--  资源  -->
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -32,12 +32,12 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <!-- 主页面 -->
+    <!--  主页面  -->
     <ws:WindowContentAdapter>
         <DockPanel>
-            <!-- 标题栏 -->
+            <!--  标题栏  -->
             <mainWinComp:TitleBar DockPanel.Dock="Top" />
-            <!-- 核心区域 -->
+            <!--  核心区域  -->
             <Grid Margin="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="1.618*" />
@@ -49,7 +49,7 @@
                     <ColumnDefinition Width="1*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- 贝塞尔工具 -->
+                <!--  贝塞尔工具  -->
                 <comp:TabPane
                     Grid.Row="0"
                     Grid.Column="0"
@@ -95,7 +95,7 @@
                 </comp:TabPane>
 
 
-                <!-- 时间线区 -->
+                <!--  时间线区  -->
                 <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="2,0,2,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*" />
@@ -110,7 +110,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <!-- 标题栏 -->
+                    <!--  标题栏  -->
                     <comp:TabPane Grid.Row="0" Grid.Column="0">
                         <comp:TabPane.Header>
                             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -121,7 +121,7 @@
                     </comp:TabPane>
                     <comp:TabPane Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Header="Timeline" />
 
-                    <!-- 时间标尺 -->
+                    <!--  时间标尺  -->
                     <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e">
                         <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True">
                             <comp:TimelineRuler
@@ -133,243 +133,306 @@
                         </Border>
                     </Border>
 
-                    <!-- 图层区 -->
+                    <!--  图层区  -->
                     <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
-                        <ItemsControl ItemsSource="{Binding Timeline.Tracks}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="1*" />
-                                            <ColumnDefinition Width="2.8*" />
-                                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <Grid DataContext="{Binding Timeline.BpmTrack}" Margin="0,0,0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="2.8*" />
+                                </Grid.ColumnDefinitions>
 
-                                        <!-- 左侧 -->
-                                        <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1">
-                                            <StackPanel>
-                                                <Grid Height="20" Background="Transparent">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="4" />
-                                                        <ColumnDefinition Width="20" />
-                                                        <ColumnDefinition Width="*" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <Rectangle Grid.Column="0" Fill="#FFD700" />
-                                                    <ToggleButton Grid.Column="1" Cursor="Hand" IsChecked="{Binding IsExpanded, Mode=TwoWay}">
-                                                        <ToggleButton.Template>
-                                                            <ControlTemplate TargetType="ToggleButton">
-                                                                <TextBlock x:Name="ArrowText" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas" FontWeight="Bold" Foreground="#d6d6d6" Text="&gt;" />
-                                                                <ControlTemplate.Triggers>
-                                                                    <Trigger Property="IsChecked" Value="True">
-                                                                        <Setter TargetName="ArrowText" Property="Text" Value="v" />
-                                                                    </Trigger>
-                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter TargetName="ArrowText" Property="Foreground" Value="#FFD700" />
-                                                                    </Trigger>
-                                                                </ControlTemplate.Triggers>
-                                                            </ControlTemplate>
-                                                        </ToggleButton.Template>
-                                                    </ToggleButton>
-                                                    <TextBlock Grid.Column="2" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="#d6d6d6" Text="{Binding TrackName}" />
-                                                </Grid>
-                                                <StackPanel Margin="24,0,0,0" Background="#252525" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
-                                                    <Grid Height="20">
-                                                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Position" />
-                                                        <Button Command="{Binding AddPositionKeyframeCommand}"
-                                                                Width="12" Height="12"
-                                                                Background="Transparent" BorderThickness="0"
-                                                                Cursor="Hand" ToolTip="添加/更新关键帧">
-                                                            <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
-                                                                  Fill="#888" Stretch="Fill" />
-                                                        </Button>
-                                                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                                            <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
-                                                            <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
-                                                            <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
-                                                        </StackPanel>
-                                                    </Grid>
-                                                    <Grid Height="20">
-                                                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Scale" />
-                                                        <Button Command="{Binding AddScaleKeyframeCommand}"
-                                                                Width="12" Height="12"
-                                                                Background="Transparent" BorderThickness="0"
-                                                                Cursor="Hand" ToolTip="添加/更新关键帧">
-                                                            <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
-                                                                  Fill="#888" Stretch="Fill" />
-                                                        </Button>
-                                                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                                            <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleX, Mode=TwoWay}" />
-                                                            <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
-                                                            <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleY, Mode=TwoWay}" />
-                                                        </StackPanel>
-                                                    </Grid>
-                                                    <Grid Height="20">
-                                                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Rotation" />
-                                                        <Button Command="{Binding AddRotationKeyframeCommand}"
-                                                                Width="12" Height="12"
-                                                                Background="Transparent" BorderThickness="0"
-                                                                Cursor="Hand" ToolTip="添加/更新关键帧">
-                                                            <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
-                                                                  Fill="#888" Stretch="Fill" />
-                                                        </Button>
-                                                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentRotation, Mode=TwoWay}" />
-                                                            <TextBlock VerticalAlignment="Center" Foreground="#888" Text="°" />
-                                                        </StackPanel>
-                                                    </Grid>
-                                                    <Grid Height="20">
-                                                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Opacity" />
-                                                        <Button Command="{Binding AddOpacityKeyframeCommand}"
-                                                                Width="12" Height="12"
-                                                                Background="Transparent" BorderThickness="0"
-                                                                Cursor="Hand" ToolTip="添加/更新关键帧">
-                                                            <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
-                                                                  Fill="#888" Stretch="Fill" />
-                                                        </Button>
-                                                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                                            <comp:DraggableValueBox DragSpeed="0.01" Maximum="1" Minimum="0" NumberFormat="0.00" Value="{Binding CurrentOpacity, Mode=TwoWay}" />
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </StackPanel>
-                                            </StackPanel>
+                                <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1">
+                                    <Grid Height="24" Background="Transparent">
+                                        <Rectangle HorizontalAlignment="Left" Width="4" Fill="#FF4444" />
+
+                                        <TextBlock Margin="14,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="#FF8888" Text="Global BPM" />
+
+                                        <Button Command="{Binding AddBpmKeyframeCommand}"
+                                                Margin="95,0,0,0" HorizontalAlignment="Left"
+                                                Width="14" Height="14"
+                                                Background="Transparent" BorderThickness="0"
+                                                Cursor="Hand" ToolTip="添加/更新 BPM 关键帧">
+                                            <Path Data="M 7,0 L 14,7 L 7,14 L 0,7 Z" Fill="#FF4444" Stretch="Fill" />
+                                        </Button>
+
+                                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentBpm, Mode=TwoWay}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden"
+                                              VerticalScrollBarVisibility="Disabled"
+                                              Loaded="HorizontalTrackScrollViewer_Loaded"
+                                              Unloaded="HorizontalTrackScrollViewer_Unloaded"
+                                              PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
+                                    <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
+                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="24" HorizontalAlignment="Left" Background="#2b1d1d">
+                                            <ItemsControl ItemsSource="{Binding UIBpmKeyframes}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <Canvas />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Rectangle Width="10" Height="10" Fill="#FF4444" ToolTip="BPM 突变帧">
+                                                            <Rectangle.RenderTransform>
+                                                                <TransformGroup>
+                                                                    <RotateTransform Angle="45" CenterX="5" CenterY="5" />
+                                                                    <TranslateTransform X="-5" Y="7" />
+                                                                </TransformGroup>
+                                                            </Rectangle.RenderTransform>
+                                                        </Rectangle>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                                <ItemsControl.ItemContainerStyle>
+                                                    <Style TargetType="ContentPresenter">
+                                                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                                    </Style>
+                                                </ItemsControl.ItemContainerStyle>
+                                            </ItemsControl>
                                         </Border>
+                                    </Border>
+                                </ScrollViewer>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Timeline.Tracks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="1*" />
+                                                <ColumnDefinition Width="2.8*" />
+                                            </Grid.ColumnDefinitions>
 
-                                        <!-- 右侧 -->
-                                        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden"
-                                                      VerticalScrollBarVisibility="Disabled"
-                                                      Loaded="HorizontalTrackScrollViewer_Loaded"
-                                                      Unloaded="HorizontalTrackScrollViewer_Unloaded"
-                                                      PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
-                                            <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
+                                            <!--  左侧  -->
+                                            <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1">
                                                 <StackPanel>
-                                                    <Grid Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" Background="#374561">
-                                                        <!--  这里是图层  -->
+                                                    <Grid Height="20" Background="Transparent">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="4" />
+                                                            <ColumnDefinition Width="20" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Rectangle Grid.Column="0" Fill="#FFD700" />
+                                                        <ToggleButton Grid.Column="1" Cursor="Hand" IsChecked="{Binding IsExpanded, Mode=TwoWay}">
+                                                            <ToggleButton.Template>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <TextBlock x:Name="ArrowText" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas" FontWeight="Bold" Foreground="#d6d6d6" Text="&gt;" />
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="ArrowText" Property="Text" Value="v" />
+                                                                        </Trigger>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="ArrowText" Property="Foreground" Value="#FFD700" />
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </ToggleButton.Template>
+                                                        </ToggleButton>
+                                                        <TextBlock Grid.Column="2" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="#d6d6d6" Text="{Binding TrackName}" />
                                                     </Grid>
-                                                    <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
-                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
-                                                            <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
-                                                                <ItemsControl.ItemsPanel>
-                                                                    <ItemsPanelTemplate>
-                                                                        <Canvas />
-                                                                    </ItemsPanelTemplate>
-                                                                </ItemsControl.ItemsPanel>
-
-                                                                <ItemsControl.ItemTemplate>
-                                                                    <DataTemplate>
-                                                                        <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
-                                                                            <Rectangle.RenderTransform>
-                                                                                <TransformGroup>
-                                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                                    <TranslateTransform X="-4" Y="6" />
-                                                                                </TransformGroup>
-                                                                            </Rectangle.RenderTransform>
-                                                                        </Rectangle>
-                                                                    </DataTemplate>
-                                                                </ItemsControl.ItemTemplate>
-
-                                                                <ItemsControl.ItemContainerStyle>
-                                                                    <Style TargetType="ContentPresenter">
-                                                                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                                                    </Style>
-                                                                </ItemsControl.ItemContainerStyle>
-                                                            </ItemsControl>
-                                                        </Border>
-                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
-                                                            <ItemsControl ItemsSource="{Binding UIScaleKeyframes}">
-                                                                <ItemsControl.ItemsPanel>
-                                                                    <ItemsPanelTemplate>
-                                                                        <Canvas />
-                                                                    </ItemsPanelTemplate>
-                                                                </ItemsControl.ItemsPanel>
-
-                                                                <ItemsControl.ItemTemplate>
-                                                                    <DataTemplate>
-                                                                        <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
-                                                                            <Rectangle.RenderTransform>
-                                                                                <TransformGroup>
-                                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                                    <TranslateTransform X="-4" Y="6" />
-                                                                                </TransformGroup>
-                                                                            </Rectangle.RenderTransform>
-                                                                        </Rectangle>
-                                                                    </DataTemplate>
-                                                                </ItemsControl.ItemTemplate>
-
-                                                                <ItemsControl.ItemContainerStyle>
-                                                                    <Style TargetType="ContentPresenter">
-                                                                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                                                    </Style>
-                                                                </ItemsControl.ItemContainerStyle>
-                                                            </ItemsControl>
-                                                        </Border>
-                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
-                                                            <ItemsControl ItemsSource="{Binding UIRotationKeyframes}">
-                                                                <ItemsControl.ItemsPanel>
-                                                                    <ItemsPanelTemplate>
-                                                                        <Canvas />
-                                                                    </ItemsPanelTemplate>
-                                                                </ItemsControl.ItemsPanel>
-
-                                                                <ItemsControl.ItemTemplate>
-                                                                    <DataTemplate>
-                                                                        <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
-                                                                            <Rectangle.RenderTransform>
-                                                                                <TransformGroup>
-                                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                                    <TranslateTransform X="-4" Y="6" />
-                                                                                </TransformGroup>
-                                                                            </Rectangle.RenderTransform>
-                                                                        </Rectangle>
-                                                                    </DataTemplate>
-                                                                </ItemsControl.ItemTemplate>
-
-                                                                <ItemsControl.ItemContainerStyle>
-                                                                    <Style TargetType="ContentPresenter">
-                                                                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                                                    </Style>
-                                                                </ItemsControl.ItemContainerStyle>
-                                                            </ItemsControl>
-                                                        </Border>
-                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
-                                                            <ItemsControl ItemsSource="{Binding UIOpacityKeyframes}">
-                                                                <ItemsControl.ItemsPanel>
-                                                                    <ItemsPanelTemplate>
-                                                                        <Canvas />
-                                                                    </ItemsPanelTemplate>
-                                                                </ItemsControl.ItemsPanel>
-
-                                                                <ItemsControl.ItemTemplate>
-                                                                    <DataTemplate>
-                                                                        <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
-                                                                            <Rectangle.RenderTransform>
-                                                                                <TransformGroup>
-                                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                                    <TranslateTransform X="-4" Y="6" />
-                                                                                </TransformGroup>
-                                                                            </Rectangle.RenderTransform>
-                                                                        </Rectangle>
-                                                                    </DataTemplate>
-                                                                </ItemsControl.ItemTemplate>
-
-                                                                <ItemsControl.ItemContainerStyle>
-                                                                    <Style TargetType="ContentPresenter">
-                                                                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                                                    </Style>
-                                                                </ItemsControl.ItemContainerStyle>
-                                                            </ItemsControl>
-                                                        </Border>
+                                                    <StackPanel Margin="24,0,0,0" Background="#252525" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                                                        <Grid Height="20">
+                                                            <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Position" />
+                                                            <Button Command="{Binding AddPositionKeyframeCommand}"
+                                                                    Width="12" Height="12"
+                                                                    Background="Transparent" BorderThickness="0"
+                                                                    Cursor="Hand" ToolTip="添加/更新关键帧">
+                                                                <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
+                                                                      Fill="#888" Stretch="Fill" />
+                                                            </Button>
+                                                            <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                                <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
+                                                                <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
+                                                                <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                        <Grid Height="20">
+                                                            <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Scale" />
+                                                            <Button Command="{Binding AddScaleKeyframeCommand}"
+                                                                    Width="12" Height="12"
+                                                                    Background="Transparent" BorderThickness="0"
+                                                                    Cursor="Hand" ToolTip="添加/更新关键帧">
+                                                                <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
+                                                                      Fill="#888" Stretch="Fill" />
+                                                            </Button>
+                                                            <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                                <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleX, Mode=TwoWay}" />
+                                                                <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
+                                                                <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleY, Mode=TwoWay}" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                        <Grid Height="20">
+                                                            <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Rotation" />
+                                                            <Button Command="{Binding AddRotationKeyframeCommand}"
+                                                                    Width="12" Height="12"
+                                                                    Background="Transparent" BorderThickness="0"
+                                                                    Cursor="Hand" ToolTip="添加/更新关键帧">
+                                                                <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
+                                                                      Fill="#888" Stretch="Fill" />
+                                                            </Button>
+                                                            <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                                <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentRotation, Mode=TwoWay}" />
+                                                                <TextBlock VerticalAlignment="Center" Foreground="#888" Text="°" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                        <Grid Height="20">
+                                                            <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Opacity" />
+                                                            <Button Command="{Binding AddOpacityKeyframeCommand}"
+                                                                    Width="12" Height="12"
+                                                                    Background="Transparent" BorderThickness="0"
+                                                                    Cursor="Hand" ToolTip="添加/更新关键帧">
+                                                                <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
+                                                                      Fill="#888" Stretch="Fill" />
+                                                            </Button>
+                                                            <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                                <comp:DraggableValueBox DragSpeed="0.01" Maximum="1" Minimum="0" NumberFormat="0.00" Value="{Binding CurrentOpacity, Mode=TwoWay}" />
+                                                            </StackPanel>
+                                                        </Grid>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </Border>
-                                        </ScrollViewer>
 
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                            <!--  右侧  -->
+                                            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden"
+                                                          VerticalScrollBarVisibility="Disabled"
+                                                          Loaded="HorizontalTrackScrollViewer_Loaded"
+                                                          Unloaded="HorizontalTrackScrollViewer_Unloaded"
+                                                          PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
+                                                <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
+                                                    <StackPanel>
+                                                        <Grid Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" Background="#374561">
+                                                            <!--  这里是图层  -->
+                                                        </Grid>
+                                                        <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                                                            <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                                                                <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <Canvas />
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
+                                                                                <Rectangle.RenderTransform>
+                                                                                    <TransformGroup>
+                                                                                        <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                                        <TranslateTransform X="-4" Y="6" />
+                                                                                    </TransformGroup>
+                                                                                </Rectangle.RenderTransform>
+                                                                            </Rectangle>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="ContentPresenter">
+                                                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                </ItemsControl>
+                                                            </Border>
+                                                            <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                                                                <ItemsControl ItemsSource="{Binding UIScaleKeyframes}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <Canvas />
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
+                                                                                <Rectangle.RenderTransform>
+                                                                                    <TransformGroup>
+                                                                                        <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                                        <TranslateTransform X="-4" Y="6" />
+                                                                                    </TransformGroup>
+                                                                                </Rectangle.RenderTransform>
+                                                                            </Rectangle>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="ContentPresenter">
+                                                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                </ItemsControl>
+                                                            </Border>
+                                                            <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                                                                <ItemsControl ItemsSource="{Binding UIRotationKeyframes}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <Canvas />
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
+                                                                                <Rectangle.RenderTransform>
+                                                                                    <TransformGroup>
+                                                                                        <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                                        <TranslateTransform X="-4" Y="6" />
+                                                                                    </TransformGroup>
+                                                                                </Rectangle.RenderTransform>
+                                                                            </Rectangle>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="ContentPresenter">
+                                                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                </ItemsControl>
+                                                            </Border>
+                                                            <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                                                                <ItemsControl ItemsSource="{Binding UIOpacityKeyframes}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <Canvas />
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
+                                                                                <Rectangle.RenderTransform>
+                                                                                    <TransformGroup>
+                                                                                        <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                                        <TranslateTransform X="-4" Y="6" />
+                                                                                    </TransformGroup>
+                                                                                </Rectangle.RenderTransform>
+                                                                            </Rectangle>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="ContentPresenter">
+                                                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                </ItemsControl>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
+                                            </ScrollViewer>
+
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                     </ScrollViewer>
 
 
-                    <!-- 游标 -->
+                    <!--  游标  -->
                     <Grid Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" ClipToBounds="True">
 
                         <Canvas>
@@ -398,14 +461,14 @@
 
                     </Grid>
 
-                    <!-- 图层全局水平滚动条 -->
+                    <!--  图层全局水平滚动条  -->
                     <ScrollBar x:Name="GlobalHorizontalScroll"
                                Grid.Row="3" Grid.Column="1" Height="12" Margin="0,0,0,2"
                                Orientation="Horizontal" VerticalAlignment="Bottom"
                                Minimum="0" Maximum="{Binding Timeline.TotalPixelWidth}"
                                ViewportSize="800" ValueChanged="GlobalHorizontalScrollBar_ValueChanged" />
 
-                    <!-- 图层全局垂直滚动条 -->
+                    <!--  图层全局垂直滚动条  -->
                     <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"
                                Grid.Row="1" Grid.Column="2" Width="12" Margin="2,0,0,0"
                                Orientation="Vertical" HorizontalAlignment="Right"
@@ -413,7 +476,7 @@
                                ValueChanged="GlobalVerticalScrollBar_ValueChanged" />
                 </Grid>
 
-                <!-- 右下角 -->
+                <!--  右下角  -->
                 <comp:TabPane
                     Grid.Row="1"
                     Grid.Column="2"
@@ -425,7 +488,7 @@
                     </StackPanel>
                 </comp:TabPane>
 
-                <!-- 渲染窗口 -->
+                <!--  渲染窗口  -->
                 <DockPanel Grid.Row="0" Grid.Column="1">
 
                     <mainWinComp:ChartDisplay x:Name="MainChartDisplay" />

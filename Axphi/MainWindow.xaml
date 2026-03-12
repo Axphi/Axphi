@@ -215,7 +215,34 @@
                                                         <!--  这里是图层  -->
                                                     </Grid>
                                                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
-                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />
+                                                        <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" >
+                                                            <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <Canvas />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
+                                                                            <Rectangle.RenderTransform>
+                                                                                <TransformGroup>
+                                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                                    <TranslateTransform X="-4" Y="6" />
+                                                                                </TransformGroup>
+                                                                            </Rectangle.RenderTransform>
+                                                                        </Rectangle>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+
+                                                                <ItemsControl.ItemContainerStyle>
+                                                                    <Style TargetType="ContentPresenter">
+                                                                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                                                    </Style>
+                                                                </ItemsControl.ItemContainerStyle>
+                                                            </ItemsControl>
+                                                        </Border>
                                                         <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />
                                                         <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />
                                                         <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" />

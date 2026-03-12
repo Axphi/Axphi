@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging; // 用来发重绘消息
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows;
 
@@ -16,7 +17,10 @@ namespace Axphi.ViewModels
         // 保存引用
         private readonly TimelineViewModel _timeline;
 
-
+        // ================= 【新增】专供 UI 绑定的小菱形替身集合 =================
+        // 这个集合只存在于 ViewModel 中，不会被保存进工程文件，它纯粹是为了给界面画图用的
+        // 把原来直接装底层 KeyFrame 的集合，换成装保镖的集合
+        public ObservableCollection<KeyFrameUIWrapper> UIOffsetKeyframes { get; } = new ObservableCollection<KeyFrameUIWrapper>();
 
         // ================= 1. 底层数据源 =================
         // 这个属性是只读的，它紧紧抓住那个不会被污染的底层老实人
@@ -54,6 +58,16 @@ namespace Axphi.ViewModels
             Data = data;
             TrackName = name;
             _timeline = timeline;
+
+            // 如果底层数据里已经有关键帧了，把它们请进 UI 替身集合里
+            // 初始化时，把底层已有的关键帧全部包上一层保镖！
+            if (Data.AnimatableProperties.Offset.KeyFrames != null)
+            {
+                foreach (var kf in Data.AnimatableProperties.Offset.KeyFrames)
+                {
+                    UIOffsetKeyframes.Add(new KeyFrameUIWrapper(kf, _timeline));
+                }
+            }
         }
 
         // ================= 5. 核心拦截器 (黑魔法) =================
@@ -81,29 +95,33 @@ namespace Axphi.ViewModels
             int currentTick = _timeline.GetCurrentTick();
 
             // 2. 顺藤摸瓜，拿到你底层数据里的 Offset KeyFrames 集合
-            var offsetKeyframes = Data.AnimatableProperties.Offset.KeyFrames;
+            var offsetKeyframesData = Data.AnimatableProperties.Offset.KeyFrames; // 底层的纯净 List
+
+            // 重点：我们从保镖集合里去找有没有当前时间的
+            var existingWrapper = UIOffsetKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
 
             // 3. 找找看当前 Tick 是不是已经有关键帧了
-            var existingFrame = offsetKeyframes.FirstOrDefault(k => k.Time == currentTick);
+            var existingFrame = offsetKeyframesData.FirstOrDefault(k => k.Time == currentTick);
 
             if (existingFrame != null)
             {
                 // 如果有，直接修改它的值
-                existingFrame.Value = new Vector(CurrentOffsetX, CurrentOffsetY);
-                System.Diagnostics.Debug.WriteLine($"修改了 Tick {currentTick} 处的 Offset 关键帧");
+                // 1. 修改底层 
+                // 如果有了，直接修改保镖手里的那个底层 Model！
+                existingWrapper.Model.Value = new System.Windows.Vector(CurrentOffsetX, CurrentOffsetY);
+                
             }
             else
             {
-                // 如果没有，New 一个新的存进去！
+                // 如果没有，New 一个底层的，再立刻给它配个保镖！
                 var newFrame = new OffsetKeyFrame()
                 {
                     Time = currentTick,
-                    Value = new Vector(CurrentOffsetX, CurrentOffsetY)
+                    Value = new System.Windows.Vector(CurrentOffsetX, CurrentOffsetY)
                 };
 
-                // 加进 ObservableCollection！未来绑定 UI 极其方便！
-                offsetKeyframes.Add(newFrame);
-                System.Diagnostics.Debug.WriteLine($"新建了 Tick {currentTick} 处的 Offset 关键帧");
+                offsetKeyframesData.Add(newFrame); // 存入底层
+                UIOffsetKeyframes.Add(new KeyFrameUIWrapper(newFrame, _timeline)); // 生成 UI 显示
             }
 
             // 4. 发广播通知右侧的 ChartRenderer 重新画一下谱面

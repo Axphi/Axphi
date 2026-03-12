@@ -5,10 +5,12 @@ using System.Text;
 namespace Axphi.ViewModels
 {
 
-    public record AudioLoadedMessage(string FilePath);
-    public record JudgementLinesChangedMessage;
-    public record ProjectLoadedMessage();
+    
     internal class Messages
     {
     }
+    public record AudioLoadedMessage(string FilePath);
+    public record JudgementLinesChangedMessage;
+    public record ProjectLoadedMessage();
+    public record ZoomScaleChangedMessage(double NewZoomScale);
 }

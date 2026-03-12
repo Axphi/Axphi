@@ -58,6 +58,8 @@ namespace Axphi.ViewModels
             // 注意：因为 TotalPixelWidth 用了 NotifyPropertyChangedFor
             // 它会自动更新，但我们必须手动调用更新游标
             UpdatePlayheadPosition();
+            // 告诉全网：缩放变了！所有的关键帧请重新计算你们的 X 坐标！
+            WeakReferenceMessenger.Default.Send(new ZoomScaleChangedMessage(value));
         }
 
         // 核心换算公式（完全复刻你 ChartRenderer 里的算法）
@@ -182,6 +184,12 @@ namespace Axphi.ViewModels
             double currentBpm = CurrentChart.BpmKeyFrames?.FirstOrDefault()?.Value ?? 120.0;
             double secondsPerTick = 1.875 / currentBpm;
             return (int)((CurrentPlayTimeSeconds / secondsPerTick) + CurrentChart.Offset);
+        }
+
+        // 在 TimelineViewModel 里加上这个公开的换算方法
+        public double TickToPixel(int tick)
+        {
+            return tick * BasePixelsPerTick * ZoomScale;
         }
     }
 }

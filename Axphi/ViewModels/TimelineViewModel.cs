@@ -1,5 +1,7 @@
 ﻿using Axphi.Data; // 替换成你 Chart 和 JudgementLine 所在的实际命名空间
+using Axphi.Data.KeyFrames;
 using Axphi.Services;
+using Axphi.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -117,6 +119,8 @@ namespace Axphi.ViewModels
             {
                 // 如果刚启动时还没加载工程，给个空的占位，防止界面绑定报错
                 CurrentChart = new Chart();
+
+                
             }
 
 
@@ -193,7 +197,8 @@ namespace Axphi.ViewModels
         public int GetCurrentTick()
         {
             if (CurrentChart == null) return 0;
-            double currentBpm = CurrentChart.BpmKeyFrames?.FirstOrDefault()?.Value ?? 120.0;
+            // ✨ 霸气调用全网通用的幽灵帧获取器！传入集合、时间(这里是0，如果是随时间变化就传真实的Tick)、默认值120.0
+            double currentBpm = KeyFrameUtils.GetStepValueAtTick(CurrentChart.BpmKeyFrames, 0, 120.0);
             double secondsPerTick = 1.875 / currentBpm;
             return (int)((CurrentPlayTimeSeconds / secondsPerTick) + CurrentChart.Offset);
         }

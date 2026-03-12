@@ -66,7 +66,7 @@ namespace Axphi.Utilities
         private static void CalculateEasingY(
             BezierEasing? easing, double t, out double y)
         {
-            y = easing.HasValue ? easing.Value.Calculate(t) : 0;
+            y = easing.HasValue ? easing.Value.Calculate(t) : t;
         }
 
         public static void CalculateObjectSingleTransform<T>(
@@ -77,7 +77,36 @@ namespace Axphi.Utilities
             out T finalValue)
             where T : struct
         {
-            
+
+
+
+            // ================= 幽灵帧逻辑 1：完全没有任何关键帧 =================
+            // 效果：判定线老老实实呆在原点 (InitialValue)，UI 不显示任何菱形。
+            if (keyFrames.Count == 0)
+            {
+                finalValue = initialValue;
+                return;
+            }
+
+            // ================= 幽灵帧逻辑 2：当前时间早于或等于第一个关键帧 =================
+            // 效果：如果你只在 Tick=500 打了关键帧，那么从 Tick=0 到 500 的时间里，
+            // 值永远等于 Tick=500 时的值，绝对不会产生诡异的倒退动画！
+            var firstFrame = keyFrames[0];
+            if (time <= firstFrame.Time)
+            {
+                finalValue = firstFrame.Value;
+                return;
+            }
+
+            // ================= 幽灵帧逻辑 3：当前时间晚于或等于最后一个关键帧 =================
+            // 效果：越界保护。动画播完最后一个关键帧后，直接锁死在最后的状态。
+            var lastFrame = keyFrames[keyFrames.Count - 1];
+            if (time >= lastFrame.Time)
+            {
+                finalValue = lastFrame.Value;
+                return;
+            }
+
 
             SelectTransitionKeyFrames<T>(time, keyFrames, out var firstKeyFrame, out var secondKeyFrame, out var t);
             SelectKeyFrameEasing(easingDirection, firstKeyFrame, secondKeyFrame, out var easing);

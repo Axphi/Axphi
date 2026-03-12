@@ -125,11 +125,7 @@ namespace Axphi.Components
             // 2. 将现实时间转换为底层逻辑运算用的 Tick (int)
             int currentTick = CalculateCurrentTick(realTime, chart);
 
-            // 3. 进度比较和限制现在使用 currentTick 和 chart.Duration (两者都是 int)
-            if (currentTick > chart.Duration)
-            {
-                currentTick = chart.Duration;
-            }
+            
 
             //if (time > chart.Duration)
             //{
@@ -160,13 +156,9 @@ namespace Axphi.Components
         /// </summary>
         private static int CalculateCurrentTick(TimeSpan realTime, Chart chart)
         {
-            // 默认120 BPM，这里取第一个 BPM 值。
             // (注: 若要支持歌曲中途变速，后续需要根据 realTime 计算处于哪个 BPM 区间进行累加)
-            double currentBpm = 120.0;
-            if (chart.BpmKeyFrames != null && chart.BpmKeyFrames.Any())
-            {
-                currentBpm = chart.BpmKeyFrames.First().Value;
-            }
+            // ✨ 核心修改 1：通过 KeyFrameUtils 优雅获取，自带幽灵帧保护
+            double currentBpm = KeyFrameUtils.GetStepValueAtTick(chart.BpmKeyFrames, 0, 120.0);
 
             double secondsPerTick = 1.875 / currentBpm;
             double rawTick = realTime.TotalSeconds / secondsPerTick;
@@ -245,12 +237,9 @@ namespace Axphi.Components
             var finalSpeed = note.CustomSpeed ?? speed;
 
             
-            // 1. 获取当前的 BPM（为了严谨，这里取第一个BPM，如果是变速曲你可能需要写个专门的方法获取当前时间的BPM）
-            double currentBpm = 120.0;
-            if (chart.BpmKeyFrames != null && chart.BpmKeyFrames.Any())
-            {
-                currentBpm = chart.BpmKeyFrames.First().Value;
-            }
+
+            // ✨ 核心修改 2：彻底消灭 First() 和 Any()，让幽灵帧管家来给准确数据！
+            double currentBpm = KeyFrameUtils.GetStepValueAtTick(chart.BpmKeyFrames, currentTick, 120.0);
 
             // 2. 算出一个 Tick 等于多少秒
             double secondsPerTick = 1.875 / currentBpm;

@@ -53,7 +53,7 @@ namespace Axphi.Utilities
 
                                         Time = SecToTick(0),
                                         Value = new Vector(0, 0),
-                                        Easing = BezierEasing.Ease
+                                        Easing = BezierPresets.Ease
                                     },
 
                                     new Data.KeyFrames.OffsetKeyFrame()
@@ -62,7 +62,7 @@ namespace Axphi.Utilities
                                         Time = SecToTick(5),
                                         Value = new Vector(0, 1.5),
 
-                                        Easing = BezierEasing.Ease
+                                        Easing = BezierPresets.Ease
                                         
                                     },
 
@@ -70,19 +70,19 @@ namespace Axphi.Utilities
                                     {
                                         Time = SecToTick(8),
                                         Value = new Vector(0, -1.5),
-                                        Easing = BezierEasing.Ease
+                                        Easing = BezierPresets.Ease
                                     },
                                     new Data.KeyFrames.OffsetKeyFrame()
                                     {
                                         Time = SecToTick(10),
                                         Value = new Vector(0, -1.5),
-                                        Easing = BezierEasing.Ease
+                                        Easing = BezierPresets.Ease
                                     },
                                     new Data.KeyFrames.OffsetKeyFrame()
                                     {
                                         Time = SecToTick(12),
                                         Value = new Vector(-1.5, -1.5),
-                                        Easing = BezierEasing.Ease
+                                        Easing = BezierPresets.Ease
                                     },
                                 }
                             },
@@ -94,13 +94,13 @@ namespace Axphi.Utilities
                                     {
                                         Time = SecToTick(0),
                                         Value = 0,
-                                        Easing = BezierEasing.Ease
+                                        Easing = BezierPresets.Ease
                                     },
                                     new Data.KeyFrames.RotationKeyFrame()
                                     {
                                         Time = SecToTick(8),
                                         Value = 0,
-                                        Easing = BezierEasing.Ease
+                                        Easing = BezierPresets.Ease
                                     },
                                     new Data.KeyFrames.RotationKeyFrame()
                                     {

@@ -66,7 +66,7 @@ namespace Axphi.Utilities
         private static void CalculateEasingY(
             BezierEasing? easing, double t, out double y)
         {
-            y = easing.HasValue ? easing.Value.Calculate(t) : t;
+            y = easing.HasValue ? BezierCalculator.Calculate(easing.Value, t) : t;
         }
 
         public static void CalculateObjectSingleTransform<T>(

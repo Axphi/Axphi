@@ -212,8 +212,12 @@ namespace Axphi.WindowsComponents.MainWindow
                 // 1. 拿到当前精确的小数 Tick
                 double exactTick = vm.Timeline.GetExactTick();
 
+
+                // 直接调用大管家统一的整数 Tick 获取方法！
                 // 2. 四舍五入，吸附到最近的整数 Tick
-                int snappedTick = (int)Math.Round(exactTick);
+                int snappedTick = vm.Timeline.GetCurrentTick();
+                
+                
 
                 // 3. 减去 Offset，准备反推时间
                 double relativeTick = snappedTick - chart.Offset;

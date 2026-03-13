@@ -200,9 +200,12 @@ namespace Axphi.ViewModels
         {
             if (CurrentChart == null) return 0;
 
-            // ✨ 核心修复：直接用积分器算 Tick，绝对不会突变！
+            // 核心修复：直接用积分器算 Tick，绝对不会突变！
             double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, 120.0);
-            return (int)exactTick + CurrentChart.Offset;
+            // 2. 加上谱面 Offset
+            double absoluteTick = exactTick + CurrentChart.Offset;
+            return (int)Math.Round(absoluteTick, MidpointRounding.AwayFromZero);
+            
         }
 
         // 在 TimelineViewModel 里加上这个公开的换算方法

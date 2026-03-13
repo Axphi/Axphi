@@ -26,5 +26,7 @@
             <Setter Property="HoverBackground" Value="#3d3d3d"/>
             <Setter Property="PressedBackground" Value="#4f4f4f"/>
         </Style>
+
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Application.Resources>
 </Application>

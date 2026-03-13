@@ -17,4 +17,7 @@ namespace Axphi.ViewModels
 
     // 告诉接收者：强制把物理时间重置为这个秒数！
     public record class ForceSeekMessage(double TargetSeconds);
+
+    // 新增：通知所有轨道同步水平滚动的消息
+    public record class SyncHorizontalScrollMessage(double Offset);
 }

@@ -12,7 +12,7 @@ namespace Axphi.ViewModels
     public partial class BpmTrackViewModel : ObservableObject
     {
         private readonly Chart _chart;
-        private readonly TimelineViewModel _timeline;
+        public TimelineViewModel _timeline;
 
         // 又是我们熟悉的免死金牌！
         private bool _isSyncing = false;

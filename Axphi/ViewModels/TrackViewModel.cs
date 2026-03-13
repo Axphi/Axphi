@@ -16,7 +16,7 @@ namespace Axphi.ViewModels
     {
 
         // 保存引用
-        private readonly TimelineViewModel _timeline;
+        public TimelineViewModel _timeline;
 
         // 【新增】免死金牌标志位
         private bool _isSyncing = false;

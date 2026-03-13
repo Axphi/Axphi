@@ -1,0 +1,90 @@
+﻿<UserControl x:Class="Axphi.Views.BpmTrackControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:comp="clr-namespace:Axphi.Components"
+             xmlns:vm="clr-namespace:Axphi.ViewModels"
+             mc:Ignorable="d"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             d:DataContext="{d:DesignInstance Type=vm:BpmTrackViewModel}">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="2.8*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1">
+            <Grid Height="24" Background="Transparent">
+                <Rectangle HorizontalAlignment="Left" Width="4" Fill="#FF4444" />
+                <TextBlock Margin="14,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="#FF8888" Text="Global BPM" />
+
+                <Button Command="{Binding AddBpmKeyframeCommand}"
+                        Margin="95,0,0,0" HorizontalAlignment="Left"
+                        Width="14" Height="14"
+                        Background="Transparent" BorderThickness="0"
+                        Cursor="Hand" ToolTip="添加/更新 BPM 关键帧">
+                    <Path Data="M 7,0 L 14,7 L 7,14 L 0,7 Z" Fill="#FF4444" Stretch="Fill" />
+                </Button>
+
+                <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                    <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.000" Minimum="0.001" Value="{Binding CurrentBpm, Mode=TwoWay}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <ScrollViewer x:Name="BpmTrackScrollViewer" Grid.Column="1" HorizontalScrollBarVisibility="Hidden"
+                      VerticalScrollBarVisibility="Disabled"
+                      PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
+            <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
+                <Border Width="{Binding Timeline.TotalPixelWidth}" Height="24" HorizontalAlignment="Left" Background="#2b1d1d">
+                    <ItemsControl ItemsSource="{Binding UIBpmKeyframes}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Thumb Cursor="Hand" ToolTip="BPM 突变帧">
+                                    <Thumb.InputBindings>
+                                        <MouseBinding Gesture="LeftClick" Command="{Binding ToggleSelectionCommand}" />
+                                    </Thumb.InputBindings>
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Rectangle x:Name="KeyframeRect" Width="10" Height="10" Fill="#FF4444" Stroke="#555" StrokeThickness="1">
+                                                <Rectangle.RenderTransform>
+                                                    <TransformGroup>
+                                                        <RotateTransform Angle="45" CenterX="5" CenterY="5" />
+                                                        <TranslateTransform X="-5" Y="7" />
+                                                    </TransformGroup>
+                                                </Rectangle.RenderTransform>
+                                            </Rectangle>
+                                            <ControlTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter TargetName="KeyframeRect" Property="Fill" Value="#FF9999" />
+                                                    <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
+                                                    <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
+                                                </DataTrigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                    </ItemsControl>
+                </Border>
+            </Border>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

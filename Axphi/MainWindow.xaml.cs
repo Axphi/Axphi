@@ -97,32 +97,6 @@ public partial class MainWindow : Window
         }
     }
 
-    // ================= 轨道滚动同步逻辑 =================
-
-    // 用来收集所有右侧轨道的“隐形小滚轮”
-    private readonly HashSet<ScrollViewer> _horizontaltrackScrollViewers = new();
-    
-
-
-    // 每一行轨道生成时（Loaded），把自己上报给集合；Unloaded 时移除
-    private void HorizontalTrackScrollViewer_Loaded(object sender, RoutedEventArgs e)
-    {
-        if (sender is ScrollViewer sv)
-        {
-            // HashSet 会自动去重
-            _horizontaltrackScrollViewers.Add(sv);
-        }
-    }
-
-    private void HorizontalTrackScrollViewer_Unloaded(object sender, RoutedEventArgs e)
-    {
-        if (sender is ScrollViewer sv)
-        {
-            _horizontaltrackScrollViewers.Remove(sv);
-        }
-    }
-
-
     
 
     // 当底部总滚动条被拖拽时，强制所有轨道一起滚！
@@ -131,11 +105,8 @@ public partial class MainWindow : Window
         // 拿到当前滚动条的进度值
         double offset = e.NewValue;
 
-        // 让所有收集到的黑轨道同步滚动
-        foreach (var sv in _horizontaltrackScrollViewers)
-        {
-            sv.ScrollToHorizontalOffset(offset);
-        }
+        // 🌟 核心修改：大喇叭广播！所有活着的 TrackControl 收到消息后会自动滚动！
+        WeakReferenceMessenger.Default.Send(new SyncHorizontalScrollMessage(offset));
 
         // ==========================================
         // 【修改位置：新增这一段】
@@ -283,31 +254,5 @@ public partial class MainWindow : Window
         }
     }
 
-    private void InnerTrack_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-    {
-        // 保护机制：如果你按住了 Alt (触发你的全局缩放)，或者 Shift，说明你有其他意图，我们不干预
-        if (Keyboard.Modifiers == ModifierKeys.Alt || Keyboard.Modifiers == ModifierKeys.Shift)
-        {
-            return;
-        }
-
-        // 1. 强行截断！不准内部 ScrollViewer 吞噬这个纯上下滚动事件
-        e.Handled = true;
-
-        // 2. 伪造/克隆一个一模一样的新滚轮事件
-        var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
-        {
-            RoutedEvent = UIElement.MouseWheelEvent,
-            Source = sender
-        };
-
-        // 3. 获取当前控件的父级，并把新事件强行“甩”给父级，让它继续向上冒泡，
-        // 直到被最外层的那个垂直 ScrollViewer 捕获到！
-        if (sender is UIElement element)
-        {
-            var parent = VisualTreeHelper.GetParent(element) as UIElement;
-            parent?.RaiseEvent(eventArg);
-        }
-    }
 
 }

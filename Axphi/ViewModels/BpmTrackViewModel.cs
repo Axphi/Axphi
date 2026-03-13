@@ -62,16 +62,20 @@ namespace Axphi.ViewModels
 
             // 人类动手了，立刻刹车！
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+
+            // 🌟 动手前，死死记住当前的精确网格位置
+            double currentExactTick = _timeline.GetExactTick();
+
             // 【修改 3】智能拦截：判断是否完全没有 BPM 关键帧
             if (_chart.BpmKeyFrames.Count == 0)
             {
                 // 1. 没有关键帧，单纯修改全局的初始 BPM
                 _chart.InitialBpm = value;
 
-                
 
-                // 3. 通知右侧渲染器重绘（因为 BPM 变了，音符的下落位置也会瞬间改变）
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                // 🌟 动手后，去修正时间！
+                SyncPlayheadToTick(currentExactTick);
+                
             }
             else
             {
@@ -109,5 +113,26 @@ namespace Axphi.ViewModels
             // 通知渲染器重绘 (因为 BPM 变了，所有判定线的位置都会跟着变！)
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
+
+        private void SyncPlayheadToTick(double targetExactTick)
+        {
+            double relativeTick = targetExactTick - _chart.Offset;
+            if (relativeTick < 0) relativeTick = 0;
+
+            // 反推算出新的物理秒数
+            double newSeconds = TimeTickConverter.TickToTime(relativeTick, _chart.BpmKeyFrames, _chart.InitialBpm);
+
+            // 1. 给大管家（游标）
+            _timeline.CurrentPlayTimeSeconds = newSeconds;
+
+            // 🌟 2. 寄信给渲染器和音频播放器：强行空降到新的秒数！
+            WeakReferenceMessenger.Default.Send(new ForceSeekMessage(newSeconds));
+
+            // 3. 通知画面重绘
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
     }
+
+
 }

@@ -14,4 +14,7 @@ namespace Axphi.ViewModels
     public record ProjectLoadedMessage();
     public record ZoomScaleChangedMessage(double NewZoomScale);
     public record ForcePausePlaybackMessage;
+
+    // 告诉接收者：强制把物理时间重置为这个秒数！
+    public record class ForceSeekMessage(double TargetSeconds);
 }

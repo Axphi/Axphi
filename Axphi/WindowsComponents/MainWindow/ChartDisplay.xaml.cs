@@ -51,7 +51,16 @@ namespace Axphi.WindowsComponents.MainWindow
                 // 所以就算一秒钟收到 100 封信，也绝对安全，不会来回切换！
                 recipient.ForcePause();
             });
-            // =========================================================
+            
+
+            // ================= 【新增：监听强制空降指令】 =================
+            WeakReferenceMessenger.Default.Register<ChartDisplay, ForceSeekMessage>(this, (recipient, message) =>
+            {
+                // 直接白嫖你已经写好的极其完善的 SeekTo 方法！
+                // 它不仅会把渲染器的 Time 改对，还会重置秒表、把音频也切过去，完美闭环！
+                recipient.SeekTo(TimeSpan.FromSeconds(message.TargetSeconds));
+            });
+            
         }
 
         // --- 供外部调用的 API ---
@@ -231,5 +240,7 @@ namespace Axphi.WindowsComponents.MainWindow
                 vm.Timeline.CurrentPlayTimeSeconds = seconds;
             }
         }
+
+
     }
 }

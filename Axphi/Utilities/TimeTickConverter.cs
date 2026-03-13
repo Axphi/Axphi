@@ -15,7 +15,8 @@ namespace Axphi.Utilities
 
             double accumulatedSeconds = 0;
             double accumulatedTicks = 0;
-            double currentBpm = bpmKeyFrames[0].Time <= 0 ? bpmKeyFrames[0].Value : defaultBpm;
+            // 核心修改：只要有关键帧，起步速度就是第一个关键帧的值！彻底抛弃 defaultBpm
+            double currentBpm = bpmKeyFrames[0].Value;
 
             for (int i = 0; i < bpmKeyFrames.Count; i++)
             {
@@ -53,7 +54,8 @@ namespace Axphi.Utilities
 
             double accumulatedSeconds = 0;
             double accumulatedTicks = 0;
-            double currentBpm = bpmKeyFrames[0].Time <= 0 ? bpmKeyFrames[0].Value : defaultBpm;
+            // 核心修改：起步速度锁定为第一个关键帧的值
+            double currentBpm = bpmKeyFrames[0].Value;
 
             for (int i = 0; i < bpmKeyFrames.Count; i++)
             {

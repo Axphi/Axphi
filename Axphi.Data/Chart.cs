@@ -62,6 +62,11 @@ namespace Axphi.Data
         public string Illustrator { get; set; } = string.Empty;
 
         /// <summary>
+        /// 全局初始 BPM（当没有任何 BPM 关键帧时使用）
+        /// </summary>
+        public double InitialBpm { get; set; } = 120.0;
+
+        /// <summary>
         /// BPM 关键帧
         /// </summary>
         public List<KeyFrame<double>> BpmKeyFrames { get; set; } = new();

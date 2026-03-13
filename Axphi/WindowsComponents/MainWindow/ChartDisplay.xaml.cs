@@ -224,7 +224,7 @@ namespace Axphi.WindowsComponents.MainWindow
                 if (relativeTick < 0) relativeTick = 0;
 
                 // 4. 召唤积分器，算出这个完美整数 Tick 对应的绝对秒数！
-                double seconds = TimeTickConverter.TickToTime(relativeTick, chart.BpmKeyFrames, 120.0);
+                double seconds = TimeTickConverter.TickToTime(relativeTick, chart.BpmKeyFrames, chart.InitialBpm);
 
                 // 5. 空降过去！
                 SeekTo(TimeSpan.FromSeconds(seconds));

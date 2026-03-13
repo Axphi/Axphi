@@ -157,7 +157,7 @@ namespace Axphi.Components
         private static int CalculateCurrentTick(TimeSpan realTime, Chart chart)
         {
             // ✨ 核心修复 1
-            double exactTick = TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, 120.0); 
+            double exactTick = TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, chart.InitialBpm); 
             double absoluteTick = exactTick + chart.Offset;
 
             // 保持全宇宙统一的四舍五入！
@@ -240,8 +240,8 @@ namespace Axphi.Components
             // ================= ✨ 核心修复 2：音符的真实物理下落距离 =================
             // 我们必须知道【现在】是第几秒，【音符该被打中】是第几秒
             // 两者的真实时间差，乘以固定速度，才是它在屏幕上绝对正确的距离！
-            double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, 120.0);
-            double hitTimeSeconds = TimeTickConverter.TickToTime(note.HitTime, chart.BpmKeyFrames, 120.0);
+            double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, chart.InitialBpm);
+            double hitTimeSeconds = TimeTickConverter.TickToTime(note.HitTime, chart.BpmKeyFrames, chart.InitialBpm);
 
             double secondsFromNow = hitTimeSeconds - currentSeconds;
 

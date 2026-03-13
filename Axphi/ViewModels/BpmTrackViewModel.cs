@@ -22,12 +22,15 @@ namespace Axphi.ViewModels
 
         // 绑定到左侧 DraggableValueBox 的当前 BPM 值
         [ObservableProperty]
-        private double _currentBpm = 120.0;
+        private double _currentBpm;
 
         public BpmTrackViewModel(Chart chart, TimelineViewModel timeline)
         {
             _chart = chart;
             _timeline = timeline;
+
+            // 【修改 1 继续】软件启动时，读取全局的 InitialBpm
+            CurrentBpm = _chart.InitialBpm;
 
             // 软件启动时，把底层已有的 BPM 关键帧转换成 UI 菱形
             if (_chart.BpmKeyFrames != null)
@@ -46,7 +49,8 @@ namespace Axphi.ViewModels
 
             // 直接白嫖咱们上一回合写的神级工具类！自带幽灵帧保护！
             // 注意: 此函数的关键帧插值为 constant
-            CurrentBpm = KeyFrameUtils.GetStepValueAtTick(_chart.BpmKeyFrames, currentTick, 120.0);
+            // 【修改 2】把硬编码的 120.0 替换为 _chart.InitialBpm，让物理引擎和 UI 彻底统一
+            CurrentBpm = KeyFrameUtils.GetStepValueAtTick(_chart.BpmKeyFrames, currentTick, _chart.InitialBpm);
 
             _isSyncing = false;
         }
@@ -58,7 +62,22 @@ namespace Axphi.ViewModels
 
             // 人类动手了，立刻刹车！
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            AddBpmKeyframe();
+            // 【修改 3】智能拦截：判断是否完全没有 BPM 关键帧
+            if (_chart.BpmKeyFrames.Count == 0)
+            {
+                // 1. 没有关键帧，单纯修改全局的初始 BPM
+                _chart.InitialBpm = value;
+
+                
+
+                // 3. 通知右侧渲染器重绘（因为 BPM 变了，音符的下落位置也会瞬间改变）
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else
+            {
+                // 已经有关键帧了，走添加/覆盖逻辑
+                AddBpmKeyframe();
+            }
         }
 
         // ================= 3. 生成/修改关键帧的绝对核心 =================

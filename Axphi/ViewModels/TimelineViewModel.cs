@@ -201,7 +201,7 @@ namespace Axphi.ViewModels
             if (CurrentChart == null) return 0;
 
             // 核心修复：直接用积分器算 Tick，绝对不会突变！
-            double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, 120.0);
+            double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
             // 2. 加上谱面 Offset
             double absoluteTick = exactTick + CurrentChart.Offset;
             return (int)Math.Round(absoluteTick, MidpointRounding.AwayFromZero);
@@ -218,7 +218,7 @@ namespace Axphi.ViewModels
         {
             if (CurrentChart == null) return 0;
             // 不做强制 int 转换，原汁原味返回精确小数
-            double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, 120.0);
+            double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
             return exactTick + CurrentChart.Offset;
         }
     }

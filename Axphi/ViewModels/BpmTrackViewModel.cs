@@ -45,6 +45,10 @@ namespace Axphi.ViewModels
                     UIBpmKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
                 }
             }
+            WeakReferenceMessenger.Default.Register<BpmTrackViewModel, KeyframesNeedSortMessage>(this, (r, m) =>
+            {
+                r._chart.BpmKeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
+            });
         }
 
         // ================= 1. 播放时的被动同步 (UI 跟着数据跑) =================

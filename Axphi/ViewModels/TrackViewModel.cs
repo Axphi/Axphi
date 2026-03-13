@@ -89,6 +89,15 @@ namespace Axphi.ViewModels
             if (Data.AnimatableProperties.Opacity.KeyFrames != null)
                 foreach (var kf in Data.AnimatableProperties.Opacity.KeyFrames)
                     UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
+
+            WeakReferenceMessenger.Default.Register<TrackViewModel, KeyframesNeedSortMessage>(this, (r, m) =>
+            {
+                // 只要松手，就把四个轨道的底层 List 强制按时间重排一遍！
+                r.Data.AnimatableProperties.Offset.KeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
+                r.Data.AnimatableProperties.Scale.KeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
+                r.Data.AnimatableProperties.Rotation.KeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
+                r.Data.AnimatableProperties.Opacity.KeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
+            });
         }
 
         // ================= 5. 核心拦截器 (黑魔法) =================

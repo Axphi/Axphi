@@ -214,6 +214,11 @@ namespace Axphi.ViewModels
         {
             return tick * BasePixelsPerTick * ZoomScale;
         }
+        // 像素 反推回 Tick
+        public double PixelToTick(double pixelX)
+        {
+            return pixelX / (BasePixelsPerTick * ZoomScale);
+        }
         // 1. 新增一个获取精确小数 Tick 的方法
         public double GetExactTick()
         {

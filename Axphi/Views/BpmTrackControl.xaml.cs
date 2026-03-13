@@ -67,5 +67,33 @@ namespace Axphi.Views
                 }
             }
         }
+
+        private void KeyframeThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            // 只要 DataContext 不是空的，我们就大胆把它变成 dynamic
+            if (sender is FrameworkElement fe && fe.DataContext != null)
+            {
+                dynamic wrapper = fe.DataContext;
+                wrapper.OnDragStarted();
+            }
+        }
+
+        private void KeyframeThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext != null)
+            {
+                dynamic wrapper = fe.DataContext;
+                wrapper.OnDragDelta(e.HorizontalChange);
+            }
+        }
+
+        private void KeyframeThumb_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext != null)
+            {
+                dynamic wrapper = fe.DataContext;
+                wrapper.OnDragCompleted();
+            }
+        }
     }
 }

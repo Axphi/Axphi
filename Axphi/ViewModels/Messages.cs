@@ -20,4 +20,7 @@ namespace Axphi.ViewModels
 
     // 新增：通知所有轨道同步水平滚动的消息
     public record class SyncHorizontalScrollMessage(double Offset);
+
+    // 告诉所有轨道：有人挪动了关键帧，请重新把底层 List 按时间排序！
+    public record class KeyframesNeedSortMessage();
 }

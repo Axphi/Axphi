@@ -12,7 +12,12 @@ namespace Axphi.ViewModels
     public partial class BpmTrackViewModel : ObservableObject
     {
         private readonly Chart _chart;
+
+        // 1. 保留原来的字段，这样你下面的代码（比如 _timeline.GetCurrentTick()）都不用改！
         public TimelineViewModel _timeline;
+
+        // 🌟 2. 新增一个公开属性，专门给 XAML 界面绑定用！
+        public TimelineViewModel Timeline => _timeline;
 
         // 又是我们熟悉的免死金牌！
         private bool _isSyncing = false;

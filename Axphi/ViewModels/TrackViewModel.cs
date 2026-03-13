@@ -15,8 +15,11 @@ namespace Axphi.ViewModels
     public partial class TrackViewModel : ObservableObject
     {
 
-        // 保存引用
+        // 1. 保留原来的字段，这样你下面的代码（比如 _timeline.GetCurrentTick()）都不用改！
         public TimelineViewModel _timeline;
+
+        // 🌟 2. 新增一个公开属性，专门给 XAML 界面绑定用！
+        public TimelineViewModel Timeline => _timeline;
 
         // 【新增】免死金牌标志位
         private bool _isSyncing = false;

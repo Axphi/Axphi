@@ -112,11 +112,11 @@
                       PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
                 <StackPanel>
-                    <Grid Width="{Binding Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" Background="#374561">
+                    <Grid Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" Background="#374561">
                         <!--  这里是图层  -->
                     </Grid>
                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
-                        <Border Width="{Binding Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                        <Border Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
                             <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -163,7 +163,7 @@
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>
                         </Border>
-                        <Border Width="{Binding Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                        <Border Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
                             <ItemsControl ItemsSource="{Binding UIScaleKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -210,7 +210,7 @@
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>
                         </Border>
-                        <Border Width="{Binding Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                        <Border Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
                             <ItemsControl ItemsSource="{Binding UIRotationKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -257,7 +257,7 @@
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>
                         </Border>
-                        <Border Width="{Binding Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
+                        <Border Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
                             <ItemsControl ItemsSource="{Binding UIOpacityKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -267,33 +267,14 @@
 
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Thumb Cursor="Hand" ToolTip="Position 关键帧">
-                                            <Thumb.InputBindings>
-                                                <MouseBinding Gesture="LeftClick" Command="{Binding ToggleSelectionCommand}" />
-                                            </Thumb.InputBindings>
-                                            <Thumb.Template>
-                                                <ControlTemplate TargetType="Thumb">
-                                                    <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
-                                                        <Rectangle.RenderTransform>
-                                                            <TransformGroup>
-                                                                <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                <TranslateTransform X="-4" Y="6" />
-                                                            </TransformGroup>
-                                                        </Rectangle.RenderTransform>
-                                                    </Rectangle>
-                                                    <ControlTemplate.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                            <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
-                                                            <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
-                                                            <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
-                                                        </DataTrigger>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Thumb.Template>
-                                        </Thumb>
+                                        <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
+                                            <Rectangle.RenderTransform>
+                                                <TransformGroup>
+                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                    <TranslateTransform X="-4" Y="6" />
+                                                </TransformGroup>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
 

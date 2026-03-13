@@ -47,10 +47,8 @@
 
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Thumb Cursor="Hand" ToolTip="BPM 突变帧">
-                                    <Thumb.InputBindings>
-                                        <MouseBinding Gesture="LeftClick" Command="{Binding ToggleSelectionCommand}" />
-                                    </Thumb.InputBindings>
+                                <Thumb Cursor="Hand" ToolTip="BPM 突变帧" PreviewMouseLeftButtonDown="KeyframeThumb_PreviewMouseLeftButtonDown">
+                                    
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
                                             <Rectangle x:Name="KeyframeRect" Width="10" Height="10" Fill="#FF4444" Stroke="#555" StrokeThickness="1">

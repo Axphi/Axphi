@@ -126,10 +126,8 @@
 
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Thumb Cursor="Hand" ToolTip="Position 关键帧">
-                                            <Thumb.InputBindings>
-                                                <MouseBinding Gesture="LeftClick" Command="{Binding ToggleSelectionCommand}" />
-                                            </Thumb.InputBindings>
+                                        <Thumb Cursor="Hand" ToolTip="Position 关键帧" PreviewMouseLeftButtonDown="KeyframeThumb_PreviewMouseLeftButtonDown">
+
                                             <Thumb.Template>
                                                 <ControlTemplate TargetType="Thumb">
                                                     <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
@@ -173,10 +171,8 @@
 
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Thumb Cursor="Hand" ToolTip="Position 关键帧">
-                                            <Thumb.InputBindings>
-                                                <MouseBinding Gesture="LeftClick" Command="{Binding ToggleSelectionCommand}" />
-                                            </Thumb.InputBindings>
+                                        <Thumb Cursor="Hand" ToolTip="Position 关键帧" PreviewMouseLeftButtonDown="KeyframeThumb_PreviewMouseLeftButtonDown">
+
                                             <Thumb.Template>
                                                 <ControlTemplate TargetType="Thumb">
                                                     <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
@@ -220,10 +216,8 @@
 
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Thumb Cursor="Hand" ToolTip="Position 关键帧">
-                                            <Thumb.InputBindings>
-                                                <MouseBinding Gesture="LeftClick" Command="{Binding ToggleSelectionCommand}" />
-                                            </Thumb.InputBindings>
+                                        <Thumb Cursor="Hand" ToolTip="Position 关键帧" PreviewMouseLeftButtonDown="KeyframeThumb_PreviewMouseLeftButtonDown">
+
                                             <Thumb.Template>
                                                 <ControlTemplate TargetType="Thumb">
                                                     <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
@@ -267,14 +261,31 @@
 
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Rectangle Width="8" Height="8" Fill="#FFD700" ToolTip="Position 关键帧">
-                                            <Rectangle.RenderTransform>
-                                                <TransformGroup>
-                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                    <TranslateTransform X="-4" Y="6" />
-                                                </TransformGroup>
-                                            </Rectangle.RenderTransform>
-                                        </Rectangle>
+                                        <Thumb Cursor="Hand" ToolTip="Position 关键帧" PreviewMouseLeftButtonDown="KeyframeThumb_PreviewMouseLeftButtonDown">
+
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="Thumb">
+                                                    <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
+                                                        <Rectangle.RenderTransform>
+                                                            <TransformGroup>
+                                                                <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                <TranslateTransform X="-4" Y="6" />
+                                                            </TransformGroup>
+                                                        </Rectangle.RenderTransform>
+                                                    </Rectangle>
+                                                    <ControlTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
+                                                            <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
+                                                            <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
+                                                        </DataTrigger>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
 

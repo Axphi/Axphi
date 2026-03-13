@@ -157,8 +157,11 @@ namespace Axphi.Components
         private static int CalculateCurrentTick(TimeSpan realTime, Chart chart)
         {
             // ✨ 核心修复 1
-            double exactTick = TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, 120.0);
-            return (int)exactTick + chart.Offset;
+            double exactTick = TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, 120.0); 
+            double absoluteTick = exactTick + chart.Offset;
+
+            // 保持全宇宙统一的四舍五入！
+            return (int)Math.Round(absoluteTick, MidpointRounding.AwayFromZero);
         }
 
         private static void RenderProgress(DrawingContext drawingContext, RenderInfo renderInfo, double progress)

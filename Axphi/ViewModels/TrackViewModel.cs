@@ -99,14 +99,31 @@ namespace Axphi.ViewModels
             // 核心：不管三七二十一，只要人类动手了，立刻大喊一声“刹车！”
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
             // 如果是人手在拖拽：直接调用我们写好的“添加/修改关键帧”逻辑！
-            AddPositionKeyframe();
+            // 智能判断：如果完全没有关键帧，只修改基础值
+            if (Data.AnimatableProperties.Offset.KeyFrames.Count == 0)
+            {
+                Data.AnimatableProperties.Offset.InitialValue = new Vector(CurrentOffsetX, CurrentOffsetY);
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else
+            {
+                AddPositionKeyframe();
+            }
         }
 
         partial void OnCurrentOffsetYChanged(double value)
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            AddPositionKeyframe();
+            if (Data.AnimatableProperties.Offset.KeyFrames.Count == 0)
+            {
+                Data.AnimatableProperties.Offset.InitialValue = new Vector(CurrentOffsetX, CurrentOffsetY);
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else
+            {
+                AddPositionKeyframe();
+            }
         }
 
         // ----- Scale -----
@@ -114,14 +131,30 @@ namespace Axphi.ViewModels
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            AddScaleKeyframe();
+            if (Data.AnimatableProperties.Scale.KeyFrames.Count == 0)
+            {
+                Data.AnimatableProperties.Scale.InitialValue = new Vector(CurrentScaleX, CurrentScaleY);
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else
+            {
+                AddScaleKeyframe();
+            }
         }
 
         partial void OnCurrentScaleYChanged(double value)
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            AddScaleKeyframe();
+            if (Data.AnimatableProperties.Scale.KeyFrames.Count == 0)
+            {
+                Data.AnimatableProperties.Scale.InitialValue = new Vector(CurrentScaleX, CurrentScaleY);
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else
+            {
+                AddScaleKeyframe();
+            }
         }
 
         // ----- Rotation -----
@@ -129,7 +162,15 @@ namespace Axphi.ViewModels
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            AddRotationKeyframe();
+            if (Data.AnimatableProperties.Rotation.KeyFrames.Count == 0)
+            {
+                Data.AnimatableProperties.Rotation.InitialValue = CurrentRotation;
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else
+            {
+                AddRotationKeyframe();
+            }
         }
 
         // ----- Opacity -----
@@ -137,7 +178,15 @@ namespace Axphi.ViewModels
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            AddOpacityKeyframe();
+            if (Data.AnimatableProperties.Opacity.KeyFrames.Count == 0)
+            {
+                Data.AnimatableProperties.Opacity.InitialValue = CurrentOpacity;
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else
+            {
+                AddOpacityKeyframe();
+            }
         }
 
 

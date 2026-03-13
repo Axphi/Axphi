@@ -235,7 +235,7 @@ public partial class MainWindow : Window
             if (relativeTick < 0) relativeTick = 0;
 
             // 🌟 召唤你写好的绝对映射神器！它会自动处理跨越 BPM 关键帧时的折线计算！
-            double seconds = TimeTickConverter.TickToTime(relativeTick, chart.BpmKeyFrames, 120.0);
+            double seconds = TimeTickConverter.TickToTime(relativeTick, chart.BpmKeyFrames, chart.InitialBpm);
 
             // 4. 更新大管家的时间，红线会立刻跟着鼠标走！
             vm.Timeline.CurrentPlayTimeSeconds = seconds;

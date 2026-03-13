@@ -157,7 +157,7 @@
                                         </Button>
 
                                         <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.000" Value="{Binding CurrentBpm, Mode=TwoWay}" />
+                                            <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.000" Minimum="0.001" Value="{Binding CurrentBpm, Mode=TwoWay}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>

@@ -1,4 +1,5 @@
-﻿using Axphi.ViewModels;
+﻿using Axphi.Utilities;
+using Axphi.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using NAudio.Utils;
@@ -99,6 +100,9 @@ namespace Axphi.WindowsComponents.MainWindow
             {
                 _wasapiOut?.Pause();
                 _renderStopwatch.Stop();
+
+                // 只要进入暂停状态，立刻触发吸附！
+                SnapToNearestTick();
             }
         }
 
@@ -196,6 +200,32 @@ namespace Axphi.WindowsComponents.MainWindow
         public void ForceResume()
         {
             if (!IsPlaying) PlayPauseChartRendering();
+        }
+
+        // === 在 ChartDisplay 类中新增这个自动吸附方法 ===
+        public void SnapToNearestTick()
+        {
+            if (this.DataContext is MainViewModel vm && vm.ProjectManager.EditingProject?.Chart != null)
+            {
+                var chart = vm.ProjectManager.EditingProject.Chart;
+
+                // 1. 拿到当前精确的小数 Tick
+                double exactTick = vm.Timeline.GetExactTick();
+
+                // 2. 四舍五入，吸附到最近的整数 Tick
+                int snappedTick = (int)Math.Round(exactTick);
+
+                // 3. 减去 Offset，准备反推时间
+                double relativeTick = snappedTick - chart.Offset;
+                if (relativeTick < 0) relativeTick = 0;
+
+                // 4. 召唤积分器，算出这个完美整数 Tick 对应的绝对秒数！
+                double seconds = TimeTickConverter.TickToTime(relativeTick, chart.BpmKeyFrames, 120.0);
+
+                // 5. 空降过去！
+                SeekTo(TimeSpan.FromSeconds(seconds));
+                vm.Timeline.CurrentPlayTimeSeconds = seconds;
+            }
         }
     }
 }

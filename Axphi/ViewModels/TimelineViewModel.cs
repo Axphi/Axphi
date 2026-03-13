@@ -87,7 +87,7 @@ namespace Axphi.ViewModels
             if (CurrentChart == null) return;
 
             // 1. 拿到积分器算出来的、绝对准确的当前 Tick！(取代了旧的乘除法)
-            int currentTick = GetCurrentTick();
+            double currentTick = GetExactTick();
 
             // 2. 把 Tick 转换成屏幕上的像素 X 坐标！
             PlayheadPositionX = TickToPixel(currentTick);
@@ -206,9 +206,17 @@ namespace Axphi.ViewModels
         }
 
         // 在 TimelineViewModel 里加上这个公开的换算方法
-        public double TickToPixel(int tick)
+        public double TickToPixel(double tick)
         {
             return tick * BasePixelsPerTick * ZoomScale;
+        }
+        // 1. 新增一个获取精确小数 Tick 的方法
+        public double GetExactTick()
+        {
+            if (CurrentChart == null) return 0;
+            // 不做强制 int 转换，原汁原味返回精确小数
+            double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, 120.0);
+            return exactTick + CurrentChart.Offset;
         }
     }
 }

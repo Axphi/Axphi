@@ -260,6 +260,11 @@ public partial class MainWindow : Window
         {
             MainChartDisplay.ForceResume();
         }
+        else
+        {
+            // 🌟 核心修复：如果在暂停状态下拖拽游标，松手的一瞬间也要吸附！
+            MainChartDisplay.SnapToNearestTick();
+        }
     }
 
 

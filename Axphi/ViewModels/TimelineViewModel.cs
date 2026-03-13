@@ -191,6 +191,10 @@ namespace Axphi.ViewModels
             // 4. (可选) 让时间轴游标归零
             CurrentPlayTimeSeconds = 0;
 
+            // 🌟 【新增核心修复】：同时发信给右侧渲染器和音频播放器，强制它们也空降回 0 秒！
+            // 这样前后端的记忆就彻底统一了！
+            WeakReferenceMessenger.Default.Send(new ForceSeekMessage(0));
+
             // 5. 顺便大喊一声，让右侧的渲染器也强制刷新一下画面！
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }

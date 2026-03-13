@@ -25,7 +25,6 @@ namespace Axphi.Data.AnimatableProperties
         where T : struct
         where TKeyFrame : KeyFrame<T>
     {
-        // 待重构
         public T InitialValue { get; set; }
 
         public List<TKeyFrame> KeyFrames { get; } = new();

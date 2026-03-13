@@ -217,10 +217,10 @@ namespace Axphi.Utilities
             {
                 formatVersion = "1.0",
 
-                
+
                 Duration = SecToTick(60),
 
-                
+
                 BpmKeyFrames = new List<KeyFrame<double>>()
                 {
 
@@ -234,31 +234,20 @@ namespace Axphi.Utilities
                         {
                             Offset=
                             {
-                                KeyFrames =
-                                {
-                                    new Data.KeyFrames.OffsetKeyFrame()
-                                    {
-
-                                        Time = SecToTick(0),
-                                        Value = new Vector(0, -4),
-                                        Easing = BezierEasing.Ease
-                                    },
-
-                                    
-                                }
+                                InitialValue = new Vector(0, -4)
                             },
                             Rotation=
                             {
                                 KeyFrames=
                                 {
-                                    
+
                                 }
                             },
 
                         },
                         Notes = new List<Note>()
                         {
-                            
+
                             new Note(NoteKind.Tap, SecToTick(1)),
                             new Note(NoteKind.Tap, SecToTick(2)),
                             new Note(NoteKind.Tap, SecToTick(3)),

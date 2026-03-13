@@ -18,8 +18,4 @@
     <PackageReference Include="ValueConverters" Version="3.1.22" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Axphi.Data\Axphi.Data.csproj" />
-  </ItemGroup>
-
 </Project>

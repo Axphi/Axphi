@@ -18,7 +18,7 @@ namespace Axphi.ViewModels
 
         // 核心数据：需要暴露给界面的谱面对象
         [ObservableProperty]
-        private Chart _currentChart;
+        private Chart? _currentChart;
 
         // 1. 缩放比例 (Zoom)：相当于按住 Alt 滚轮修改的值，默认是 1.0
         [ObservableProperty]

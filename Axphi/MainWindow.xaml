@@ -31,6 +31,10 @@
         </ResourceDictionary>
     </Window.Resources>
 
+    <Window.InputBindings>
+        <KeyBinding Key="Delete" Command="{Binding Timeline.DeleteSelectedKeyframesCommand}" />
+    </Window.InputBindings>
+
     <!--  主页面  -->
     <ws:WindowContentAdapter>
         <DockPanel>

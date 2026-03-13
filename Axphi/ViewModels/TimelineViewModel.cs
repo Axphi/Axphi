@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace Axphi.ViewModels
 {
@@ -220,6 +221,84 @@ namespace Axphi.ViewModels
             // 不做强制 int 转换，原汁原味返回精确小数
             double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
             return exactTick + CurrentChart.Offset;
+        }
+
+        // ================= 核心命令：全局删除选中的关键帧 =================
+        [RelayCommand]
+        private void DeleteSelectedKeyframes()
+        {
+            if (CurrentChart == null) return;
+            bool hasDeleted = false;
+
+            // 1. 扫荡全局 BPM 轨道
+            if (BpmTrack != null)
+            {
+                // 找出所有 IsSelected == true 的保镖
+                var bpmToDelete = BpmTrack.UIBpmKeyframes.Where(k => k.IsSelected).ToList();
+                foreach (var wrapper in bpmToDelete)
+                {
+                    // 把底层数据和 UI 保镖一起做掉
+                    CurrentChart.BpmKeyFrames.Remove(wrapper.Model);
+                    BpmTrack.UIBpmKeyframes.Remove(wrapper);
+                    hasDeleted = true;
+                }
+            }
+
+            // 2. 扫荡所有判定线图层
+            foreach (var track in Tracks)
+            {
+                // Position (Offset)
+                var offsetToDelete = track.UIOffsetKeyframes.Where(k => k.IsSelected).ToList();
+                foreach (var wrapper in offsetToDelete)
+                {
+                    track.Data.AnimatableProperties.Offset.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model);
+                    track.UIOffsetKeyframes.Remove(wrapper);
+                    hasDeleted = true;
+                }
+
+                // Scale
+                var scaleToDelete = track.UIScaleKeyframes.Where(k => k.IsSelected).ToList();
+                foreach (var wrapper in scaleToDelete)
+                {
+                    track.Data.AnimatableProperties.Scale.KeyFrames.Remove((ScaleKeyFrame)wrapper.Model);
+                    track.UIScaleKeyframes.Remove(wrapper);
+                    hasDeleted = true;
+                }
+
+                // Rotation
+                var rotationToDelete = track.UIRotationKeyframes.Where(k => k.IsSelected).ToList();
+                foreach (var wrapper in rotationToDelete)
+                {
+                    track.Data.AnimatableProperties.Rotation.KeyFrames.Remove((RotationKeyFrame)wrapper.Model);
+                    track.UIRotationKeyframes.Remove(wrapper);
+                    hasDeleted = true;
+                }
+
+                // Opacity
+                var opacityToDelete = track.UIOpacityKeyframes.Where(k => k.IsSelected).ToList();
+                foreach (var wrapper in opacityToDelete)
+                {
+                    track.Data.AnimatableProperties.Opacity.KeyFrames.Remove((OpacityKeyFrame)wrapper.Model);
+                    track.UIOpacityKeyframes.Remove(wrapper);
+                    hasDeleted = true;
+                }
+            }
+
+            // 3. 善后工作：如果真的删了东西，通知渲染器和左侧面板更新！
+            if (hasDeleted)
+            {
+                // 发信重绘右侧画面
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+
+                // 强制刷新一次左侧面板的数值，防止删掉关键帧后数值还停留在幽灵状态
+                int currentTick = GetCurrentTick();
+                var easingDirection = CurrentChart.KeyFrameEasingDirection;
+                BpmTrack?.SyncValuesToTime(currentTick);
+                foreach (var track in Tracks)
+                {
+                    track.SyncValuesToTime(currentTick, easingDirection);
+                }
+            }
         }
     }
 }

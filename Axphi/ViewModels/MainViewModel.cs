@@ -56,7 +56,16 @@ namespace Axphi.ViewModels
             ProjectManager.EditingProjectFilePath = null;
             WeakReferenceMessenger.Default.Send(new ProjectLoadedMessage());
         }
-
+        [RelayCommand]
+        private void LoadDemoChart2()
+        {
+            ProjectManager.EditingProject = new Project()
+            {
+                Chart = DebuggingUtils.CreateDemoChart2()
+            };
+            ProjectManager.EditingProjectFilePath = null;
+            WeakReferenceMessenger.Default.Send(new ProjectLoadedMessage());
+        }
 
     }
 }

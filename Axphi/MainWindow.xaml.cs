@@ -230,15 +230,12 @@ public partial class MainWindow : Window
             var chart = vm.ProjectManager.EditingProject.Chart;
             if (chart == null) return;
 
-            double currentBpm = 120.0;
-            if (chart.BpmKeyFrames != null && chart.BpmKeyFrames.Any())
-            {
-                currentBpm = chart.BpmKeyFrames.First().Value;
-            }
+            // 先减去谱面偏移，得到纯粹的相对 Tick
+            double relativeTick = currentTick - chart.Offset;
+            if (relativeTick < 0) relativeTick = 0;
 
-            double secondsPerTick = 1.875 / currentBpm;
-            double seconds = (currentTick - chart.Offset) * secondsPerTick;
-            if (seconds < 0) seconds = 0;
+            // 🌟 召唤你写好的绝对映射神器！它会自动处理跨越 BPM 关键帧时的折线计算！
+            double seconds = TimeTickConverter.TickToTime(relativeTick, chart.BpmKeyFrames, 120.0);
 
             // 4. 更新大管家的时间，红线会立刻跟着鼠标走！
             vm.Timeline.CurrentPlayTimeSeconds = seconds;

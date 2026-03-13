@@ -35,11 +35,7 @@ namespace Axphi.Utilities
                 // 【修改 2】：在这里填写 BPM！这里支持变速，所以是关键帧数组。测试谱面我们先写一个固定的 120 BPM。
                 BpmKeyFrames = new List<KeyFrame<double>>()
                 {
-                    new KeyFrame<double>()
-                    {
-                        Time = 0,      // 第 0 个 Tick 开始
-                        Value = 128.0  // BPM 设定为 120
-                    }
+                    
                 },
 
                 JudgementLines = new List<JudgementLine>()
@@ -210,6 +206,67 @@ namespace Axphi.Utilities
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            };
+        }
+        public static Chart CreateDemoChart2()
+        {
+            return new Chart()
+            {
+                formatVersion = "1.0",
+
+                
+                Duration = SecToTick(60),
+
+                
+                BpmKeyFrames = new List<KeyFrame<double>>()
+                {
+
+                },
+
+                JudgementLines = new List<JudgementLine>()
+                {
+                    new JudgementLine()
+                    {
+                        AnimatableProperties =
+                        {
+                            Offset=
+                            {
+                                KeyFrames =
+                                {
+                                    new Data.KeyFrames.OffsetKeyFrame()
+                                    {
+
+                                        Time = SecToTick(0),
+                                        Value = new Vector(0, -4),
+                                        Easing = BezierEasing.Ease
+                                    },
+
+                                    
+                                }
+                            },
+                            Rotation=
+                            {
+                                KeyFrames=
+                                {
+                                    
+                                }
+                            },
+
+                        },
+                        Notes = new List<Note>()
+                        {
+                            
+                            new Note(NoteKind.Tap, SecToTick(1)),
+                            new Note(NoteKind.Tap, SecToTick(2)),
+                            new Note(NoteKind.Tap, SecToTick(3)),
+                            new Note(NoteKind.Tap, SecToTick(4)),
+                            new Note(NoteKind.Tap, SecToTick(5)),
+                            new Note(NoteKind.Tap, SecToTick(6)),
+                            new Note(NoteKind.Tap, SecToTick(7)),
+
                         }
                     }
                 }

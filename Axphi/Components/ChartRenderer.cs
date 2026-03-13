@@ -156,14 +156,9 @@ namespace Axphi.Components
         /// </summary>
         private static int CalculateCurrentTick(TimeSpan realTime, Chart chart)
         {
-            // (注: 若要支持歌曲中途变速，后续需要根据 realTime 计算处于哪个 BPM 区间进行累加)
-            // ✨ 核心修改 1：通过 KeyFrameUtils 优雅获取，自带幽灵帧保护
-            double currentBpm = KeyFrameUtils.GetStepValueAtTick(chart.BpmKeyFrames, 0, 120.0);
-
-            double secondsPerTick = 1.875 / currentBpm;
-            double rawTick = realTime.TotalSeconds / secondsPerTick;
-
-            return (int)rawTick + chart.Offset;
+            // ✨ 核心修复 1
+            double exactTick = TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, 120.0);
+            return (int)exactTick + chart.Offset;
         }
 
         private static void RenderProgress(DrawingContext drawingContext, RenderInfo renderInfo, double progress)
@@ -238,14 +233,14 @@ namespace Axphi.Components
 
             
 
-            // ✨ 核心修改 2：彻底消灭 First() 和 Any()，让幽灵帧管家来给准确数据！
-            double currentBpm = KeyFrameUtils.GetStepValueAtTick(chart.BpmKeyFrames, currentTick, 120.0);
+            
+            // ================= ✨ 核心修复 2：音符的真实物理下落距离 =================
+            // 我们必须知道【现在】是第几秒，【音符该被打中】是第几秒
+            // 两者的真实时间差，乘以固定速度，才是它在屏幕上绝对正确的距离！
+            double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, 120.0);
+            double hitTimeSeconds = TimeTickConverter.TickToTime(note.HitTime, chart.BpmKeyFrames, 120.0);
 
-            // 2. 算出一个 Tick 等于多少秒
-            double secondsPerTick = 1.875 / currentBpm;
-
-            // 3. 将 Tick 差值转换回秒数
-            double secondsFromNow = ticksFromNow * secondsPerTick;
+            double secondsFromNow = hitTimeSeconds - currentSeconds;
 
             // 4. 用秒数去乘以速度 (这样 Speed 就依然是 "单位/秒" 的含义了)
             var distance = -finalSpeed * secondsFromNow;

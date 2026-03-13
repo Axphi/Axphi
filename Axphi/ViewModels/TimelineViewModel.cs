@@ -81,28 +81,16 @@ namespace Axphi.ViewModels
             WeakReferenceMessenger.Default.Send(new ZoomScaleChangedMessage(value));
         }
 
-        // 核心换算公式（完全复刻你 ChartRenderer 里的算法）
+        // 核心换算公式
         private void UpdatePlayheadPosition()
         {
             if (CurrentChart == null) return;
 
-            // 获取当前 BPM (暂时取第一个)
-            double currentBpm = 120.0;
-            if (CurrentChart.BpmKeyFrames != null && CurrentChart.BpmKeyFrames.Any())
-            {
-                currentBpm = CurrentChart.BpmKeyFrames.First().Value;
-            }
+            // 1. 拿到积分器算出来的、绝对准确的当前 Tick！(取代了旧的乘除法)
+            int currentTick = GetCurrentTick();
 
-            // 秒数 转 Tick (记得加上谱面的 Offset)
-            double secondsPerTick = 1.875 / currentBpm;
-
-            
-
-            // 修改后：强行把小数抹掉，让它永远精确咬合在整数的 Tick 刻度上！
-            int currentTick = (int)((CurrentPlayTimeSeconds / secondsPerTick) + CurrentChart.Offset);
-
-            // Tick 转 物理像素
-            PlayheadPositionX = currentTick * BasePixelsPerTick * ZoomScale;
+            // 2. 把 Tick 转换成屏幕上的像素 X 坐标！
+            PlayheadPositionX = TickToPixel(currentTick);
         }
 
 
@@ -123,7 +111,7 @@ namespace Axphi.ViewModels
             // 极其重要的防坑提示：软件刚启动时，工程可能是空的！所以要做个判空！
             if (_projectManager.EditingProject != null)
             {
-                CurrentChart = _projectManager.EditingProject.Chart;
+                ReloadTracksFromCurrentChart();
             }
             else
             {
@@ -211,10 +199,10 @@ namespace Axphi.ViewModels
         public int GetCurrentTick()
         {
             if (CurrentChart == null) return 0;
-            // ✨ 霸气调用全网通用的幽灵帧获取器！传入集合、时间(这里是0，如果是随时间变化就传真实的Tick)、默认值120.0
-            double currentBpm = KeyFrameUtils.GetStepValueAtTick(CurrentChart.BpmKeyFrames, 0, 120.0);
-            double secondsPerTick = 1.875 / currentBpm;
-            return (int)((CurrentPlayTimeSeconds / secondsPerTick) + CurrentChart.Offset);
+
+            // ✨ 核心修复：直接用积分器算 Tick，绝对不会突变！
+            double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, 120.0);
+            return (int)exactTick + CurrentChart.Offset;
         }
 
         // 在 TimelineViewModel 里加上这个公开的换算方法

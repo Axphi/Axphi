@@ -45,6 +45,7 @@ namespace Axphi.ViewModels
             _isSyncing = true;
 
             // 直接白嫖咱们上一回合写的神级工具类！自带幽灵帧保护！
+            // 注意: 此函数的关键帧插值为 constant
             CurrentBpm = KeyFrameUtils.GetStepValueAtTick(_chart.BpmKeyFrames, currentTick, 120.0);
 
             _isSyncing = false;

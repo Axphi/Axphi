@@ -49,45 +49,56 @@ namespace Axphi.ViewModels
 
 
         // 声明一个临时变量，记录拖拽时真实的物理像素（防止鼠标挪动太慢，吸附后丢失精度）
+        
+        // 声明三个临时变量，用来记录拖拽轨迹
         private double _virtualPixelX;
+        private double _dragAccumulated; // 记录鼠标到底挪动了多少距离
+        private bool _wasSelectedBeforeDrag; // 记录按下鼠标前，它是不是已经被选中了
 
         public void OnDragStarted()
         {
             _virtualPixelX = PixelX;
+            _dragAccumulated = 0; // 拖拽距离清零
+            _wasSelectedBeforeDrag = IsSelected; // 记住按下前的状态
+
+            // 🌟 智能判定 1：如果没被选中，按下的瞬间立刻点亮它！
+            if (!IsSelected)
+            {
+                IsSelected = true;
+            }
         }
 
         public void OnDragDelta(double horizontalChange)
         {
-            // 1. 累加真实的拖拽距离
+            // 累加鼠标移动的绝对距离
+            _dragAccumulated += Math.Abs(horizontalChange);
+
+            // 依然是那套无敌防频闪的平滑拖拽代码
             _virtualPixelX += horizontalChange;
             if (_virtualPixelX < 0) _virtualPixelX = 0;
 
-            // 🌟 核心破局点：不要吸附 UI！让小菱形的像素坐标丝滑地跟着鼠标走！
-            // 这样 WPF 就永远不会算错相对位移，彻底根除频闪！
             PixelX = _virtualPixelX;
 
-            // 2. 暗中算出底层应该吸附的整数 Tick
             double exactTick = _timeline.PixelToTick(_virtualPixelX);
             int newTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
 
-            // 3. 只要 Tick 跨格了，就更新数据并重绘画面
             if (newTick != Model.Time)
             {
                 Model.Time = newTick;
-                // 注意：这里我们故意不调用 UpdatePosition() 干扰 UI！
-
-                // 告诉右侧的渲染器：数据变了，画面请“吧嗒吧嗒”地吸附过去！
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             }
         }
 
         public void OnDragCompleted()
         {
-            // 🌟 拖拽松手时：鼠标放开了，我们再调用 UpdatePosition，
-            // 把小菱形强行吸附回正规的 Tick 网格线上！
-            UpdatePosition();
+            // 🌟 智能判定 2：如果按下去之前它就是蓝色的，而且我们松手时根本没挪动鼠标（位移小于 2 像素防手抖）
+            // 这说明用户的真实意图是：单击取消选中！
+            if (_wasSelectedBeforeDrag && _dragAccumulated < 2.0)
+            {
+                IsSelected = false;
+            }
 
-            // 告诉大管家重新排队
+            UpdatePosition();
             WeakReferenceMessenger.Default.Send(new KeyframesNeedSortMessage());
         }
     }

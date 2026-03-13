@@ -48,7 +48,6 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Thumb Cursor="Hand" ToolTip="BPM 突变帧"
-                                       PreviewMouseLeftButtonDown="KeyframeThumb_PreviewMouseLeftButtonDown"
                                        DragStarted="KeyframeThumb_DragStarted"
                                        DragDelta="KeyframeThumb_DragDelta"
                                        DragCompleted="KeyframeThumb_DragCompleted">

@@ -50,23 +50,7 @@ namespace Axphi.Views
                 parent?.RaiseEvent(eventArg);
             }
         }
-        private void KeyframeThumb_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            // 这个底层的 Preview 事件会在你物理鼠标按下的那一瞬间触发！
-            // 不管系统判定 ClickCount 是 1（单击）还是 2（双击），我们统统把它当做一次点击来处理！
-
-            if (sender is FrameworkElement fe)
-            {
-                // 🌟 使用 dynamic 关键字，完美绕过强类型泛型的限制
-                // 这样无论是 KeyFrameUIWrapper<Vector> 还是 KeyFrameUIWrapper<double>，都能顺利拿到命令
-                dynamic context = fe.DataContext;
-                if (context != null && context!.ToggleSelectionCommand != null)
-                {
-                    // 立刻执行变色命令！
-                    context!.ToggleSelectionCommand.Execute(null);
-                }
-            }
-        }
+        
 
         private void KeyframeThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {

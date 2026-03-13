@@ -127,7 +127,6 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Thumb Cursor="Hand" ToolTip="Position 关键帧"
-                                               PreviewMouseLeftButtonDown="KeyframeThumb_PreviewMouseLeftButtonDown"
                                                DragStarted="KeyframeThumb_DragStarted"
                                                DragDelta="KeyframeThumb_DragDelta"
                                                DragCompleted="KeyframeThumb_DragCompleted">
@@ -176,7 +175,6 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Thumb Cursor="Hand" ToolTip="Position 关键帧"
-                                               PreviewMouseLeftButtonDown="KeyframeThumb_PreviewMouseLeftButtonDown"
                                                DragStarted="KeyframeThumb_DragStarted"
                                                DragDelta="KeyframeThumb_DragDelta"
                                                DragCompleted="KeyframeThumb_DragCompleted">
@@ -225,7 +223,6 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Thumb Cursor="Hand" ToolTip="Position 关键帧"
-                                               PreviewMouseLeftButtonDown="KeyframeThumb_PreviewMouseLeftButtonDown"
                                                DragStarted="KeyframeThumb_DragStarted"
                                                DragDelta="KeyframeThumb_DragDelta"
                                                DragCompleted="KeyframeThumb_DragCompleted">
@@ -274,7 +271,6 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Thumb Cursor="Hand" ToolTip="Position 关键帧"
-                                               PreviewMouseLeftButtonDown="KeyframeThumb_PreviewMouseLeftButtonDown"
                                                DragStarted="KeyframeThumb_DragStarted"
                                                DragDelta="KeyframeThumb_DragDelta"
                                                DragCompleted="KeyframeThumb_DragCompleted">

@@ -145,7 +145,7 @@ namespace Axphi.ViewModels
             _dragAccumulated += Math.Abs(horizontalChange);
 
             _virtualPixelX += horizontalChange;
-            if (_virtualPixelX < 0) _virtualPixelX = 0; // 防止拖到 0 以前
+            // if (_virtualPixelX < 0) _virtualPixelX = 0; // 防止拖到 0 以前
 
             PixelX = _virtualPixelX;
 

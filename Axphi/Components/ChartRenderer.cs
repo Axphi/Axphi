@@ -209,33 +209,27 @@ namespace Axphi.Components
             double thickness = renderInfo.CanvasHeight * 0.0075;
             
             drawingContext.DrawRectangle(_lineYellow, null, new Rect(-renderInfo.CanvasWidth / 2, -thickness / 2, lineLength, thickness));
-
+            drawingContext.Pop(); // note 不继承 line 的 opacity
             if (line.Notes is { } notes)
             {
                 foreach (var note in notes)
                 {
-                    //RenderNote(drawingContext, renderInfo, chart, note, time, line.Speed);
+                    
                     // 传递 currentTick
-                    RenderNote(drawingContext, renderInfo, chart, note, currentTick, line.Speed);
+                    RenderNote(drawingContext, renderInfo, chart, note, currentTick, line.Speed); // speed 默认: 1, 渲染器宽 16 , 高 9
                 }
             }
 
-            drawingContext.Pop();
+            
             drawingContext.Pop();
         }
 
         private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, int currentTick, double speed)
         {
-            //var timeFromNow = note.HitTime - currentTick;
-            //var timeSecToNow = timeFromNow.TotalSeconds;
 
             // 现在的 HitTime 是 int, currentTick 也是 int
             var ticksFromNow = note.HitTime - currentTick;
 
-            //if (Math.Abs(timeSecToNow) > 10)
-            //{
-            //    return;
-            //}
             // 旧版是绝对值 > 10秒 就不渲染。10秒在120BPM下大约是 640个Tick。我们给个宽裕的 1000。
             if (Math.Abs(ticksFromNow) > 1000)
             {
@@ -247,7 +241,7 @@ namespace Axphi.Components
             
 
             
-            // ================= ✨ 核心修复 2：音符的真实物理下落距离 =================
+            // ================= 音符的真实物理下落距离 =================
             // 我们必须知道【现在】是第几秒，【音符该被打中】是第几秒
             // 两者的真实时间差，乘以固定速度，才是它在屏幕上绝对正确的距离！
             double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, chart.InitialBpm);
@@ -275,7 +269,7 @@ namespace Axphi.Components
                 Children =
                 {
                     new ScaleTransform(scale.X, scale.Y),
-                    new RotateTransform(rotationAngle),
+                    new RotateTransform(rotationAngle),  // 旋转中心是 note 中心
                     new TranslateTransform(pixelOffset.X, pixelOffset.Y + pixelDistance),
                 }
             };

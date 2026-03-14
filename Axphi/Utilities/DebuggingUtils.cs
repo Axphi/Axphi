@@ -243,6 +243,7 @@ namespace Axphi.Utilities
 
                                 }
                             },
+                            
 
                         },
                         Notes = new List<Note>()
@@ -250,7 +251,17 @@ namespace Axphi.Utilities
 
                             new Note(NoteKind.Tap, SecToTick(1)),
                             new Note(NoteKind.Tap, SecToTick(2)),
-                            new Note(NoteKind.Tap, SecToTick(3)),
+                            new Note(NoteKind.Tap, SecToTick(3))
+                            {
+                                AnimatableProperties =
+                                {
+                                    Rotation =
+                                    {
+                                        InitialValue = 45
+                                    }
+                                }
+
+                            },
                             new Note(NoteKind.Tap, SecToTick(4)),
                             new Note(NoteKind.Tap, SecToTick(5)),
                             new Note(NoteKind.Tap, SecToTick(6)),

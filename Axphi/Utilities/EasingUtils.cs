@@ -104,7 +104,7 @@ namespace Axphi.Utilities
 
             // ================= 幽灵帧逻辑 2：当前时间早于或等于第一个关键帧 =================
             // 效果：如果你只在 Tick=500 打了关键帧，那么从 Tick=0 到 500 的时间里，
-            // 值永远等于 Tick=500 时的值，绝对不会产生诡异的倒退动画！
+            // 值永远等于 Tick=500 时的值
             var firstFrame = keyFrames[0];
             if (time <= firstFrame.Time)
             {
@@ -127,8 +127,9 @@ namespace Axphi.Utilities
 
             var start = firstKeyFrame?.Value ?? initialValue;
 
-            // 【核心修复】先把 finalValue 稳稳地定在这个基础值上！
+            // 先把 finalValue 稳稳地定在这个基础值上！
             // 这样即使后面是 null 进不去 if，它也会保持最后一个帧的状态，而不是回弹！
+            // 此处 if 应该永远为真分支
             finalValue = start;
 
             if (secondKeyFrame is not null)

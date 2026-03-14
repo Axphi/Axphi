@@ -19,7 +19,7 @@ namespace Axphi.ViewModels
 
         // 核心数据：需要暴露给界面的谱面对象
         [ObservableProperty]
-        private Chart? _currentChart;
+        private Chart _currentChart = new Chart();
 
         // 1. 缩放比例 (Zoom)：相当于按住 Alt 滚轮修改的值，默认是 1.0
         [ObservableProperty]
@@ -58,7 +58,7 @@ namespace Axphi.ViewModels
             int currentTick = GetCurrentTick();
 
             //  【新增】拿到当前谱面的缓动方向设置
-            var easingDirection = CurrentChart?.KeyFrameEasingDirection ?? default;
+            var easingDirection = CurrentChart.KeyFrameEasingDirection;
 
             // ================= ✨ 塞入第二步：让 BPM 跟着播放器跑！ =================
             BpmTrack?.SyncValuesToTime(currentTick);
@@ -85,7 +85,7 @@ namespace Axphi.ViewModels
         // 核心换算公式
         private void UpdatePlayheadPosition()
         {
-            if (CurrentChart == null) return;
+            
 
             // 1. 拿到积分器算出来的、绝对准确的当前 Tick！(取代了旧的乘除法)
             double currentTick = GetExactTick();
@@ -113,13 +113,6 @@ namespace Axphi.ViewModels
             if (_projectManager.EditingProject != null)
             {
                 ReloadTracksFromCurrentChart();
-            }
-            else
-            {
-                // 如果刚启动时还没加载工程，给个空的占位，防止界面绑定报错
-                CurrentChart = new Chart();
-
-                
             }
 
 
@@ -203,7 +196,7 @@ namespace Axphi.ViewModels
         // 在 TimelineViewModel.cs 里加上这个方法 (上一回合提过，确认一下你加上了)
         public int GetCurrentTick()
         {
-            if (CurrentChart == null) return 0;
+            
 
             // 核心修复：直接用积分器算 Tick，绝对不会突变！
             double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
@@ -226,7 +219,7 @@ namespace Axphi.ViewModels
         // 1. 新增一个获取精确小数 Tick 的方法
         public double GetExactTick()
         {
-            if (CurrentChart == null) return 0;
+            
             // 不做强制 int 转换，原汁原味返回精确小数
             double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
             return exactTick + CurrentChart.Offset;
@@ -236,7 +229,7 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void DeleteSelectedKeyframes()
         {
-            if (CurrentChart == null) return;
+            
             bool hasDeleted = false;
 
             // 1. 扫荡全局 BPM 轨道

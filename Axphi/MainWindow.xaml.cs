@@ -266,7 +266,7 @@ public partial class MainWindow : Window
     private void TimelineMainGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         // 🌟 核心修复：防误触终极版！顺藤摸瓜找控件
-        DependencyObject current = e.OriginalSource as DependencyObject;
+        DependencyObject? current = e.OriginalSource as DependencyObject;
         while (current != null && current != TimelineMainGrid)
         {
             string typeName = current.GetType().Name;

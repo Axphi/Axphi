@@ -30,4 +30,13 @@ namespace Axphi.ViewModels
     // GroupName 用于区分当前是在操作谁（比如 "Keyframes" 还是 "JudgementLines"）
     // SenderToIgnore 用于保护自己（发信人自己不要被取消选中）
     public record class ClearSelectionMessage(string GroupName, object SenderToIgnore);
+
+    // 开始拖拽的起手式
+    public record class KeyframesDragStartedMessage(object SenderToIgnore);
+
+    // 拖拽过程中的位移量广播
+    public record class KeyframesDragDeltaMessage(double HorizontalChange, object SenderToIgnore);
+
+    // 拖拽结束的收尾
+    public record class KeyframesDragCompletedMessage(object SenderToIgnore);
 }

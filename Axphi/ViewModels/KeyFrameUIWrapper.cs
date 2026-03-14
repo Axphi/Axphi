@@ -20,6 +20,8 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private double _pixelX;
 
+
+
         public KeyFrameUIWrapper(KeyFrame<T> model, TimelineViewModel timeline)
         {
             Model = model;
@@ -31,7 +33,7 @@ namespace Axphi.ViewModels
                 recipient.UpdatePosition();
             });
 
-            // ================= 新增：监听清除选中广播 =================
+            // ================= 监听清除选中广播 =================
             WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, ClearSelectionMessage>(this, (recipient, message) =>
             {
                 // 如果大家都在 "Keyframes" 这个频道，且这封信不是我（自己）发的
@@ -39,6 +41,25 @@ namespace Axphi.ViewModels
                 {
                     recipient.IsSelected = false; // 乖乖熄灭
                 }
+            });
+
+            // ================= 新增：监听协同拖拽广播 =================
+            // 收到起手式：如果是被选中的，且不是自己发起的，就准备跟着动！
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, KeyframesDragStartedMessage>(this, (r, m) =>
+            {
+                if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragStarted();
+            });
+
+            // 收到位移量：跟着挪动！
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, KeyframesDragDeltaMessage>(this, (r, m) =>
+            {
+                if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragDelta(m.HorizontalChange);
+            });
+
+            // 收到收尾：更新最终位置
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, KeyframesDragCompletedMessage>(this, (r, m) =>
+            {
+                if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragCompleted(false); // 别人发起的，传 false
             });
         }
 
@@ -76,16 +97,55 @@ namespace Axphi.ViewModels
                 // 走标准的多选/单选逻辑
                 SelectionHelper.HandleSelection("Keyframes", this, IsSelected, val => IsSelected = val);
             }
+
+            // 如果此时我是亮着的（选中状态），大喊一声：兄弟们，准备发车！
+            if (IsSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new KeyframesDragStartedMessage(this));
+            }
+
+            // 自己也得做好准备
+            ReceiveDragStarted();
         }
 
         public void OnDragDelta(double horizontalChange)
         {
-            // 累加鼠标移动的绝对距离
+            // 如果我被选中了，把位移量发给兄弟们
+            if (IsSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new KeyframesDragDeltaMessage(horizontalChange, this));
+            }
+
+            // 自己挪动
+            ReceiveDragDelta(horizontalChange);
+        }
+
+        public void OnDragCompleted()
+        {
+            if (IsSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new KeyframesDragCompletedMessage(this));
+            }
+
+            // 自己收尾（传 true，表示我是被鼠标直接捏住的那个“带头大哥”）
+            ReceiveDragCompleted(true);
+
+        }
+
+        // ================= 拖拽接收端 (处理实际的数值变化) =================
+        private void ReceiveDragStarted()
+        {
+            _virtualPixelX = PixelX;
+            _dragAccumulated = 0;
+            _wasSelectedBeforeDrag = IsSelected;
+        }
+
+        private void ReceiveDragDelta(double horizontalChange)
+        {
             _dragAccumulated += Math.Abs(horizontalChange);
 
-            // 依然是那套无敌防频闪的平滑拖拽代码
             _virtualPixelX += horizontalChange;
-            if (_virtualPixelX < 0) _virtualPixelX = 0;
+            if (_virtualPixelX < 0) _virtualPixelX = 0; // 防止拖到 0 以前
 
             PixelX = _virtualPixelX;
 
@@ -95,29 +155,27 @@ namespace Axphi.ViewModels
             if (newTick != Model.Time)
             {
                 Model.Time = newTick;
+                // 性能优化提示：这里每一帧都在发重绘广播。因为是协同拖拽，如果选中了 10 个关键帧，
+                // 就会在同一毫秒内发 10 次重绘消息。好在你的 ChartDisplay 已经处理了性能问题。
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             }
         }
 
-        public void OnDragCompleted()
+        private void ReceiveDragCompleted(bool isInitiator)
         {
-            // 如果按下去之前它就是亮的，并且完全没拖动（位移<2，是个纯点击）
-            if (_wasSelectedBeforeDrag && _dragAccumulated < 2.0)
+            // 只有被鼠标直接捏住的那个“带头大哥”，才有资格处理单击取消选中的判定
+            if (isInitiator && _wasSelectedBeforeDrag && _dragAccumulated < 2.0)
             {
                 bool isCtrlDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
                 bool isShiftDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
 
                 if (isCtrlDown)
-                {
-                    IsSelected = false; // Ctrl + 单击已选中的帧：取消选中
-                }
+                    IsSelected = false; // Ctrl+单击：取消选中自己
                 else if (isShiftDown)
-                {
-                    IsSelected = true;  // Shift + 单击已选中的帧：保持加选状态
-                }
+                    IsSelected = true;  // Shift+单击：保持不变
                 else
                 {
-                    // 什么都没按 + 单击已选中的帧：独占选中！（排他）
+                    // 普通单击：排他选中自己
                     WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", this));
                     IsSelected = true;
                 }

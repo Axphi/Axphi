@@ -21,31 +21,45 @@ namespace Axphi.Utilities
             secondKeyFrame = null;
             normalizedTime = 0;
 
-            //var lastTime = default(TimeSpan);
-            // 默认值从 default(TimeSpan) 改为 0
-            var lastTime = 0;
+            int left = 0;
+            int right = keyFrames.Count - 1;
 
-            foreach (var keyFrame in keyFrames)
+            // 二分查找：寻找第一个 Time > time 的关键帧的索引
+            while (left <= right)
             {
-                if (keyFrame.Time <= time)
+                int mid = left + (right - left) / 2;
+
+                if (keyFrames[mid].Time <= time)
                 {
-                    firstKeyFrame = keyFrame;
-                    lastTime = keyFrame.Time;
+                    left = mid + 1; // 去右半边找
                 }
                 else
                 {
-
-                    secondKeyFrame = keyFrame;
-                    var elapsed = time - lastTime;
-                    var total = keyFrame.Time - lastTime;
-
-                    // [修改 4 - 重要！] 必须将 int 转为 double 再除，否则 50 / 100 会变成 0！
-                    // 同时加入 total > 0 的判断，防止同一时间点有两个关键帧导致“除以 0”崩溃
-                    normalizedTime = total > 0 ? (double)elapsed / total : 1.0;
-                    //normalizedTime = elapsed / total;
-
-                    return;
+                    right = mid - 1; // 去左半边找
                 }
+            }
+
+            // 循环结束后，left 是第一个 Time > time 的关键帧的索引
+
+            // 如果 left > 0，说明前面存在 <= time 的关键帧
+            if (left > 0)
+            {
+                firstKeyFrame = keyFrames[left - 1];
+            }
+
+            // 如果 left < keyFrames.Count，说明找到了大于 time 的关键帧
+            if (left < keyFrames.Count)
+            {
+                secondKeyFrame = keyFrames[left];
+
+                // 保持与原逻辑一致：如果 firstKeyFrame 为 null，默认 lastTime 为 0
+                int lastTime = left > 0 ? keyFrames[left - 1].Time : 0;
+
+                int elapsed = time - lastTime;
+                int total = keyFrames[left].Time - lastTime;
+
+                // [修改 4 - 保持不变] 必须将 int 转为 double 再除，加入 total > 0 的判断
+                normalizedTime = total > 0 ? (double)elapsed / total : 1.0;
             }
         }
 

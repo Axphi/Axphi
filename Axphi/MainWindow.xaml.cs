@@ -93,7 +93,7 @@ public partial class MainWindow : Window
                 GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedNewMaximum);
 
                 // 3. 现在，Maximum 足够大了，我们立刻在同一帧内，同时更新 比例 和 位置！
-                // 这样刻度尺在下一次渲染时，拿到的就是完美匹配的“新比例 + 新坐标”，绝不会产生废片！
+                // 这样刻度尺在下一次渲染时，拿到的就是完美匹配的“新比例 + 新坐标”，绝不会產生废片！
                 vm.Timeline.ZoomScale = newScale;
                 GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newOffset);
 
@@ -276,7 +276,8 @@ public partial class MainWindow : Window
                 current is System.Windows.Controls.Primitives.ScrollBar ||  // 涵盖滚动条
                 current is System.Windows.Controls.Primitives.Thumb ||      // 涵盖关键帧小菱形、时间轴红色游标
                 current is TextBox ||                                       // 涵盖输入框
-                typeName.Contains("DraggableValueBox"))                     // 涵盖你自定义的数值拖拽框
+                typeName.Contains("DraggableValueBox") ||                   // 涵盖你自定义的数值拖拽框
+                typeName.Contains("TimelineRuler"))                         // 新增这一行！给标尺颁发免死金牌！
             {
                 return; // 直接返回，千万别设 e.Handled = true 
             }
@@ -410,6 +411,71 @@ public partial class MainWindow : Window
 
             foreach (T childOfChild in FindVisualChildren<T>(child))
                 yield return childOfChild;
+        }
+    }
+
+
+    // ================= 【时间标尺交互逻辑】 =================
+
+    private void TimelineRuler_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // 捕获鼠标，这样即使拖到了标尺外面，也能继续响应移动事件
+        MainTimelineRuler.CaptureMouse();
+        SeekFromRulerMousePosition(e.GetPosition(MainTimelineRuler));
+        e.Handled = true;
+    }
+
+    private void TimelineRuler_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        // 如果左键被按下且被捕获，说明用户正在标尺上拖拽（Scrubbing）
+        if (e.LeftButton == MouseButtonState.Pressed && MainTimelineRuler.IsMouseCaptured)
+        {
+            SeekFromRulerMousePosition(e.GetPosition(MainTimelineRuler));
+        }
+    }
+
+    private void TimelineRuler_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (MainTimelineRuler.IsMouseCaptured)
+        {
+            MainTimelineRuler.ReleaseMouseCapture();
+        }
+    }
+
+    // 核心换算与发信方法
+    private void SeekFromRulerMousePosition(Point mousePos)
+    {
+        // 1. 拿到鼠标在总画布中的绝对物理像素位置 (当前点击的屏幕 X + 滚动条滚过的 X)
+        double absolutePixelX = mousePos.X + MainTimelineRuler.VisibleOffsetX;
+
+        // 防止用户拖拽到 0 以前导致报错
+        if (absolutePixelX < 0) absolutePixelX = 0;
+
+        if (this.DataContext is Axphi.ViewModels.MainViewModel vm)
+        {
+            // 2. 将像素完美转换回精确的小数 Tick
+            double exactTick = vm.Timeline.PixelToTick(absolutePixelX);
+
+            // 四舍五入，吸附到最近的整数 Tick
+            int snappedTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
+
+            var chart = vm.ProjectManager.EditingProject?.Chart;
+            if (chart != null)
+            {
+                // 3. 减去 Offset，获取真正用于音频计算的 Tick
+                double relativeTick = snappedTick - chart.Offset;
+
+                // 4. 将 Tick 换算成物理现实的秒数
+                // (调用你封装好的 TimeTickConverter)
+                double seconds = Axphi.Utilities.TimeTickConverter.TickToTime(relativeTick, chart.BpmKeyFrames, chart.InitialBpm);
+
+                // 音频不能在负数时间播放，所以限制最低为 0
+                if (seconds < 0) seconds = 0;
+
+                // 5. 大喊一声：全军空降！
+                // ChartDisplay 听到后会自动切音频、切画面，并同步把红线拉过来！
+                WeakReferenceMessenger.Default.Send(new Axphi.ViewModels.ForceSeekMessage(seconds));
+            }
         }
     }
 

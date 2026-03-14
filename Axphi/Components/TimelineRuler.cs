@@ -60,6 +60,12 @@ namespace Axphi.Components
         {
             base.OnRender(dc);
 
+
+            // 🌟 【核心修复：铺设透明垫板拦截鼠标】
+            // 即使是透明的，WPF 也会认为这里是实体，从而完美接收所有鼠标拖拽和点击事件！
+            dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
+
+
             // 修改这里的判断条件
             if (TotalTicks <= 0 || VirtualTotalWidth <= 0) return;
 

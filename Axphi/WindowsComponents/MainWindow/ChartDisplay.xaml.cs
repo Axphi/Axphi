@@ -192,7 +192,17 @@ namespace Axphi.WindowsComponents.MainWindow
             }
 
             InternalChartRenderer.Time = time;
+
+            // ================= ✨ 加上这段代码 ✨ =================
+            // 空降完成后，立刻把最新的秒数同步给时间轴大管家！
+            // 这样红线就会瞬间跳到对应的位置！
+            if (this.DataContext is MainViewModel vm)
+            {
+                vm.Timeline.CurrentPlayTimeSeconds = time.TotalSeconds;
+            }
+            // ===================================================
         }
+        
 
         // === 【新增】供外部调用的播放控制 API ===
 

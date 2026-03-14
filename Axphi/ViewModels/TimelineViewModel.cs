@@ -190,6 +190,7 @@ namespace Axphi.ViewModels
 
             // 5. 顺便大喊一声，让右侧的渲染器也强制刷新一下画面！
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+
         }
 
 

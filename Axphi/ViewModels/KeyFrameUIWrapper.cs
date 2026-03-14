@@ -127,16 +127,5 @@ namespace Axphi.ViewModels
             WeakReferenceMessenger.Default.Send(new KeyframesNeedSortMessage());
         }
 
-        // 在 KeyFrameUIWrapper<T> 类中找个空地加上这段代码：
-        partial void OnIsSelectedChanged(bool value)
-        {
-            // 只有当它变成被选中状态 (true) 时，我们才发广播。
-            // 如果是取消选中，我们就忽略。
-            if (value)
-            {
-                // 连同底层的真实 Easing 数据一起发出去！
-                WeakReferenceMessenger.Default.Send(new KeyframeSelectedMessage(Model.Easing));
-            }
-        }
     }
 }

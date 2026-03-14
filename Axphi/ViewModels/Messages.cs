@@ -24,10 +24,7 @@ namespace Axphi.ViewModels
 
     // 告诉所有轨道：有人挪动了关键帧，请重新把底层 List 按时间排序！
     public record class KeyframesNeedSortMessage();
-
-    // 告诉全网：我被选中了，这是我的缓动参数！
-    public record class KeyframeSelectedMessage(BezierEasing Easing);
-
+ 
     
     // 告诉全网：请取消选中！
     // GroupName 用于区分当前是在操作谁（比如 "Keyframes" 还是 "JudgementLines"）

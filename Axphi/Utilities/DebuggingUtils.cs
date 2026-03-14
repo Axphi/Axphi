@@ -218,7 +218,7 @@ namespace Axphi.Utilities
                 formatVersion = "1.0",
 
 
-                Duration = SecToTick(60),
+                Duration = SecToTick(10),
 
 
                 BpmKeyFrames = new List<KeyFrame<double>>()

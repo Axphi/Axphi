@@ -114,6 +114,8 @@ public partial class BezierCurveEditor : UserControl
         e.Handled = true;
     }
 
+
+    // 这三个函数永远不会被触发
     private void Thumb_MouseDown(object sender, MouseButtonEventArgs e)
     {
         _draggingThumb = sender as FrameworkElement;

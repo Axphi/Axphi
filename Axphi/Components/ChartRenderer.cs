@@ -13,11 +13,12 @@ namespace Axphi.Components
 {
     public class ChartRenderer : FrameworkElement
     {
-        private static SolidColorBrush _lineYellow = new SolidColorBrush(Color.FromRgb(254, 255, 169));
-        private static SolidColorBrush _lineBlue = new SolidColorBrush(Color.FromRgb(162, 238, 255));
-        private static SolidColorBrush _lineWhite = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        private static SolidColorBrush _lineYellow = new SolidColorBrush(Color.FromRgb(254, 255, 169)); // #feffa9
+        private static SolidColorBrush _lineBlue = new SolidColorBrush(Color.FromRgb(162, 238, 255));   // #a2eeff
+        private static SolidColorBrush _lineWhite = new SolidColorBrush(Color.FromRgb(255, 255, 255));  // #ffffff
 
-        private static SolidColorBrush _progressWhite = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        private static SolidColorBrush _progressWhite = new SolidColorBrush(Color.FromRgb(145, 145, 145));
+        private static SolidColorBrush _progressHeadWhite = new SolidColorBrush(Color.FromRgb(255, 255, 255));
 
         private static SolidColorBrush _noteFlick = new SolidColorBrush(Color.FromRgb(255, 95, 95));
         private static SolidColorBrush _noteTap = new SolidColorBrush(Color.FromRgb(82, 133, 243));
@@ -156,7 +157,7 @@ namespace Axphi.Components
         /// </summary>
         private static int CalculateCurrentTick(TimeSpan realTime, Chart chart)
         {
-            // ✨ 核心修复 1
+            // 积分计算
             double exactTick = TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, chart.InitialBpm); 
             double absoluteTick = exactTick + chart.Offset;
 
@@ -166,7 +167,13 @@ namespace Axphi.Components
 
         private static void RenderProgress(DrawingContext drawingContext, RenderInfo renderInfo, double progress)
         {
-            drawingContext.DrawRectangle(_progressWhite, null, new Rect(0, renderInfo.CanvasHeight - 4, renderInfo.CanvasWidth * progress, 4));
+            double height = renderInfo.CanvasHeight / 90;                   // 12 / 1080
+            double headWidth = renderInfo.CanvasHeight / 360;               // 3 / 1080
+            double progressPixel = renderInfo.CanvasWidth * progress;
+            double progressPixelForHead = progressPixel * (1923.0 / 1920.0);
+            
+            drawingContext.DrawRectangle(_progressWhite, null, new Rect(0, 0, progressPixel, height));
+            drawingContext.DrawRectangle(_progressHeadWhite, null, new Rect(progressPixelForHead - headWidth, 0, headWidth, height));
         }
 
         private static void RenderBpmLines(DrawingContext drawingContext, RenderInfo renderInfo)

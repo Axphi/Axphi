@@ -11,7 +11,7 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
-namespace Axphi.WindowsComponents.MainWindow
+namespace Axphi.Views
 {
     public partial class ChartDisplay : UserControl
     {

@@ -5,7 +5,6 @@
     xmlns:comp="clr-namespace:Axphi.Components"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Axphi"
-    xmlns:mainWinComp="clr-namespace:Axphi.WindowsComponents.MainWindow"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ws="https://schemas.elecho.dev/wpfsuite"
     xmlns:v="clr-namespace:Axphi.Views"
@@ -39,7 +38,7 @@
     <ws:WindowContentAdapter>
         <DockPanel>
             <!--  标题栏  -->
-            <mainWinComp:TitleBar DockPanel.Dock="Top" />
+            <v:TitleBar DockPanel.Dock="Top" />
             <!--  核心区域  -->
             <Grid Margin="2">
                 <Grid.RowDefinitions>
@@ -231,7 +230,7 @@
                 <!--  渲染窗口  -->
                 <DockPanel Grid.Row="0" Grid.Column="1">
 
-                    <mainWinComp:ChartDisplay x:Name="MainChartDisplay" />
+                    <v:ChartDisplay x:Name="MainChartDisplay" />
 
                 </DockPanel>
             </Grid>

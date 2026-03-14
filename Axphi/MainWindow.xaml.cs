@@ -16,6 +16,7 @@ using System.Windows.Threading;
 using System.Globalization;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging; // 必须加上这个
+using System.Windows.Controls.Primitives;
 
 
 namespace Axphi;
@@ -28,7 +29,11 @@ public partial class MainWindow : Window
     
     private readonly MainViewModel _mainViewModel;
 
-
+    // 记录框选起点的坐标
+    private Point _marqueeStartPoint;
+    private bool _isMarqueeSelecting = false;
+    // 在类的最上面，声明一个变量来记住画框起手时的按键状态
+    private ModifierKeys _marqueeModifiers = ModifierKeys.None;
     public MainWindow(
         MainViewModel mainViewModel)
     {
@@ -251,6 +256,160 @@ public partial class MainWindow : Window
         if (_wasPlayingBeforeDrag)
         {
             MainChartDisplay.ForcePause();
+        }
+    }
+
+
+
+
+    // ================= 【框选逻辑 1：按下鼠标】 =================
+    private void TimelineMainGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // 🌟 核心修复：防误触终极版！顺藤摸瓜找控件
+        DependencyObject current = e.OriginalSource as DependencyObject;
+        while (current != null && current != TimelineMainGrid)
+        {
+            string typeName = current.GetType().Name;
+
+            // 如果点到了以下任何交互控件，立刻撤退！把事件完整还给它们！
+            if (current is System.Windows.Controls.Primitives.ButtonBase || // 涵盖普通的 Button 和 ToggleButton (下拉箭头)
+                current is System.Windows.Controls.Primitives.ScrollBar ||  // 涵盖滚动条
+                current is System.Windows.Controls.Primitives.Thumb ||      // 涵盖关键帧小菱形、时间轴红色游标
+                current is TextBox ||                                       // 涵盖输入框
+                typeName.Contains("DraggableValueBox"))                     // 涵盖你自定义的数值拖拽框
+            {
+                return; // 直接返回，千万别设 e.Handled = true 
+            }
+
+            // 没找到就继续往上一级父元素找
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        // 记录当前的按键状态，留给等会儿松手时结算用！
+        _marqueeModifiers = Keyboard.Modifiers;
+
+        // 确定点在空白处了，正式开始画框
+        _isMarqueeSelecting = true;
+        _marqueeStartPoint = e.GetPosition(OverlayCanvas);
+
+        Canvas.SetLeft(MarqueeRect, _marqueeStartPoint.X);
+        Canvas.SetTop(MarqueeRect, _marqueeStartPoint.Y);
+        MarqueeRect.Width = 0;
+        MarqueeRect.Height = 0;
+        MarqueeRect.Visibility = Visibility.Visible;
+
+        TimelineMainGrid.CaptureMouse();
+        e.Handled = true; // 拦截事件，专心画框
+    }
+
+    // ================= 【框选逻辑 2：拖动鼠标】 =================
+    private void TimelineMainGrid_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isMarqueeSelecting) return;
+
+        // 获取当前鼠标位置
+        Point currentPoint = e.GetPosition(OverlayCanvas);
+
+        // 永远取起点和当前点之间最小的作为左上角坐标（完美支持向四个方向拖拽）
+        double x = Math.Min(_marqueeStartPoint.X, currentPoint.X);
+        double y = Math.Min(_marqueeStartPoint.Y, currentPoint.Y);
+        double width = Math.Abs(_marqueeStartPoint.X - currentPoint.X);
+        double height = Math.Abs(_marqueeStartPoint.Y - currentPoint.Y);
+
+        // 实时更新框的位置和大小
+        Canvas.SetLeft(MarqueeRect, x);
+        Canvas.SetTop(MarqueeRect, y);
+        MarqueeRect.Width = width;
+        MarqueeRect.Height = height;
+    }
+
+    // ================= 【框选逻辑 3：松开鼠标并结算】 =================
+    private void TimelineMainGrid_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isMarqueeSelecting) return;
+
+        _isMarqueeSelecting = false;
+        TimelineMainGrid.ReleaseMouseCapture();
+        MarqueeRect.Visibility = Visibility.Collapsed;
+
+        // 🌟 超级细节：如果只是在空白处单纯“点”了一下（宽和高都是 0），且没按修饰键
+        if (MarqueeRect.Width == 0 || MarqueeRect.Height == 0)
+        {
+            if (_marqueeModifiers == ModifierKeys.None)
+            {
+                // 发大喇叭：让全场所有关键帧都暗下去！(传 null 代表没人有免死金牌)
+                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
+            }
+            return;
+        }
+
+        // ================= 终极模式结算 =================
+
+        // 1. 如果什么修饰键都没按（排他框选）：先发广播，清空全场所有选中状态！
+        if (_marqueeModifiers == ModifierKeys.None)
+        {
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
+        }
+
+        GeneralTransform marqueeTransform = MarqueeRect.TransformToAncestor(TimelineMainGrid);
+        Rect marqueeBounds = marqueeTransform.TransformBounds(new Rect(0, 0, MarqueeRect.Width, MarqueeRect.Height));
+
+        var allThumbs = FindVisualChildren<Thumb>(TimelineMainGrid);
+
+        foreach (var thumb in allThumbs)
+        {
+            if (thumb.DataContext != null && thumb.DataContext.GetType().Name.Contains("KeyFrameUIWrapper"))
+            {
+                try
+                {
+                    GeneralTransform transform = thumb.TransformToAncestor(TimelineMainGrid);
+                    Rect thumbBounds = transform.TransformBounds(new Rect(0, 0, thumb.ActualWidth, thumb.ActualHeight));
+
+                    // 2. 灵魂相交判定！
+                    if (marqueeBounds.IntersectsWith(thumbBounds))
+                    {
+                        dynamic wrapper = thumb.DataContext;
+
+                        // 3. 根据起手时的修饰键，执行不同的命运
+                        if (_marqueeModifiers.HasFlag(ModifierKeys.Control))
+                        {
+                            // Ctrl 框选：取反 (Toggle)
+                            wrapper.IsSelected = !wrapper.IsSelected;
+                        }
+                        else if (_marqueeModifiers.HasFlag(ModifierKeys.Shift))
+                        {
+                            // Shift 框选：纯加选 (Add)
+                            wrapper.IsSelected = true;
+                        }
+                        else
+                        {
+                            // 普通框选 (None)：因为前面已经清空了全场，这里直接点亮即可 (排他)
+                            wrapper.IsSelected = true;
+                        }
+                    }
+                }
+                catch
+                {
+                    // 防止虚拟化控件报错
+                }
+            }
+        }
+    }
+
+    // ================= 【工具：递归查找视觉子元素】 =================
+    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
+    {
+        if (depObj == null) yield break;
+
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
+
+            if (child is T t)
+                yield return t;
+
+            foreach (T childOfChild in FindVisualChildren<T>(child))
+                yield return childOfChild;
         }
     }
 

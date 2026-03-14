@@ -27,4 +27,10 @@ namespace Axphi.ViewModels
 
     // 告诉全网：我被选中了，这是我的缓动参数！
     public record class KeyframeSelectedMessage(BezierEasing Easing);
+
+    
+    // 告诉全网：请取消选中！
+    // GroupName 用于区分当前是在操作谁（比如 "Keyframes" 还是 "JudgementLines"）
+    // SenderToIgnore 用于保护自己（发信人自己不要被取消选中）
+    public record class ClearSelectionMessage(string GroupName, object SenderToIgnore);
 }

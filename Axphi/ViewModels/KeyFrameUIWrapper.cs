@@ -1,7 +1,9 @@
 ﻿using Axphi.Data.KeyFrames;
+using Axphi.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using System.Windows.Input;
 
 namespace Axphi.ViewModels
 {
@@ -28,6 +30,16 @@ namespace Axphi.ViewModels
             {
                 recipient.UpdatePosition();
             });
+
+            // ================= 新增：监听清除选中广播 =================
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, ClearSelectionMessage>(this, (recipient, message) =>
+            {
+                // 如果大家都在 "Keyframes" 这个频道，且这封信不是我（自己）发的
+                if (message.GroupName == "Keyframes" && !ReferenceEquals(recipient, message.SenderToIgnore))
+                {
+                    recipient.IsSelected = false; // 乖乖熄灭
+                }
+            });
         }
 
         private void UpdatePosition()
@@ -39,12 +51,8 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void ToggleSelection()
         {
-            // 切换选中状态 (True 变 False，False 变 True)
-            IsSelected = !IsSelected;
-
-            // 进阶提示：如果我们以后要做“单选”功能（点这个，其他自动取消），
-            // 可以在这里发一个 Messenger 广播，让别的保镖把自己的 IsSelected 改成 false。
-            // 目前我们先保持最简单的“点击反转”。
+            // 直接白嫖刚刚写的帮助类！
+            SelectionHelper.HandleSelection("Keyframes", this, IsSelected, val => IsSelected = val);
         }
 
 
@@ -61,10 +69,12 @@ namespace Axphi.ViewModels
             _dragAccumulated = 0; // 拖拽距离清零
             _wasSelectedBeforeDrag = IsSelected; // 记住按下前的状态
 
-            // 🌟 智能判定 1：如果没被选中，按下的瞬间立刻点亮它！
+            // 如果没被选中，按下的瞬间立刻点亮它！
+            // 如果按下的是一个【尚未选中】的关键帧
             if (!IsSelected)
             {
-                IsSelected = true;
+                // 走标准的多选/单选逻辑
+                SelectionHelper.HandleSelection("Keyframes", this, IsSelected, val => IsSelected = val);
             }
         }
 
@@ -91,11 +101,26 @@ namespace Axphi.ViewModels
 
         public void OnDragCompleted()
         {
-            // 🌟 智能判定 2：如果按下去之前它就是蓝色的，而且我们松手时根本没挪动鼠标（位移小于 2 像素防手抖）
-            // 这说明用户的真实意图是：单击取消选中！
+            // 如果按下去之前它就是亮的，并且完全没拖动（位移<2，是个纯点击）
             if (_wasSelectedBeforeDrag && _dragAccumulated < 2.0)
             {
-                IsSelected = false;
+                bool isCtrlDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+                bool isShiftDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+
+                if (isCtrlDown)
+                {
+                    IsSelected = false; // Ctrl + 单击已选中的帧：取消选中
+                }
+                else if (isShiftDown)
+                {
+                    IsSelected = true;  // Shift + 单击已选中的帧：保持加选状态
+                }
+                else
+                {
+                    // 什么都没按 + 单击已选中的帧：独占选中！（排他）
+                    WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", this));
+                    IsSelected = true;
+                }
             }
 
             UpdatePosition();

@@ -92,11 +92,14 @@ namespace Axphi.ViewModels
 
             WeakReferenceMessenger.Default.Register<TrackViewModel, KeyframesNeedSortMessage>(this, (r, m) =>
             {
-                // 只要松手，就把四个轨道的底层 List 强制按时间重排一遍！
-                r.Data.AnimatableProperties.Offset.KeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
-                r.Data.AnimatableProperties.Scale.KeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
-                r.Data.AnimatableProperties.Rotation.KeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
-                r.Data.AnimatableProperties.Opacity.KeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
+                // 只要松手，就把四个轨道的底层 List 强制按时间重排，并把撞车的关键帧直接吞噬！
+                r.SortAndMergeDuplicates(r.Data.AnimatableProperties.Offset.KeyFrames, r.UIOffsetKeyframes);
+                r.SortAndMergeDuplicates(r.Data.AnimatableProperties.Scale.KeyFrames, r.UIScaleKeyframes);
+                r.SortAndMergeDuplicates(r.Data.AnimatableProperties.Rotation.KeyFrames, r.UIRotationKeyframes);
+                r.SortAndMergeDuplicates(r.Data.AnimatableProperties.Opacity.KeyFrames, r.UIOpacityKeyframes);
+
+                // 杀完人后，通知右侧渲染器和左侧面板重新加载一次画面，防残留！
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             });
         }
 
@@ -338,6 +341,55 @@ namespace Axphi.ViewModels
             CurrentOpacity = opacity;
 
             _isSyncing = false; // 放下免死金牌
+        }
+
+
+        // 🌟 核心修复：引入了 TKeyFrame 泛型约束
+        private void SortAndMergeDuplicates<T, TKeyFrame>(List<TKeyFrame> dataList, ObservableCollection<KeyFrameUIWrapper<T>> uiList)
+            where T : struct
+            where TKeyFrame : KeyFrame<T> // 告诉编译器，TKeyFrame 肯定是 KeyFrame<T> 的子类
+        {
+            // 1. 先按时间排好队
+            dataList.Sort((a, b) => a.Time.CompareTo(b.Time));
+
+            // 2. 倒序遍历检查碰撞（倒序遍历时删除元素才不会导致索引越界报错）
+            for (int i = dataList.Count - 1; i > 0; i--)
+            {
+                // 发现两辆车撞在同一时间点了！
+                if (dataList[i].Time == dataList[i - 1].Time)
+                {
+                    var modelA = dataList[i - 1];
+                    var modelB = dataList[i];
+
+                    var wrapperA = uiList.FirstOrDefault(w => w.Model == modelA);
+                    var wrapperB = uiList.FirstOrDefault(w => w.Model == modelB);
+
+                    if (wrapperA != null && wrapperB != null)
+                    {
+                        // 核心判定规则：谁是被捏在手里拖过来的（被选中），谁就是赢家！
+                        KeyFrameUIWrapper<T> victim;
+
+                        if (wrapperA.IsSelected && !wrapperB.IsSelected)
+                        {
+                            victim = wrapperB; // A是拖过来的，B被覆盖
+                        }
+                        else if (!wrapperA.IsSelected && wrapperB.IsSelected)
+                        {
+                            victim = wrapperA; // B是拖过来的，A被覆盖
+                        }
+                        else
+                        {
+                            // 万一两个都没选中或者都选中了（极端情况），默认杀掉前面那个
+                            victim = wrapperA;
+                        }
+
+                        // 无情抹杀：从底层数据和 UI 集合中双重删除
+                        // 因为底层 list 要求是确切的子类，所以这里向下转型一下，绝对安全
+                        dataList.Remove((TKeyFrame)victim.Model);
+                        uiList.Remove(victim);
+                    }
+                }
+            }
         }
     }
 }

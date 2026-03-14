@@ -43,7 +43,18 @@ namespace Axphi.ViewModels
             
             FileActions = fileActionsViewModel;
             Timeline = timelineViewModel;
-            
+
+            // ================= 新增：监听关键帧被选中的消息 =================
+            WeakReferenceMessenger.Default.Register<MainViewModel, KeyframeSelectedMessage>(this, (recipient, message) =>
+            {
+                // 收到消息后，直接修改 BezierViewModel 的值
+                // 由于你在 XAML 里写了 BindsTwoWayByDefault，界面会自动更新！
+                recipient.BezierViewModel.X1 = message.Easing.X1;
+                recipient.BezierViewModel.Y1 = message.Easing.Y1;
+                recipient.BezierViewModel.X2 = message.Easing.X2;
+                recipient.BezierViewModel.Y2 = message.Easing.Y2;
+            });
+
 
         }
         [RelayCommand]

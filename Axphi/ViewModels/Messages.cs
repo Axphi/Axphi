@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axphi.Data;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -23,4 +24,7 @@ namespace Axphi.ViewModels
 
     // 告诉所有轨道：有人挪动了关键帧，请重新把底层 List 按时间排序！
     public record class KeyframesNeedSortMessage();
+
+    // 告诉全网：我被选中了，这是我的缓动参数！
+    public record class KeyframeSelectedMessage(BezierEasing Easing);
 }

@@ -67,5 +67,72 @@ namespace Axphi.ViewModels
             WeakReferenceMessenger.Default.Send(new ProjectLoadedMessage());
         }
 
+        [RelayCommand]
+        private void ApplyBezierToSelected()
+        {
+            // 1. 抓取当前 BezierCurveEditor 里的 4 个参数，实例化一个干净的底层结构体
+            var newEasing = new BezierEasing(
+                BezierViewModel.X1,
+                BezierViewModel.Y1,
+                BezierViewModel.X2,
+                BezierViewModel.Y2
+            );
+
+            bool hasModified = false;
+
+            // 2. 扫荡 BPM 轨道
+            if (Timeline.BpmTrack != null)
+            {
+                var selectedBpm = Timeline.BpmTrack.UIBpmKeyframes.Where(k => k.IsSelected);
+                foreach (var wrapper in selectedBpm)
+                {
+                    wrapper.Model.Easing = newEasing; // 直接修改底层纯净数据
+                    hasModified = true;
+                }
+            }
+
+            // 3. 扫荡所有判定线图层
+            foreach (var track in Timeline.Tracks)
+            {
+                // Offset
+                foreach (var wrapper in track.UIOffsetKeyframes.Where(k => k.IsSelected))
+                {
+                    wrapper.Model.Easing = newEasing;
+                    hasModified = true;
+                }
+
+                // Scale
+                foreach (var wrapper in track.UIScaleKeyframes.Where(k => k.IsSelected))
+                {
+                    wrapper.Model.Easing = newEasing;
+                    hasModified = true;
+                }
+
+                // Rotation
+                foreach (var wrapper in track.UIRotationKeyframes.Where(k => k.IsSelected))
+                {
+                    wrapper.Model.Easing = newEasing;
+                    hasModified = true;
+                }
+
+                // Opacity
+                foreach (var wrapper in track.UIOpacityKeyframes.Where(k => k.IsSelected))
+                {
+                    wrapper.Model.Easing = newEasing;
+                    hasModified = true;
+                }
+            }
+
+            // 4. 如果确实修改了数据，发信让右侧播放器/渲染器重绘！
+            if (hasModified)
+            {
+                // 强制暂停一下，防止渲染器一边算一边改导致数值抖动
+                WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+
+                // 通知渲染器重绘画面
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+        }
+
     }
 }

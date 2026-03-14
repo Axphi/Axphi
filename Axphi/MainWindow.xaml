@@ -92,8 +92,12 @@
                                     NumberFormat="0.00"
                                     Value="{Binding BezierViewModel.Y2}" />
                             </StackPanel>
+                            <ws:Button
+                                    Margin="0,15,0,0"
+                                    Padding="20,5"
+                                    Content="Apply to Selected"
+                                    Command="{Binding ApplyBezierToSelectedCommand}" />
                         </StackPanel>
-
                     </Grid>
                 </comp:TabPane>
 

@@ -20,7 +20,7 @@
                 </ws:MenuItem>
                 <ws:MenuItem Header="Debugging">
                     <ws:MenuItem Command="{Binding LoadDemoChartCommand}" Header="Load demo chart" />
-                    <ws:MenuItem Command="{Binding LoadDemoChart2Command}" Header="Load demo chart" />
+                    <ws:MenuItem Command="{Binding LoadDemoChart2Command}" Header="Load demo chart 2" />
                 </ws:MenuItem>
             </ws:Menu>
         </StackPanel>

@@ -198,7 +198,10 @@ namespace Axphi.Components
             drawingContext.PushTransform(transform);
             drawingContext.PushOpacity(opacity);
 
-            drawingContext.DrawRectangle(_lineYellow, null, new Rect(-renderInfo.CanvasWidth / 2, -2, renderInfo.CanvasWidth, 4));
+            double lineLength = renderInfo.CanvasHeight * 5.76;
+            double thickness = renderInfo.CanvasHeight * 0.0075;
+            
+            drawingContext.DrawRectangle(_lineYellow, null, new Rect(-renderInfo.CanvasWidth / 2, -thickness / 2, lineLength, thickness));
 
             if (line.Notes is { } notes)
             {

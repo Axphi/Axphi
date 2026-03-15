@@ -340,6 +340,9 @@ public partial class MainWindow : Window
             {
                 // 发大喇叭：让全场所有关键帧都暗下去！(传 null 代表没人有免死金牌)
                 WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
+
+                // 2. 🌟 新增：清空所有音符（取消选中音符本体）
+                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
             }
             return;
         }
@@ -350,6 +353,8 @@ public partial class MainWindow : Window
         if (_marqueeModifiers == ModifierKeys.None)
         {
             WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
+            // 2. 🌟 新增：清空所有音符（取消选中音符本体）
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
         }
 
         GeneralTransform marqueeTransform = MarqueeRect.TransformToAncestor(TimelineMainGrid);
@@ -359,7 +364,9 @@ public partial class MainWindow : Window
 
         foreach (var thumb in allThumbs)
         {
-            if (thumb.DataContext != null && thumb.DataContext.GetType().Name.Contains("KeyFrameUIWrapper"))
+            if (thumb.DataContext != null && 
+                thumb.DataContext.GetType().Name.Contains("KeyFrameUIWrapper") ||
+                thumb.DataContext is Axphi.ViewModels.NoteViewModel)
             {
                 try
                 {

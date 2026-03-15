@@ -62,7 +62,9 @@ namespace Axphi.ViewModels
         private double _currentRotation;
 
         [ObservableProperty]
-        private double _currentOpacity = 1.0; // 默认透明度给 1
+        private double _currentOpacity = 100.0; // 默认透明度给 100
+
+        
 
         // ================= 4. 构造函数 =================
         public TrackViewModel(JudgementLine data, string name,TimelineViewModel timeline)
@@ -89,6 +91,22 @@ namespace Axphi.ViewModels
             if (Data.AnimatableProperties.Opacity.KeyFrames != null)
                 foreach (var kf in Data.AnimatableProperties.Opacity.KeyFrames)
                     UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
+
+
+
+
+
+            // 构造时，把底层判定线里带的音符全部转化为 NoteViewModel 塞进集合
+            if (Data.Notes != null)
+            {
+                foreach (var note in Data.Notes)
+                {
+                    UINotes.Add(new NoteViewModel(note, _timeline));
+                }
+            }
+                
+
+            
 
             WeakReferenceMessenger.Default.Register<TrackViewModel, KeyframesNeedSortMessage>(this, (r, m) =>
             {
@@ -391,6 +409,33 @@ namespace Axphi.ViewModels
                 }
             }
         }
+
+
+
+
+
+
+
+
+        [ObservableProperty]
+        private bool _isNoteExpanded; // 记录 note 的属性面板是否展开（v 和 >）
+
+        // ================= 新增：音符管理 =================
+        // 专门装 NoteViewModel 的集合！
+        public ObservableCollection<NoteViewModel> UINotes { get; } = new();
+
+        // 记录当前选中的是哪个音符，方便 XAML 右侧属性面板绑定！
+        [ObservableProperty]
+        private NoteViewModel? _selectedNote;
+
+
+
+
+
+
+
     }
+
+
 }
 

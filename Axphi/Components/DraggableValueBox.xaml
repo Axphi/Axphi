@@ -16,14 +16,14 @@
     </UserControl.Resources>
 
     <Grid Name="Container" Background="Transparent"
-                    Cursor="SizeWE"
-                    MouseLeftButtonDown="Number_MouseDown"
-                    MouseLeftButtonUp="Number_MouseUp"
-                    MouseMove="Number_MouseMove">
+          Cursor="SizeWE"
+          MouseLeftButtonDown="Number_MouseDown"
+          MouseLeftButtonUp="Number_MouseUp"
+          MouseMove="Number_MouseMove">
         <Border x:Name="HoverBorder"
                 Background="Transparent"
                 CornerRadius="2"
-                Padding="2, 1">
+                Padding="2,1">
             <Grid>
                 <TextBlock Text="{Binding DisplayText, ElementName=Root}"
                            Foreground="#007ACC"
@@ -51,8 +51,8 @@
                 <BeginStoryboard>
                     <Storyboard>
                         <ColorAnimation Storyboard.TargetName="HoverBorder"
-                                     Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                     To="#33FFFFFF" Duration="0:0:0.1" />
+                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                        To="#33FFFFFF" Duration="0:0:0.1" />
                     </Storyboard>
                 </BeginStoryboard>
             </EventTrigger>
@@ -60,8 +60,8 @@
                 <BeginStoryboard>
                     <Storyboard>
                         <ColorAnimation Storyboard.TargetName="HoverBorder"
-                                     Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                     To="Transparent" Duration="0:0:0.1" />
+                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                        To="Transparent" Duration="0:0:0.1" />
                     </Storyboard>
                 </BeginStoryboard>
             </EventTrigger>

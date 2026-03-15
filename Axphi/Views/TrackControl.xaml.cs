@@ -86,5 +86,41 @@ namespace Axphi.Views
                 wrapper.OnDragCompleted();
             }
         }
+
+        private void NoteThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            Debug.WriteLine("NoteThumb_DragStarted 被调用");
+
+            // 直接强转为 NoteViewModel，比 dynamic 更安全高效！
+            if (sender is FrameworkElement fe && fe.DataContext is NoteViewModel noteVM)
+            {
+                // ⭐ 核心重点：告诉外层的 Track 大管家，现在选中的是这个音符！
+                // 这样左侧的 Note 属性面板就会瞬间绑定到这个音符的数据上
+                if (this.DataContext is TrackViewModel trackVM)
+                {
+                    trackVM.SelectedNote = noteVM;
+                }
+
+                // 调用 NoteViewModel 内部的拖拽起手式
+                noteVM.OnDragStarted();
+            }
+        }
+
+        private void NoteThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is NoteViewModel noteVM)
+            {
+                // 把鼠标的位移量传给 ViewModel 让它自己算时间去
+                noteVM.OnDragDelta(e.HorizontalChange);
+            }
+        }
+
+        private void NoteThumb_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is NoteViewModel noteVM)
+            {
+                noteVM.OnDragCompleted();
+            }
+        }
     }
 }

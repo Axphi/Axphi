@@ -179,6 +179,9 @@ namespace Axphi.ViewModels
                 {
                     // 普通单击：排他选中自己
                     WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", this));
+
+                    // 2. 🌟 新增：清空所有音符（取消选中音符本体）
+                    WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
                     IsSelected = true;
                 }
             }

@@ -1,0 +1,453 @@
+﻿using Axphi.Data;
+using Axphi.Data.KeyFrames;
+using Axphi.Utilities;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows;
+using System.Windows.Input;
+
+namespace Axphi.ViewModels
+{
+    public partial class NoteViewModel : ObservableObject
+    {
+        public Note Model { get; }
+        private readonly TimelineViewModel _timeline;
+
+        private bool _isSyncing = false; // 免死金牌
+
+
+        // ================= 1. 音符的基础属性 (与底层 Model 双向绑定) =================
+        public string NoteName
+        {
+            get => Model.Name;
+            set => SetProperty(Model.Name, value, Model, (m, v) => m.Name = v);
+        }
+
+        public NoteKind NoteKind
+        {
+            get => Model.Kind;
+            set => SetProperty(Model.Kind, value, Model, (m, v) => m.Kind = v);
+        }
+
+        public int HitTime
+        {
+            get => Model.HitTime;
+            set
+            {
+                if (SetProperty(Model.HitTime, value, Model, (m, v) => m.HitTime = v))
+                {
+                    UpdatePosition(); // 时间改变时，同步更新 UI 位置
+                }
+            }
+        }
+
+        // ================= 2. 纯 UI 状态 =================
+        [ObservableProperty]
+        private bool _isSelected;
+
+        [ObservableProperty]
+        private bool _isExpanded; // 音符的属性面板是否展开
+
+        [ObservableProperty]
+        private double _pixelX;
+
+        // ================= 3. 音符【专属】的动画 UI 替身集合 =================
+        public ObservableCollection<KeyFrameUIWrapper<Vector>> UIOffsetKeyframes { get; } = new();
+        public ObservableCollection<KeyFrameUIWrapper<Vector>> UIScaleKeyframes { get; } = new();
+        public ObservableCollection<KeyFrameUIWrapper<double>> UIRotationKeyframes { get; } = new();
+        public ObservableCollection<KeyFrameUIWrapper<double>> UIOpacityKeyframes { get; } = new();
+
+        // ================= 4. 供 XAML 绑定的【音符专属】当前数值 =================
+        [ObservableProperty] private double _currentOffsetX;
+        [ObservableProperty] private double _currentOffsetY;
+        [ObservableProperty] private double _currentScaleX = 1.0;
+        [ObservableProperty] private double _currentScaleY = 1.0;
+        [ObservableProperty] private double _currentRotation;
+        [ObservableProperty] private double _currentOpacity = 100.0;
+
+        // 构造函数
+        public NoteViewModel(Note model, TimelineViewModel timeline)
+        {
+            Model = model;
+            _timeline = timeline;
+            UpdatePosition();
+
+            // === 把底层已有的数据全部包上保镖 ===
+            if (Model.AnimatableProperties.Offset.KeyFrames != null)
+                foreach (var kf in Model.AnimatableProperties.Offset.KeyFrames)
+                    UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline));
+
+            if (Model.AnimatableProperties.Scale.KeyFrames != null)
+                foreach (var kf in Model.AnimatableProperties.Scale.KeyFrames)
+                    UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline));
+
+            if (Model.AnimatableProperties.Rotation.KeyFrames != null)
+                foreach (var kf in Model.AnimatableProperties.Rotation.KeyFrames)
+                    UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
+
+            if (Model.AnimatableProperties.Opacity.KeyFrames != null)
+                foreach (var kf in Model.AnimatableProperties.Opacity.KeyFrames)
+                    UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
+
+            // TODO: 这里可以保留我们之前写的接收 NotesDragStartedMessage 等拖拽逻辑
+
+
+            // ================= 监听协同拖拽广播 =================
+            // 收到起手式：如果是被选中的，且不是自己发起的，就准备跟着动！
+            WeakReferenceMessenger.Default.Register<NoteViewModel, NotesDragStartedMessage>(this, (r, m) =>
+            {
+                if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragStarted();
+            });
+
+            // 收到位移量：跟着挪动！
+            WeakReferenceMessenger.Default.Register<NoteViewModel, NotesDragDeltaMessage>(this, (r, m) =>
+            {
+                if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragDelta(m.HorizontalChange);
+            });
+
+            // 收到收尾：更新最终位置
+            WeakReferenceMessenger.Default.Register<NoteViewModel, NotesDragCompletedMessage>(this, (r, m) =>
+            {
+                // 别人发起的，传 false
+                if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragCompleted(false);
+            });
+
+            // 监听清除选中广播
+            WeakReferenceMessenger.Default.Register<NoteViewModel, ClearSelectionMessage>(this, (recipient, message) =>
+            {
+                if (message.GroupName == "Notes" && !ReferenceEquals(recipient, message.SenderToIgnore))
+                {
+                    recipient.IsSelected = false; // 乖乖熄灭
+                }
+            });
+        }
+
+        private void UpdatePosition()
+        {
+            PixelX = _timeline.TickToPixel(Model.HitTime);
+        }
+
+        // ================= 5. 核心拦截器 (当你在面板上拖拽音符的属性时触发) =================
+        partial void OnCurrentOffsetXChanged(double value)
+        {
+            if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            if (Model.AnimatableProperties.Offset.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Offset.InitialValue = new Vector(CurrentOffsetX, CurrentOffsetY);
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else AddPositionKeyframe();
+        }
+
+        partial void OnCurrentOffsetYChanged(double value)
+        {
+            if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            if (Model.AnimatableProperties.Offset.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Offset.InitialValue = new Vector(CurrentOffsetX, CurrentOffsetY);
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else AddPositionKeyframe();
+        }
+
+        partial void OnCurrentScaleXChanged(double value)
+        {
+            if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            if (Model.AnimatableProperties.Scale.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Scale.InitialValue = new Vector(CurrentScaleX, CurrentScaleY);
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else AddScaleKeyframe();
+        }
+
+        partial void OnCurrentScaleYChanged(double value)
+        {
+            if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            if (Model.AnimatableProperties.Scale.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Scale.InitialValue = new Vector(CurrentScaleX, CurrentScaleY);
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else AddScaleKeyframe();
+        }
+
+        partial void OnCurrentRotationChanged(double value)
+        {
+            if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            if (Model.AnimatableProperties.Rotation.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Rotation.InitialValue = CurrentRotation;
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else AddRotationKeyframe();
+        }
+        partial void OnCurrentOpacityChanged(double value)
+        {
+            if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            if (Model.AnimatableProperties.Opacity.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Opacity.InitialValue = CurrentOpacity;
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else AddOpacityKeyframe();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // ... (Scale, Rotation, Opacity 的拦截器和 AddKeyframe 逻辑与 TrackVM 完全一样，只是把 Data 换成 Model，这里为了简洁略过重复代码，你直接粘贴过来改名即可) ...
+
+        [RelayCommand]
+        private void AddPositionKeyframe()
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var offsetKeyframesData = Model.AnimatableProperties.Offset.KeyFrames;
+            var existingWrapper = UIOffsetKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = new Vector(CurrentOffsetX, CurrentOffsetY);
+            }
+            else
+            {
+                var newFrame = new OffsetKeyFrame() { Time = currentTick, Value = new Vector(CurrentOffsetX, CurrentOffsetY) };
+                offsetKeyframesData.Add(newFrame);
+                offsetKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
+            }
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        [RelayCommand]
+        private void AddScaleKeyframe()
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var scaleKeyframesData = Model.AnimatableProperties.Scale.KeyFrames;
+            var existingWrapper = UIScaleKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = new Vector(CurrentScaleX, CurrentScaleY);
+            }
+            else
+            {
+                var newFrame = new ScaleKeyFrame() { Time = currentTick, Value = new Vector(CurrentScaleX, CurrentScaleY) };
+                scaleKeyframesData.Add(newFrame);
+                scaleKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
+            }
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+        [RelayCommand]
+        private void AddRotationKeyframe()
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var rotationKeyframesData = Model.AnimatableProperties.Rotation.KeyFrames;
+            var existingWrapper = UIRotationKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = CurrentRotation;
+            }
+            else
+            {
+                var newFrame = new RotationKeyFrame() { Time = currentTick, Value = CurrentRotation };
+                rotationKeyframesData.Add(newFrame);
+                rotationKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
+            }
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+        [RelayCommand]
+        private void AddOpacityKeyframe()
+            {
+            int currentTick = _timeline.GetCurrentTick();
+            var opacityKeyframesData = Model.AnimatableProperties.Opacity.KeyFrames;
+            var existingWrapper = UIOpacityKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = CurrentOpacity;
+            }
+            else
+            {
+                var newFrame = new OpacityKeyFrame() { Time = currentTick, Value = CurrentOpacity };
+                opacityKeyframesData.Add(newFrame);
+                opacityKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
+            }
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        // 给大管家调用的同步方法
+        public void SyncValuesToTime(int currentTick, KeyFrameEasingDirection direction)
+        {
+            _isSyncing = true;
+            EasingUtils.CalculateObjectTransform(
+                currentTick, direction, Model.AnimatableProperties,
+                out var offset, out var scale, out var rotationAngle, out var opacity);
+
+            CurrentOffsetX = offset.X;
+            CurrentOffsetY = offset.Y;
+            CurrentScaleX = scale.X;
+            CurrentScaleY = scale.Y;
+            CurrentRotation = rotationAngle;
+            CurrentOpacity = opacity;
+            _isSyncing = false;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // =======================================================
+        // ================= 拖拽与多选核心逻辑 =================
+        // =======================================================
+
+        // 声明三个临时变量，用来记录拖拽轨迹
+        private double _virtualPixelX;
+        private double _dragAccumulated; // 记录鼠标到底挪动了多少距离
+        private bool _wasSelectedBeforeDrag; // 记录按下鼠标前，它是不是已经被选中了
+
+        // ====== 发起端：由 XAML 中的 Thumb 拖拽事件直接调用 ======
+
+        public void OnDragStarted()
+        {
+            // 自己做好准备
+            ReceiveDragStarted();
+
+            // 如果按下的是一个【尚未选中】的音符
+            if (!IsSelected)
+            {
+                // 走标准的多选/单选逻辑 (注意频道是 "Notes")
+                SelectionHelper.HandleSelection("Notes", this, IsSelected, val => IsSelected = val);
+            }
+
+            // 如果此时我是亮着的（选中状态），大喊一声：兄弟们，准备发车！
+            if (IsSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new NotesDragStartedMessage(this));
+            }
+        }
+
+        public void OnDragDelta(double horizontalChange)
+        {
+            // 如果我被选中了，把位移量发给兄弟们
+            if (IsSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new NotesDragDeltaMessage(horizontalChange, this));
+            }
+
+            // 自己挪动
+            ReceiveDragDelta(horizontalChange);
+        }
+
+        public void OnDragCompleted()
+        {
+            if (IsSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new NotesDragCompletedMessage(this));
+            }
+
+            // 自己收尾（传 true，表示我是被鼠标直接捏住的那个“带头大哥”）
+            ReceiveDragCompleted(true);
+        }
+
+        // ====== 接收端：处理实际的数值变化和广播响应 ======
+
+        private void ReceiveDragStarted()
+        {
+            _virtualPixelX = PixelX;
+            _dragAccumulated = 0;
+            _wasSelectedBeforeDrag = IsSelected;
+        }
+
+        private void ReceiveDragDelta(double horizontalChange)
+        {
+            _dragAccumulated += Math.Abs(horizontalChange);
+            _virtualPixelX += horizontalChange;
+
+            // 可以加一个限制，防止音符拖到负数时间
+            if (_virtualPixelX < 0) _virtualPixelX = 0;
+
+            PixelX = _virtualPixelX;
+
+            double exactTick = _timeline.PixelToTick(_virtualPixelX);
+            int newTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
+
+            if (newTick != Model.HitTime)
+            {
+                // 直接修改底层 Model，防止触发 HitTime 的 setter 导致 PixelX 强制吸附回滚
+                Model.HitTime = newTick;
+                // 手动通知 UI 左侧面板里的 HitTime 数值更新
+                OnPropertyChanged(nameof(HitTime));
+
+                // 性能优化提示：这里每一帧都在发重绘广播
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+        }
+
+        private void ReceiveDragCompleted(bool isInitiator)
+        {
+            // 只有被鼠标直接捏住的那个“带头大哥”，才有资格处理单击取消选中的判定
+            if (isInitiator && _wasSelectedBeforeDrag && _dragAccumulated < 2.0)
+            {
+                bool isCtrlDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+                bool isShiftDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+
+                if (isCtrlDown)
+                    IsSelected = false; // Ctrl+单击：取消选中自己
+                else if (isShiftDown)
+                    IsSelected = true;  // Shift+单击：保持不变
+                else
+                {
+                    // 普通单击：排他选中自己
+                    WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", this));
+                    IsSelected = true;
+                }
+            }
+
+            // 拖拽松手后，强制吸附对齐到准确的 Tick 像素位置
+            UpdatePosition();
+
+            // 发送音符重排信号，让 TrackViewModel 把底层 Note List 重新按时间排个序
+            WeakReferenceMessenger.Default.Send(new NotesNeedSortMessage());
+        }
+    }
+}

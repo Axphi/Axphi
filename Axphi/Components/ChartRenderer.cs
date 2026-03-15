@@ -203,7 +203,7 @@ namespace Axphi.Components
             };
 
             drawingContext.PushTransform(transform);
-            drawingContext.PushOpacity(opacity);
+            drawingContext.PushOpacity(opacity / 100);
 
             double lineLength = renderInfo.CanvasHeight * 5.76;
             double thickness = renderInfo.CanvasHeight * 0.0075;
@@ -287,7 +287,7 @@ namespace Axphi.Components
             var notePixelHeight = renderInfo.ChartUnitToPixel(0.2);
 
             drawingContext.PushTransform(noteTransform);
-            drawingContext.PushOpacity(opacity);
+            drawingContext.PushOpacity(opacity / 100);
             drawingContext.DrawRectangle(fill, null, new Rect(-notePixelWidth / 2, -notePixelHeight / 2, notePixelWidth, notePixelHeight));
             drawingContext.Pop();
             drawingContext.Pop();

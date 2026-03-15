@@ -18,8 +18,10 @@ namespace Axphi.Data
             Kind = kind;
             HitTime = hitTime;
         }
+        public string ID { get; set; } = Guid.NewGuid().ToString();
 
-        public NoteKind Kind { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public NoteKind Kind { get; set; } = NoteKind.Tap;
         public int HitTime { get; set; }
         public int HoldDuration { get; set; }
         public double? CustomSpeed { get; set; }

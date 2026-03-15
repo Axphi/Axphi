@@ -24,7 +24,6 @@ namespace Axphi.ViewModels
 
     // 告诉所有轨道：有人挪动了关键帧，请重新把底层 List 按时间排序！
     public record class KeyframesNeedSortMessage();
- 
     
     // 告诉全网：请取消选中！
     // GroupName 用于区分当前是在操作谁（比如 "Keyframes" 还是 "JudgementLines"）
@@ -39,4 +38,20 @@ namespace Axphi.ViewModels
 
     // 拖拽结束的收尾
     public record class KeyframesDragCompletedMessage(object SenderToIgnore);
+
+
+
+
+    // 开始拖拽的起手式 (Note)
+    public record class NotesDragStartedMessage(object SenderToIgnore);
+
+    // 拖拽过程中的位移量广播 (Note)
+    public record class NotesDragDeltaMessage(double HorizontalChange, object SenderToIgnore);
+
+    // 拖拽结束的收尾 (Note)
+    public record class NotesDragCompletedMessage(object SenderToIgnore);
+
+    // 告诉所有轨道：有人挪动了音符，请重新把底层 List 按时间排序！(Note)
+    public record class NotesNeedSortMessage();
+
 }

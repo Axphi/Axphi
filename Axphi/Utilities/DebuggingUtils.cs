@@ -250,7 +250,7 @@ namespace Axphi.Utilities
                         {
 
                             new Note(NoteKind.Tap, SecToTick(1)),
-                            new Note(NoteKind.Tap, SecToTick(2)),
+                            new Note(NoteKind.Drag, SecToTick(2)),
                             new Note(NoteKind.Tap, SecToTick(3))
                             {
                                 AnimatableProperties =

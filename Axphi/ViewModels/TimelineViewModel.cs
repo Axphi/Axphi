@@ -69,6 +69,12 @@ namespace Axphi.ViewModels
             foreach (var track in Tracks)
             {
                 track.SyncValuesToTime(currentTick, easingDirection);
+
+                // 让该轨道下的所有音符也同步它们的属性数值（这样选中音符时，面板里的数字才会跟着时间轴动！）
+                foreach (var note in track.UINotes)
+                {
+                    note.SyncValuesToTime(currentTick, easingDirection);
+                }
             }
         }
 
@@ -101,6 +107,8 @@ namespace Axphi.ViewModels
 
         // ================= 新增：专供 UI 绑定的轨道视图模型集合 =================
         public ObservableCollection<TrackViewModel> Tracks { get; } = new ObservableCollection<TrackViewModel>();
+        
+
 
         // 构造函数：初始化时，可以先给个空谱面，或者由外部传进来
         public TimelineViewModel(ProjectManager projectManager)
@@ -242,9 +250,10 @@ namespace Axphi.ViewModels
                 }
             }
 
-            // 2. 扫荡所有判定线图层
+            // 2. 扫荡所有判定线图层，以及里面的音符！
             foreach (var track in Tracks)
             {
+                // ================= A. 删判定线自己的关键帧 =================
                 // Position (Offset)
                 var offsetToDelete = track.UIOffsetKeyframes.Where(k => k.IsSelected).ToList();
                 foreach (var wrapper in offsetToDelete)
@@ -253,7 +262,6 @@ namespace Axphi.ViewModels
                     track.UIOffsetKeyframes.Remove(wrapper);
                     hasDeleted = true;
                 }
-
                 // Scale
                 var scaleToDelete = track.UIScaleKeyframes.Where(k => k.IsSelected).ToList();
                 foreach (var wrapper in scaleToDelete)
@@ -262,7 +270,6 @@ namespace Axphi.ViewModels
                     track.UIScaleKeyframes.Remove(wrapper);
                     hasDeleted = true;
                 }
-
                 // Rotation
                 var rotationToDelete = track.UIRotationKeyframes.Where(k => k.IsSelected).ToList();
                 foreach (var wrapper in rotationToDelete)
@@ -271,7 +278,6 @@ namespace Axphi.ViewModels
                     track.UIRotationKeyframes.Remove(wrapper);
                     hasDeleted = true;
                 }
-
                 // Opacity
                 var opacityToDelete = track.UIOpacityKeyframes.Where(k => k.IsSelected).ToList();
                 foreach (var wrapper in opacityToDelete)
@@ -280,7 +286,45 @@ namespace Axphi.ViewModels
                     track.UIOpacityKeyframes.Remove(wrapper);
                     hasDeleted = true;
                 }
+
+                // ================= B. 删音符自己的关键帧 =================
+                foreach (var note in track.UINotes)
+                {
+                    // Note Offset
+                    var noteOffsetDel = note.UIOffsetKeyframes.Where(k => k.IsSelected).ToList();
+                    foreach (var wrapper in noteOffsetDel) { note.Model.AnimatableProperties.Offset.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model); note.UIOffsetKeyframes.Remove(wrapper); hasDeleted = true; }
+
+                    // Note Scale
+                    var noteScaleDel = note.UIScaleKeyframes.Where(k => k.IsSelected).ToList();
+                    foreach (var wrapper in noteScaleDel) { note.Model.AnimatableProperties.Scale.KeyFrames.Remove((ScaleKeyFrame)wrapper.Model); note.UIScaleKeyframes.Remove(wrapper); hasDeleted = true; }
+
+                    // Note Rotation
+                    var noteRotDel = note.UIRotationKeyframes.Where(k => k.IsSelected).ToList();
+                    foreach (var wrapper in noteRotDel) { note.Model.AnimatableProperties.Rotation.KeyFrames.Remove((RotationKeyFrame)wrapper.Model); note.UIRotationKeyframes.Remove(wrapper); hasDeleted = true; }
+
+                    // Note Opacity
+                    var noteOpaDel = note.UIOpacityKeyframes.Where(k => k.IsSelected).ToList();
+                    foreach (var wrapper in noteOpaDel) { note.Model.AnimatableProperties.Opacity.KeyFrames.Remove((OpacityKeyFrame)wrapper.Model); note.UIOpacityKeyframes.Remove(wrapper); hasDeleted = true; }
+                }
+
+                // ================= C. 直接删掉被选中的音符本体！ =================
+                var notesToDelete = track.UINotes.Where(n => n.IsSelected).ToList();
+                foreach (var note in notesToDelete)
+                {
+                    track.Data.Notes.Remove(note.Model);
+                    track.UINotes.Remove(note);
+                    hasDeleted = true;
+
+                    // 安全防护：如果删掉的正好是正在属性面板显示的那个音符，把面板清空
+                    if (track.SelectedNote == note)
+                    {
+                        track.SelectedNote = null;
+                    }
+                }
             }
+
+
+
 
             // 3. 善后工作：如果真的删了东西，通知渲染器和左侧面板更新！
             if (hasDeleted)

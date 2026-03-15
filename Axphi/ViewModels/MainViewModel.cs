@@ -92,9 +92,10 @@ namespace Axphi.ViewModels
                 }
             }
 
-            // 3. 扫荡所有判定线图层
+            // 3. 扫荡所有判定线图层，以及里面的音符！
             foreach (var track in Timeline.Tracks)
             {
+                // ================= A. 判定线自己的关键帧 =================
                 // Offset
                 foreach (var wrapper in track.UIOffsetKeyframes.Where(k => k.IsSelected))
                 {
@@ -121,6 +122,38 @@ namespace Axphi.ViewModels
                 {
                     wrapper.Model.Easing = newEasing;
                     hasModified = true;
+                }
+
+                // ================= B. 新增：扫荡音符自己的关键帧 =================
+                foreach (var note in track.UINotes)
+                {
+                    // Note Offset
+                    foreach (var wrapper in note.UIOffsetKeyframes.Where(k => k.IsSelected))
+                    {
+                        wrapper.Model.Easing = newEasing;
+                        hasModified = true;
+                    }
+
+                    // Note Scale
+                    foreach (var wrapper in note.UIScaleKeyframes.Where(k => k.IsSelected))
+                    {
+                        wrapper.Model.Easing = newEasing;
+                        hasModified = true;
+                    }
+
+                    // Note Rotation
+                    foreach (var wrapper in note.UIRotationKeyframes.Where(k => k.IsSelected))
+                    {
+                        wrapper.Model.Easing = newEasing;
+                        hasModified = true;
+                    }
+
+                    // Note Opacity
+                    foreach (var wrapper in note.UIOpacityKeyframes.Where(k => k.IsSelected))
+                    {
+                        wrapper.Model.Easing = newEasing;
+                        hasModified = true;
+                    }
                 }
             }
 

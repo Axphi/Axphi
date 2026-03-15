@@ -16,10 +16,7 @@
     </UserControl.Resources>
 
     <Grid Name="Container" Background="Transparent"
-          Cursor="SizeWE"
-          MouseLeftButtonDown="OnMouseDown"
-          MouseLeftButtonUp="OnMouseUp"
-          MouseMove="OnMouseMove">
+        Cursor="SizeWE">
         <Border x:Name="HoverBorder"
                 Background="Transparent"
                 CornerRadius="2"

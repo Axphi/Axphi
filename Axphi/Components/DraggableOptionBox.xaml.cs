@@ -115,6 +115,10 @@ public partial class DraggableOptionBox : UserControl
     {
         InitializeComponent();
 
+        Container.AddHandler(MouseLeftButtonDownEvent, new MouseButtonEventHandler(OnMouseDown), true);
+        Container.AddHandler(MouseLeftButtonUpEvent, new MouseButtonEventHandler(OnMouseUp), true);
+        Container.AddHandler(MouseMoveEvent, new MouseEventHandler(OnMouseMove), true);
+
         // 像 DraggableValueBox 一样，在 Loaded 时处理初始化逻辑
         Loaded += (_, _) =>
         {
@@ -153,6 +157,10 @@ public partial class DraggableOptionBox : UserControl
     // --- 交互逻辑：鼠标按下 ---
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
+        if (e.ChangedButton != MouseButton.Left)
+        {
+            return;
+        }
 
         IsDragging = true;
 
@@ -170,8 +178,7 @@ public partial class DraggableOptionBox : UserControl
 
         Mouse.OverrideCursor = Cursors.SizeWE;
         Container.CaptureMouse();
-
-        
+        e.Handled = true;
     }
 
     // --- 交互逻辑：鼠标拖动 ---
@@ -242,12 +249,14 @@ public partial class DraggableOptionBox : UserControl
             SetCursorPos((int)newPos.X, (int)newPos.Y);
             _lastDragScreenPos = newPos;
         }
+
+        e.Handled = true;
     }
 
     // --- 交互逻辑：鼠标抬起 ---
     private void OnMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (!IsDragging) return;
+        if (e.ChangedButton != MouseButton.Left || !IsDragging) return;
 
         IsDragging = false;
         Container.ReleaseMouseCapture();
@@ -259,7 +268,7 @@ public partial class DraggableOptionBox : UserControl
             OptionsPopup.IsOpen = true;
         }
 
-        
+        e.Handled = true;
     }
 
     // --- 选项切换核心逻辑 ---

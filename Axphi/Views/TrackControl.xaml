@@ -218,7 +218,7 @@
                                     <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
                                 </Button>
                                 <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentRotation, Mode=TwoWay}" />
+                                    <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentRotation, Mode=TwoWay}" />
 
                                 </StackPanel>
                             </Grid>

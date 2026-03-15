@@ -27,11 +27,7 @@ namespace Axphi.ViewModels
             set => SetProperty(Model.Name, value, Model, (m, v) => m.Name = v);
         }
 
-        public NoteKind NoteKind
-        {
-            get => Model.Kind;
-            set => SetProperty(Model.Kind, value, Model, (m, v) => m.Kind = v);
-        }
+        
 
         public int HitTime
         {
@@ -68,6 +64,9 @@ namespace Axphi.ViewModels
         [ObservableProperty] private double _currentScaleY = 1.0;
         [ObservableProperty] private double _currentRotation;
         [ObservableProperty] private double _currentOpacity = 100.0;
+
+        [ObservableProperty] private  NoteKind _currentNoteKind = NoteKind.Tap;
+
 
         // 构造函数
         public NoteViewModel(Note model, TimelineViewModel timeline)
@@ -124,6 +123,15 @@ namespace Axphi.ViewModels
                     recipient.IsSelected = false; // 乖乖熄灭
                 }
             });
+
+
+            // 在 NoteViewModel 的构造函数里加上这行：// 监听全局的 ZoomScaleChangedMessage，一旦收到就调用 UpdatePosition() 更新位置
+            WeakReferenceMessenger.Default.Register<NoteViewModel, ZoomScaleChangedMessage>(this, (r, m) => r.UpdatePosition());
+
+            // 跨频道监听：如果普通关键帧发起了拖拽，选中的音符也跟着动！
+            WeakReferenceMessenger.Default.Register<NoteViewModel, KeyframesDragStartedMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragStarted(); });
+            WeakReferenceMessenger.Default.Register<NoteViewModel, KeyframesDragDeltaMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragDelta(m.HorizontalChange); });
+            WeakReferenceMessenger.Default.Register<NoteViewModel, KeyframesDragCompletedMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragCompleted(false); });
         }
 
         private void UpdatePosition()
@@ -206,7 +214,17 @@ namespace Axphi.ViewModels
 
 
 
-
+        //partial void OnCurrentNoteKindChanged(NoteKind value)
+        //{
+        //    if (_isSyncing) return;
+        //    WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+        //    if (Model.AnimatableProperties.NoteKind.KeyFrames.Count == 0)
+        //    {
+        //        Model.AnimatableProperties.NoteKind.InitialValue = value;
+        //        WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        //    }
+        //    else AddPositionKeyframe();
+        //}
 
 
 

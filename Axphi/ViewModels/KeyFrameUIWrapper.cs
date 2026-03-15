@@ -61,6 +61,12 @@ namespace Axphi.ViewModels
             {
                 if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragCompleted(false); // 别人发起的，传 false
             });
+
+
+            // 跨频道监听：如果音符发起了拖拽，选中的关键帧也跟着动！
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, NotesDragStartedMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragStarted(); });
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, NotesDragDeltaMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragDelta(m.HorizontalChange); });
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, NotesDragCompletedMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragCompleted(false); });
         }
 
         private void UpdatePosition()

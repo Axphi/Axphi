@@ -115,9 +115,15 @@ public partial class DraggableOptionBox : UserControl
     {
         InitializeComponent();
 
-        Container.AddHandler(MouseLeftButtonDownEvent, new MouseButtonEventHandler(OnMouseDown), true);
-        Container.AddHandler(MouseLeftButtonUpEvent, new MouseButtonEventHandler(OnMouseUp), true);
-        Container.AddHandler(MouseMoveEvent, new MouseEventHandler(OnMouseMove), true);
+        // ❌ 删除这三行旧代码（去掉了 handledEventsToo = true 的逻辑）
+        // Container.AddHandler(MouseLeftButtonDownEvent, new MouseButtonEventHandler(OnMouseDown), true);
+        // Container.AddHandler(MouseLeftButtonUpEvent, new MouseButtonEventHandler(OnMouseUp), true);
+        // Container.AddHandler(MouseMoveEvent, new MouseEventHandler(OnMouseMove), true);
+
+        // ✅ 替换为常规的事件订阅：
+        Container.MouseLeftButtonDown += OnMouseDown;
+        Container.MouseLeftButtonUp += OnMouseUp;
+        Container.MouseMove += OnMouseMove;
 
         // 像 DraggableValueBox 一样，在 Loaded 时处理初始化逻辑
         Loaded += (_, _) =>

@@ -30,6 +30,18 @@ namespace Axphi.Views
             // 可以在 Unloaded 事件中清理资源，防止内存泄漏
             this.Unloaded += (s, e) => CleanUpResources();
 
+
+            WeakReferenceMessenger.Default.Register<ChartDisplay, UpdateRendererMessage>(this, (recipient, message) =>
+            {
+                // 性能优化：如果当前正在播放，那么 DispatcherTimer 每毫秒都在疯狂刷新
+                // 此时就不需要我们手动触发了。只有在暂停状态下才需要强行重绘！
+                if (!recipient.IsPlaying)
+                {
+                    // 核心魔法：命令底层的渲染器“标记为过期，准备重绘”
+                    recipient.InternalChartRenderer.InvalidateVisual(); // 联系底层的 OnRender
+                }
+            });
+
             // 告诉邮局：我要监听 JudgementLinesChangedMessage
             WeakReferenceMessenger.Default.Register<ChartDisplay, JudgementLinesChangedMessage>(this, (recipient, message) =>
             {
@@ -58,6 +70,7 @@ namespace Axphi.Views
                 // 它不仅会把渲染器的 Time 改对，还会重置秒表、把音频也切过去，完美闭环！
                 recipient.SeekTo(TimeSpan.FromSeconds(message.TargetSeconds));
             });
+
             
         }
 

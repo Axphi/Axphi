@@ -82,7 +82,8 @@ namespace Axphi.ViewModels
                 _chart.InitialBpm = value;
 
 
-                // 🌟 动手后，去修正时间！
+                // 动手后，去修正时间！
+                // 否则, 游标会突变
                 SyncPlayheadToTick(currentExactTick);
                 
             }

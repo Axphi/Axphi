@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Messaging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -59,6 +60,7 @@ namespace Axphi.Views
 
         private void KeyframeThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
+            Debug.WriteLine("KeyframeThumb_DragStarted 被调用");
             // 只要 DataContext 不是空的，我们就大胆把它变成 dynamic
             if (sender is FrameworkElement fe && fe.DataContext != null)
             {

@@ -208,7 +208,7 @@ namespace Axphi.Components
             double lineLength = renderInfo.CanvasHeight * 5.76;
             double thickness = renderInfo.CanvasHeight * 0.0075;
             
-            drawingContext.DrawRectangle(_lineYellow, null, new Rect(-renderInfo.CanvasWidth / 2, -thickness / 2, lineLength, thickness));
+            drawingContext.DrawRectangle(_lineYellow, null, new Rect(-lineLength / 2, -thickness / 2, lineLength, thickness));
             drawingContext.Pop(); // note 不继承 line 的 opacity
             if (line.Notes is { } notes)
             {

@@ -30,7 +30,6 @@ namespace Axphi.Views
             // 可以在 Unloaded 事件中清理资源，防止内存泄漏
             this.Unloaded += (s, e) => CleanUpResources();
 
-            // ================= 【新增消息订阅】 =================
             // 告诉邮局：我要监听 JudgementLinesChangedMessage
             WeakReferenceMessenger.Default.Register<ChartDisplay, JudgementLinesChangedMessage>(this, (recipient, message) =>
             {
@@ -39,11 +38,10 @@ namespace Axphi.Views
                 if (!recipient.IsPlaying)
                 {
                     // 核心魔法：命令底层的渲染器“标记为过期，准备重绘”
-                    recipient.InternalChartRenderer.InvalidateVisual();
+                    recipient.InternalChartRenderer.InvalidateVisual(); // 联系底层的 OnRender
                 }
             });
-            // ===================================================
-            // ================= 【新增：监听刹车指令】 =================
+            // ================= 【监听刹车指令】 =================
             WeakReferenceMessenger.Default.Register<ChartDisplay, ForcePausePlaybackMessage>(this, (recipient, message) =>
             {
                 // 直接调用你写好的强制暂停方法！
@@ -53,7 +51,7 @@ namespace Axphi.Views
             });
             
 
-            // ================= 【新增：监听强制空降指令】 =================
+            // ================= 【监听强制空降指令】 =================
             WeakReferenceMessenger.Default.Register<ChartDisplay, ForceSeekMessage>(this, (recipient, message) =>
             {
                 // 直接白嫖你已经写好的极其完善的 SeekTo 方法！
@@ -131,7 +129,7 @@ namespace Axphi.Views
             if (_musicReader != null) _musicReader.Position = 0;
             InternalChartRenderer.Time = default;
 
-            // ============ 【新增】强行让时间轴大管家也归零 ============
+            // ============ 强行让时间轴大管家也归零 ============
             if (this.DataContext is MainViewModel vm)
             {
                 vm.Timeline.CurrentPlayTimeSeconds = 0;
@@ -162,7 +160,7 @@ namespace Axphi.Views
             _musicReader?.Dispose();
             _musicReader = null;
 
-            // ================= 【新增注销逻辑】 =================
+            // ================= 【注销逻辑】 =================
             // 控件被销毁时，告诉邮局：“别给我发信了”，释放内存！
             WeakReferenceMessenger.Default.UnregisterAll(this);
         }
@@ -193,7 +191,7 @@ namespace Axphi.Views
 
             InternalChartRenderer.Time = time;
 
-            // ================= ✨ 加上这段代码 ✨ =================
+
             // 空降完成后，立刻把最新的秒数同步给时间轴大管家！
             // 这样红线就会瞬间跳到对应的位置！
             if (this.DataContext is MainViewModel vm)
@@ -204,7 +202,7 @@ namespace Axphi.Views
         }
         
 
-        // === 【新增】供外部调用的播放控制 API ===
+        // === 供外部调用的播放控制 API ===
 
         // 检查当前是否正在播放
         public bool IsPlaying => _dispatcherTimer?.IsEnabled == true;

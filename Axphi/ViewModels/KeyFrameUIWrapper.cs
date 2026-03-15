@@ -68,13 +68,15 @@ namespace Axphi.ViewModels
             PixelX = _timeline.TickToPixel(Model.Time);
         }
 
-        // 2. 核心命令：点击小菱形时触发
-        [RelayCommand]
-        private void ToggleSelection()
-        {
-            // 直接白嫖刚刚写的帮助类！
-            SelectionHelper.HandleSelection("Keyframes", this, IsSelected, val => IsSelected = val);
-        }
+
+        // [!!!] 此函数未曾被调用和 Binding
+        //// 核心命令：点击小菱形时触发
+        //[RelayCommand]
+        //private void ToggleSelection()
+        //{
+        //    // 直接白嫖刚刚写的帮助类！
+        //    SelectionHelper.HandleSelection("Keyframes", this, IsSelected, val => IsSelected = val);
+        //}
 
 
         // 声明一个临时变量，记录拖拽时真实的物理像素（防止鼠标挪动太慢，吸附后丢失精度）
@@ -86,9 +88,10 @@ namespace Axphi.ViewModels
 
         public void OnDragStarted()
         {
-            _virtualPixelX = PixelX;
-            _dragAccumulated = 0; // 拖拽距离清零
-            _wasSelectedBeforeDrag = IsSelected; // 记住按下前的状态
+            // 自己也得做好准备
+            ReceiveDragStarted();
+
+            
 
             // 如果没被选中，按下的瞬间立刻点亮它！
             // 如果按下的是一个【尚未选中】的关键帧
@@ -104,8 +107,7 @@ namespace Axphi.ViewModels
                 WeakReferenceMessenger.Default.Send(new KeyframesDragStartedMessage(this));
             }
 
-            // 自己也得做好准备
-            ReceiveDragStarted();
+            
         }
 
         public void OnDragDelta(double horizontalChange)

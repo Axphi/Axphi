@@ -20,7 +20,7 @@ namespace Axphi.Components
         }
 
 
-        // === 2. 【新增】视口同步属性 (用于剔除不可见刻度) ===
+        // === 视口同步属性 (用于剔除不可见刻度) ===
 
         // 记录当前屏幕左侧滚到了多少像素
         public static readonly DependencyProperty VisibleOffsetXProperty =
@@ -38,7 +38,7 @@ namespace Axphi.Components
             DependencyProperty.Register("ViewportWidth", typeof(double), typeof(TimelineRuler),
                 new FrameworkPropertyMetadata(1000.0, FrameworkPropertyMetadataOptions.AffectsRender));
 
-        // 新增一个依赖属性，用来接收虚拟总宽度
+        // 用来接收虚拟总宽度
         public static readonly DependencyProperty VirtualTotalWidthProperty =
             DependencyProperty.Register("VirtualTotalWidth", typeof(double), typeof(TimelineRuler),
                 new FrameworkPropertyMetadata(1000.0, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -61,12 +61,12 @@ namespace Axphi.Components
             base.OnRender(dc);
 
 
-            // 🌟 【核心修复：铺设透明垫板拦截鼠标】
+            // 【核心修复：铺设透明垫板拦截鼠标】
             // 即使是透明的，WPF 也会认为这里是实体，从而完美接收所有鼠标拖拽和点击事件！
             dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
 
 
-            // 修改这里的判断条件
+            
             if (TotalTicks <= 0 || VirtualTotalWidth <= 0) return;
 
             
@@ -92,7 +92,7 @@ namespace Axphi.Components
             // 准备好画笔
             
 
-            // 【优化 1】冻结画笔与复用字体！不要在 OnRender 里重复创建非冻结资源
+            // 【优化】冻结画笔与复用字体！不要在 OnRender 里重复创建非冻结资源
             Pen measurePen = new Pen(Brushes.White, 1.5); measurePen.Freeze();   // 小节线：白色，粗
             Pen beatPen = new Pen(Brushes.LightGray, 1.0); beatPen.Freeze();     // 拍线：浅灰，正常
             Pen subPen = new Pen(Brushes.DimGray, 1.0); subPen.Freeze();         // 细分线：暗灰，正常
@@ -110,7 +110,7 @@ namespace Axphi.Components
             int endTick = (int)((VisibleOffsetX + ViewportWidth) / pixelsPerTick) + step;
             if (endTick > TotalTicks) endTick = TotalTicks;
 
-            // 【优化 2】核心黑科技：把整个画板往左平移 VisibleOffsetX
+            // 【优化】把整个画板往左平移 VisibleOffsetX
             // 这样我们画出来的内容永远在屏幕 0 ~ ViewportWidth 之间，不需要几万像素的宽容度！
             dc.PushTransform(new TranslateTransform(-VisibleOffsetX, 0));
 

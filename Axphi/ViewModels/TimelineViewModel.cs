@@ -54,10 +54,10 @@ namespace Axphi.ViewModels
         {
             UpdatePlayheadPosition();
 
-            //  【新增】算出当前的 Tick
+            //  算出当前的 Tick
             int currentTick = GetCurrentTick();
 
-            //  【新增】拿到当前谱面的缓动方向设置
+            //  拿到当前谱面的缓动方向设置
             var easingDirection = CurrentChart.KeyFrameEasingDirection;
 
             // ================= ✨ 塞入第二步：让 BPM 跟着播放器跑！ =================
@@ -65,7 +65,7 @@ namespace Axphi.ViewModels
             // =======================================================================
 
 
-            //  【新增】大点兵！让所有的轨道根据当前时间更新自己的数值面板！
+            //  大点兵！让所有的轨道根据当前时间更新自己的数值面板！
             foreach (var track in Tracks)
             {
                 track.SyncValuesToTime(currentTick, easingDirection);
@@ -197,12 +197,7 @@ namespace Axphi.ViewModels
         // 在 TimelineViewModel.cs 里加上这个方法 (上一回合提过，确认一下你加上了)
         public int GetCurrentTick()
         {
-            
-
-            // 核心修复：直接用积分器算 Tick，绝对不会突变！
-            double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
-            // 2. 加上谱面 Offset
-            double absoluteTick = exactTick + CurrentChart.Offset;
+            double absoluteTick = GetExactTick();
             return (int)Math.Round(absoluteTick, MidpointRounding.AwayFromZero);
             
         }

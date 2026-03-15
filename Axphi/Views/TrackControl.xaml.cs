@@ -99,6 +99,8 @@ namespace Axphi.Views
                 if (this.DataContext is TrackViewModel trackVM)
                 {
                     trackVM.SelectedNote = noteVM;
+                    // ✨ 【新增这行神仙代码】：强行把左侧的 ">" 变成 "v"
+                    trackVM.IsNoteExpanded = true;
                 }
 
                 // 调用 NoteViewModel 内部的拖拽起手式

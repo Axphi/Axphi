@@ -240,7 +240,7 @@ namespace Axphi.ViewModels
 
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
 
-            if (Model.KindKeyFrames.Count == 0)
+            if (Model.KindKeyFrames == null || Model.KindKeyFrames.Count == 0)
             {
                 Model.InitialKind = value; // 修改基础值
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());

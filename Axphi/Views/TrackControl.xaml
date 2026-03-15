@@ -121,6 +121,7 @@
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <Canvas />
+                                        <!-- 设置容器 -->
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
 

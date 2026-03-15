@@ -57,6 +57,8 @@ namespace Axphi.ViewModels
         public ObservableCollection<KeyFrameUIWrapper<double>> UIRotationKeyframes { get; } = new();
         public ObservableCollection<KeyFrameUIWrapper<double>> UIOpacityKeyframes { get; } = new();
 
+        public ObservableCollection<KeyFrameUIWrapper<NoteKind>> UINoteKindKeyframes { get; } = new();
+
         // ================= 4. 供 XAML 绑定的【音符专属】当前数值 =================
         [ObservableProperty] private double _currentOffsetX;
         [ObservableProperty] private double _currentOffsetY;
@@ -64,8 +66,9 @@ namespace Axphi.ViewModels
         [ObservableProperty] private double _currentScaleY = 1.0;
         [ObservableProperty] private double _currentRotation;
         [ObservableProperty] private double _currentOpacity = 100.0;
-
-        [ObservableProperty] private  NoteKind _currentNoteKind = NoteKind.Tap;
+        // 专供 UI 左侧属性面板绑定的当前音符种类
+        [ObservableProperty]
+        private NoteKind _currentNoteKind;
 
 
         // 构造函数
@@ -91,6 +94,10 @@ namespace Axphi.ViewModels
             if (Model.AnimatableProperties.Opacity.KeyFrames != null)
                 foreach (var kf in Model.AnimatableProperties.Opacity.KeyFrames)
                     UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
+
+            if (Model.KindKeyFrames != null)
+                foreach (var kf in Model.KindKeyFrames)
+                    UINoteKindKeyframes.Add(new KeyFrameUIWrapper<NoteKind>(kf, _timeline));
 
             // TODO: 这里可以保留我们之前写的接收 NotesDragStartedMessage 等拖拽逻辑
 
@@ -214,17 +221,58 @@ namespace Axphi.ViewModels
 
 
 
-        //partial void OnCurrentNoteKindChanged(NoteKind value)
-        //{
-        //    if (_isSyncing) return;
-        //    WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-        //    if (Model.AnimatableProperties.NoteKind.KeyFrames.Count == 0)
-        //    {
-        //        Model.AnimatableProperties.NoteKind.InitialValue = value;
-        //        WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
-        //    }
-        //    else AddPositionKeyframe();
-        //}
+        partial void OnCurrentNoteKindChanged(NoteKind value)
+        {
+            if (_isSyncing) return;
+
+            // ================= 🌟 终极防御装甲 =================
+            // 防御 WPF 控件的延迟绑定回传：验证是不是真实的用户修改！
+            if (Model.KindKeyFrames != null && Model.KindKeyFrames.Count > 0)
+            {
+                int currentTick = _timeline.GetCurrentTick();
+                var expectedKind = KeyFrameUtils.GetStepValueAtTick(Model.KindKeyFrames, currentTick, Model.InitialKind);
+
+                // 如果传回来的值，和系统算出来的当前真实值一样，说明是幽灵回传，直接无视！
+                if (value == expectedKind) return;
+            }
+            // =================================================
+
+
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+
+            if (Model.KindKeyFrames.Count == 0)
+            {
+                Model.InitialKind = value; // 修改基础值
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else
+            {
+                AddNoteKindKeyframe();
+            }
+        }
+
+        [RelayCommand]
+        private void AddNoteKindKeyframe()
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var list = Model.KindKeyFrames;
+            var existingWrapper = UINoteKindKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = CurrentNoteKind;
+            }
+            else
+            {
+                var newFrame = new NoteKindKeyFrame() { Time = currentTick, Value = CurrentNoteKind };
+                list.Add(newFrame);
+                list.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UINoteKindKeyframes.Add(new KeyFrameUIWrapper<NoteKind>(newFrame, _timeline));
+            }
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        
 
 
 
@@ -334,6 +382,15 @@ namespace Axphi.ViewModels
             CurrentRotation = rotationAngle;
             CurrentOpacity = opacity;
             _isSyncing = false;
+            // ✨ 召唤阶跃函数，算出当前时间点它到底是个什么种类的音符！
+            if (Model.KindKeyFrames != null)
+            {
+                CurrentNoteKind = KeyFrameUtils.GetStepValueAtTick(Model.KindKeyFrames, currentTick, Model.InitialKind);
+            }
+            else
+            {
+                CurrentNoteKind = Model.InitialKind;
+            }
         }
 
 

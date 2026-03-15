@@ -274,7 +274,11 @@ namespace Axphi.Components
                 }
             };
 
-            var fill = note.Kind switch
+
+            // 实时获取在 currentTick 这个时间点，音符到底变成了什么种类！
+            var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentTick, note.InitialKind);
+
+            var fill = currentKind switch
             {
                 NoteKind.Tap => _noteTap,
                 NoteKind.Drag => _noteDrag,

@@ -104,9 +104,21 @@ namespace Axphi.ViewModels
                     UINotes.Add(new NoteViewModel(note, _timeline));
                 }
             }
-                
 
-            
+            // ================= ✨ 修复初始值不更新的 Bug =================
+            // 刚出生时，立刻强行同步一次当前时间的数据！这样一显示就是对的！
+            int currentTick = _timeline.GetCurrentTick();
+            var easingDir = _timeline.CurrentChart.KeyFrameEasingDirection; // 从大管家那拿全局缓动方向
+
+            // 1. 同步轨道自己的四个属性
+            this.SyncValuesToTime(currentTick, easingDir);
+
+            // 2. 同步底下所有音符的四个属性
+            foreach (var note in UINotes)
+            {
+                note.SyncValuesToTime(currentTick, easingDir);
+            }
+
 
             WeakReferenceMessenger.Default.Register<TrackViewModel, KeyframesNeedSortMessage>(this, (r, m) =>
             {
@@ -115,7 +127,20 @@ namespace Axphi.ViewModels
                 r.SortAndMergeDuplicates(r.Data.AnimatableProperties.Scale.KeyFrames, r.UIScaleKeyframes);
                 r.SortAndMergeDuplicates(r.Data.AnimatableProperties.Rotation.KeyFrames, r.UIRotationKeyframes);
                 r.SortAndMergeDuplicates(r.Data.AnimatableProperties.Opacity.KeyFrames, r.UIOpacityKeyframes);
+                // 2. ✨ 新增：遍历底层所有的音符，给它们自己的关键帧也排个序！
+                foreach (var note in r.UINotes)
+                {
+                    r.SortAndMergeDuplicates(note.Model.AnimatableProperties.Offset.KeyFrames, note.UIOffsetKeyframes);
+                    r.SortAndMergeDuplicates(note.Model.AnimatableProperties.Scale.KeyFrames, note.UIScaleKeyframes);
+                    r.SortAndMergeDuplicates(note.Model.AnimatableProperties.Rotation.KeyFrames, note.UIRotationKeyframes);
+                    r.SortAndMergeDuplicates(note.Model.AnimatableProperties.Opacity.KeyFrames, note.UIOpacityKeyframes);
 
+                    // 专门给 NoteKind 的关键帧排序！
+                    if (note.Model.KindKeyFrames != null)
+                    {
+                        r.SortAndMergeDuplicates(note.Model.KindKeyFrames, note.UINoteKindKeyframes);
+                    }
+                }
                 // 杀完人后，通知右侧渲染器和左侧面板重新加载一次画面，防残留！
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             });

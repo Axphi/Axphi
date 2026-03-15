@@ -217,7 +217,7 @@ namespace Axphi.Utilities
             {
                 formatVersion = "1.0",
 
-
+                InitialBpm = 200,
                 Duration = SecToTick(10),
 
 
@@ -243,7 +243,7 @@ namespace Axphi.Utilities
 
                                 }
                             },
-                            
+
 
                         },
                         Notes = new List<Note>()

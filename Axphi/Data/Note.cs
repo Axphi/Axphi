@@ -15,13 +15,14 @@ namespace Axphi.Data
 
         public Note(NoteKind kind, int hitTime)
         {
-            Kind = kind;
+            InitialKind = kind;
             HitTime = hitTime;
         }
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
         public string Name { get; set; } = string.Empty;
-        public NoteKind Kind { get; set; } = NoteKind.Tap;
+        public NoteKind InitialKind { get; set; } = NoteKind.Tap;
+        public List<NoteKindKeyFrame> KindKeyFrames { get; set; } = new();
         public int HitTime { get; set; }
         public int HoldDuration { get; set; }
         public double? CustomSpeed { get; set; }

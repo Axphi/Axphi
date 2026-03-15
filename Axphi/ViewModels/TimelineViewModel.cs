@@ -305,7 +305,21 @@ namespace Axphi.ViewModels
                     // Note Opacity
                     var noteOpaDel = note.UIOpacityKeyframes.Where(k => k.IsSelected).ToList();
                     foreach (var wrapper in noteOpaDel) { note.Model.AnimatableProperties.Opacity.KeyFrames.Remove((OpacityKeyFrame)wrapper.Model); note.UIOpacityKeyframes.Remove(wrapper); hasDeleted = true; }
+
+                    // ✨ 新增：Note Kind 关键帧删除
+                    if (note.Model.KindKeyFrames != null)
+                    {
+                        var noteKindDel = note.UINoteKindKeyframes.Where(k => k.IsSelected).ToList();
+                        foreach (var wrapper in noteKindDel)
+                        {
+                            note.Model.KindKeyFrames.Remove((NoteKindKeyFrame)wrapper.Model);
+                            note.UINoteKindKeyframes.Remove(wrapper);
+                            hasDeleted = true;
+                        }
+                    }
                 }
+
+                
 
                 // ================= C. 直接删掉被选中的音符本体！ =================
                 var notesToDelete = track.UINotes.Where(n => n.IsSelected).ToList();

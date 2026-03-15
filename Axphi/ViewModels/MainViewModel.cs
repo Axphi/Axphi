@@ -154,6 +154,13 @@ namespace Axphi.ViewModels
                         wrapper.Model.Easing = newEasing;
                         hasModified = true;
                     }
+
+                    // ✨ 新增：Note Kind 关键帧应用缓动 (虽然是阶跃突变，但也保持底层数据格式统一)
+                    foreach (var wrapper in note.UINoteKindKeyframes.Where(k => k.IsSelected))
+                    {
+                        wrapper.Model.Easing = newEasing;
+                        hasModified = true;
+                    }
                 }
             }
 

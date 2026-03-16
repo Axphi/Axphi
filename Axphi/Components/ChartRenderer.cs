@@ -1,13 +1,14 @@
-﻿using System;
+﻿using Axphi.Data;
+using Axphi.Data.KeyFrames;
+using Axphi.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
-using Axphi.Data;
-using Axphi.Data.KeyFrames;
-using Axphi.Utilities;
+using System.Windows.Media.Imaging;
 
 namespace Axphi.Components
 {
@@ -25,7 +26,40 @@ namespace Axphi.Components
         private static SolidColorBrush _noteDrag = new SolidColorBrush(Color.FromRgb(255, 222, 145));
         private static SolidColorBrush _noteHold = new SolidColorBrush(Color.FromRgb(81, 180, 255));
 
+        
 
+        // 🌟 1. 静态缓存音符图片 (路径里的 pack://application:,,,/ 是 WPF 的标准资源路径写法)
+        // 请把 Resources/Notes/... 换成你实际的文件夹和文件名！
+        private static readonly BitmapImage _imgTap = new BitmapImage(new Uri("pack://application:,,,/Resources/Notes/tap.png"));
+        private static readonly BitmapImage _imgDrag = new BitmapImage(new Uri("pack://application:,,,/Resources/Notes/drag.png"));
+        private static readonly BitmapImage _imgHoldHead = new BitmapImage(new Uri("pack://application:,,,/Resources/Notes/hold.png"));
+        private static readonly BitmapImage _imgFlick = new BitmapImage(new Uri("pack://application:,,,/Resources/Notes/flick.png"));
+
+        // 2. 声明 Hold 专属的三段画刷
+        private static readonly ImageBrush _brushHoldTail;
+        private static readonly ImageBrush _brushHoldBody;
+        private static readonly ImageBrush _brushHoldHead;
+
+
+        // 3. 用静态构造函数初始化切图
+        static ChartRenderer()
+        {
+            var imgHold = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/hold.png", UriKind.Absolute));
+
+            // Viewbox 的四个参数分别是：X比例, Y比例, 宽比例, 高比例
+            // 因为图片高150，三等分的话，每份高 50/150 = 1/3
+            // 上：0 ~ 1/3 (尾巴)
+            _brushHoldTail = new ImageBrush(imgHold) { Viewbox = new Rect(0, 0, 1, 1.0 / 3.0), ViewboxUnits = BrushMappingMode.RelativeToBoundingBox };
+            // 中：1/3 ~ 2/3 (拉伸身体)
+            _brushHoldBody = new ImageBrush(imgHold) { Viewbox = new Rect(0, 1.0 / 3.0, 1, 1.0 / 3.0), ViewboxUnits = BrushMappingMode.RelativeToBoundingBox };
+            // 下：2/3 ~ 1 (头部)
+            _brushHoldHead = new ImageBrush(imgHold) { Viewbox = new Rect(0, 2.0 / 3.0, 1, 1.0 / 3.0), ViewboxUnits = BrushMappingMode.RelativeToBoundingBox };
+
+            // 冻结画刷以获得极限渲染性能
+            _brushHoldTail.Freeze();
+            _brushHoldBody.Freeze();
+            _brushHoldHead.Freeze();
+        }
         public TimeSpan Time
         {
             get { return (TimeSpan)GetValue(TimeProperty); }
@@ -278,21 +312,82 @@ namespace Axphi.Components
             // 实时获取在 currentTick 这个时间点，音符到底变成了什么种类！
             var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentTick, note.InitialKind);
 
-            var fill = currentKind switch
-            {
-                NoteKind.Tap => _noteTap,
-                NoteKind.Drag => _noteDrag,
-                NoteKind.Hold => _noteHold,
-                NoteKind.Flick => _noteFlick,
-                _ => Brushes.Purple,
-            };
+            //var fill = currentKind switch
+            //{
+            //    NoteKind.Tap => _noteTap,
+            //    NoteKind.Drag => _noteDrag,
+            //    NoteKind.Hold => _noteHold,
+            //    NoteKind.Flick => _noteFlick,
+            //    _ => Brushes.Purple,
+            //};
 
-            var notePixelWidth = renderInfo.ChartUnitToPixel(2);
-            var notePixelHeight = renderInfo.ChartUnitToPixel(0.2);
 
             drawingContext.PushTransform(noteTransform);
             drawingContext.PushOpacity(opacity / 100);
-            drawingContext.DrawRectangle(fill, null, new Rect(-notePixelWidth / 2, -notePixelHeight / 2, notePixelWidth, notePixelHeight));
+
+
+            if (currentKind == NoteKind.Hold)
+            {
+                // ================= 1. 算术题：算出 Hold 的物理像素长度 =================
+                // 获取头部和尾部的精确秒数
+                double endTimeSeconds = TimeTickConverter.TickToTime(note.HitTime + note.HoldDuration, chart.BpmKeyFrames, chart.InitialBpm);
+                double durationSeconds = endTimeSeconds - hitTimeSeconds;
+
+                // 用持续时间 × 速度，算出总像素长度
+                double holdPixelLength = renderInfo.ChartUnitToPixel(durationSeconds * Math.Abs(finalSpeed));
+
+                // ================= 2. 算术题：算出各个方块的尺寸 =================
+                double notePixelWidth = renderInfo.ChartUnitToPixel(2); // 固定宽度
+                                                                        // 头部和尾部的真实高度（根据你说的宽高比 50/989 计算）
+                double partHeight = notePixelWidth * (50.0 / 989.0);
+
+                // 如果 Hold 极其短（比如写错了只按1个Tick），防止身体算出负数高度
+                if (holdPixelLength < partHeight) holdPixelLength = partHeight;
+
+                // 身体的高度 = 总长度 - 半个头 - 半个尾（因为头尾坐标是基于中心点的）
+                double bodyHeight = holdPixelLength - partHeight;
+                if (bodyHeight < 0) bodyHeight = 0;
+
+                // ================= 3. 摆放积木：计算三个部分的绘制区域 (Y负数代表往轨道上方长) =================
+                // 头在最下面 (原点 0 处)
+                Rect headRect = new Rect(-notePixelWidth / 2, -partHeight / 2, notePixelWidth, partHeight);
+
+                // 尾巴在最上面 (向未来延伸 holdPixelLength 距离)
+                Rect tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength - partHeight / 2, notePixelWidth, partHeight);
+
+                // ✨ 核心神操作：给身体上下各增加 1 像素的重叠量，彻底干掉抗锯齿缝隙！
+                double overlap = 1.0; // 1 像素的重叠绰绰有余
+                Rect bodyRect = new Rect(
+                    -notePixelWidth / 2,
+                    -holdPixelLength + partHeight / 2 - overlap, // Y 往上（尾部方向）多伸出 1 像素
+                    notePixelWidth,
+                    bodyHeight + overlap * 2                     // 高度增加 2 像素，保证两头都钻进去
+                );
+
+                // ================= 4. 依次画出三段 =================
+                drawingContext.DrawRectangle(_brushHoldBody, null, bodyRect); // 画拉伸的身体
+                drawingContext.DrawRectangle(_brushHoldTail, null, tailRect); // 画尾部
+                drawingContext.DrawRectangle(_brushHoldHead, null, headRect); // 画头部
+            }
+            else
+            {
+                // ================= 普通音符，依然用整张图自适应渲染 =================
+                ImageSource imgSrc = currentKind switch
+                {
+                    NoteKind.Tap => _imgTap,
+                    NoteKind.Drag => _imgDrag,
+                    NoteKind.Flick => _imgFlick,
+                    _ => _imgTap, // 兜底
+                };
+
+                var aspectRatio = imgSrc.Height / imgSrc.Width;
+                var notePixelWidth = renderInfo.ChartUnitToPixel(2);
+                var notePixelHeight = notePixelWidth * aspectRatio;
+
+                drawingContext.DrawImage(imgSrc, new Rect(-notePixelWidth / 2, -notePixelHeight / 2, notePixelWidth, notePixelHeight));
+            }
+            
+
             drawingContext.Pop();
             drawingContext.Pop();
         }

@@ -278,7 +278,8 @@ public partial class MainWindow : Window
                 current is TextBox ||                                       // 涵盖输入框
                 typeName.Contains("DraggableValueBox") ||                   // 涵盖你自定义的数值拖拽框
                 typeName.Contains("DraggableOptionBox") ||                  // 涵盖你自定义的选项拖拽框
-                typeName.Contains("TimelineRuler"))                         // 新增这一行！给标尺颁发免死金牌！
+                typeName.Contains("TimelineRuler") ||                       // 新增这一行！给标尺颁发免死金牌！
+                (current is StackPanel sp && sp.Name == "JudgementLineLayer"))
             {
                 return; // 直接返回，千万别设 e.Handled = true 
             }

@@ -20,7 +20,7 @@
 
         <!--  左侧  -->
         <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1">
-            <StackPanel>
+            <StackPanel x:Name="JudgementLineLayer">
                 <!--  图层条  -->
                 <Grid Height="20" Background="Transparent">
                     <Grid.ColumnDefinitions>

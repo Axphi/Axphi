@@ -453,7 +453,40 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private NoteViewModel? _selectedNote;
 
+        // ================= 添加新音符 =================
+        [RelayCommand]
+        private void AddNote(string kindStr)
+        {
+            // 1. 将 XAML 传进来的字符串 (比如 "Tap") 转化为枚举
+            if (!Enum.TryParse<NoteKind>(kindStr, out var kind)) return;
 
+            // 2. 问大管家现在是第几个 Tick
+            int currentTick = _timeline.GetCurrentTick();
+
+            // 3. 实例化底层的纯净数据，并加进底层的 List
+            var newNote = new Note(kind, currentTick);
+            if (Data.Notes == null) Data.Notes = new List<Note>();
+            Data.Notes.Add(newNote);
+
+            // 4. 给它套上 UI 保镖装甲！
+            var newNoteVM = new NoteViewModel(newNote, _timeline);
+
+            // 🌟 核心防 Bug：出生即同步！强制喂给它当前时间的数据，防止带着默认值出生
+            newNoteVM.SyncValuesToTime(currentTick, _timeline.CurrentChart.KeyFrameEasingDirection);
+
+            // 5. 加入 UI 绑定的集合
+            UINotes.Add(newNoteVM);
+
+            // ================= 极致的用户体验优化 =================
+            // 刚添加完一个音符，立刻让它变成“选中”状态，方便用户接着改它的属性
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null)); // 先清空别人
+            newNoteVM.IsSelected = true;
+            SelectedNote = newNoteVM; // 左侧面板瞬间切给它！
+            IsNoteExpanded = true;    // 确保 Note 的属性面板是展开的
+
+            // 6. 大喊一声：有人空降了！大家重新排个序，顺便刷新一下右侧画面！
+            WeakReferenceMessenger.Default.Send(new NotesNeedSortMessage());
+        }
 
 
 

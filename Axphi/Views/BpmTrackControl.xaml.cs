@@ -20,6 +20,10 @@ namespace Axphi.Views
     /// </summary>
     public partial class BpmTrackControl : UserControl
     {
+
+        // 1. 在类里加一个全局变量，记录绝对静止的屏幕坐标
+        private Point _bpmLastMousePos;
+
         public BpmTrackControl()
         {
             InitializeComponent();
@@ -50,11 +54,14 @@ namespace Axphi.Views
                 parent?.RaiseEvent(eventArg);
             }
         }
-        
 
+
+        // 2. 替换拖拽起手事件
         private void KeyframeThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            // 只要 DataContext 不是空的，我们就大胆把它变成 dynamic
+            // 🌟 取相对于外层绝对静止画板的位置！
+            _bpmLastMousePos = Mouse.GetPosition(this);
+
             if (sender is FrameworkElement fe && fe.DataContext != null)
             {
                 dynamic wrapper = fe.DataContext;
@@ -62,12 +69,19 @@ namespace Axphi.Views
             }
         }
 
+        // 3. 替换拖拽中事件
         private void KeyframeThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
         {
+            // 🌟 自己算稳定位移！
+            Point currentPos = Mouse.GetPosition(this);
+            double stableDelta = currentPos.X - _bpmLastMousePos.X;
+            _bpmLastMousePos = currentPos;
+
             if (sender is FrameworkElement fe && fe.DataContext != null)
             {
                 dynamic wrapper = fe.DataContext;
-                wrapper.OnDragDelta(e.HorizontalChange);
+                // 🌟 丢弃自带的 e.HorizontalChange，传入我们算好的稳定值！
+                wrapper.OnDragDelta(stableDelta);
             }
         }
 

@@ -151,21 +151,32 @@ namespace Axphi.ViewModels
         private void ReceiveDragDelta(double horizontalChange)
         {
             _dragAccumulated += Math.Abs(horizontalChange);
-
             _virtualPixelX += horizontalChange;
-            // if (_virtualPixelX < 0) _virtualPixelX = 0; // 防止拖到 0 以前
 
-            PixelX = _virtualPixelX;
+            // 1. 算出纯鼠标位置的绝对 Tick
+            double exactTickDouble = _timeline.PixelToTick(_virtualPixelX);
 
-            double exactTick = _timeline.PixelToTick(_virtualPixelX);
-            int newTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
+            // 2. 🌟 召唤大管家的智能磁吸雷达！
+            int newTick = _timeline.SnapToClosest(exactTickDouble);
 
+            // 3. 只有数值真正变化了才修改底层和发重绘
             if (newTick != Model.Time)
             {
                 Model.Time = newTick;
-                // 性能优化提示：这里每一帧都在发重绘广播。因为是协同拖拽，如果选中了 10 个关键帧，
-                // 就会在同一毫秒内发 10 次重绘消息。好在你的 ChartDisplay 已经处理了性能问题。
+                // 性能优化提示：这里每一帧都在发重绘广播
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+
+            // 4. 【核心防闪烁】：UI 像素的更新必须放在最后，且只赋值一次！
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            {
+                // 按了 Shift，UI 强行锁死在吸附点的像素上！绝对不许跟着鼠标乱动！
+                PixelX = _timeline.TickToPixel(newTick);
+            }
+            else
+            {
+                // 没按 Shift，UI 才跟着鼠标丝滑走
+                PixelX = _virtualPixelX;
             }
         }
 

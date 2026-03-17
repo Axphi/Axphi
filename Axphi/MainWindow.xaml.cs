@@ -34,6 +34,13 @@ public partial class MainWindow : Window
     private bool _isMarqueeSelecting = false;
     // 在类的最上面，声明一个变量来记住画框起手时的按键状态
     private ModifierKeys _marqueeModifiers = ModifierKeys.None;
+
+
+
+    // 声明两个全局变量
+    private Point _playheadLastMousePos;
+    private double _playheadVirtualPixelX;
+
     public MainWindow(
         MainViewModel mainViewModel)
     {
@@ -190,34 +197,24 @@ public partial class MainWindow : Window
     // 拖拽进行中：实时更新画面，丝滑预览
     private void Playhead_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
     {
+        Point currentPos = Mouse.GetPosition(TimelineMainGrid);
+        double stableDeltaX = currentPos.X - _playheadLastMousePos.X; // 自己算稳定位移！
+        _playheadLastMousePos = currentPos;
+
         if (this.DataContext is MainViewModel vm)
         {
-            // 1. 算出拖拽后的新 X 坐标
-            double newX = vm.Timeline.PlayheadPositionX + e.HorizontalChange;
-            if (newX < 0) newX = 0;
-            if (newX > vm.Timeline.TotalPixelWidth) newX = vm.Timeline.TotalPixelWidth;
+            _playheadVirtualPixelX += stableDeltaX;
+            if (_playheadVirtualPixelX < 0) _playheadVirtualPixelX = 0;
 
-            // 2. 像素 反推回 Tick
-            // TotalPixelWidth 已经包含了 ZoomScale 的加成，所以直接除以总 Ticks 就是每 Tick 的实际像素宽
-            double pixelsPerTick = vm.Timeline.TotalPixelWidth / (double)vm.Timeline.TotalDurationTicks;
-            double currentTick = newX / pixelsPerTick;
+            double exactTick = vm.Timeline.PixelToTick(_playheadVirtualPixelX);
+            int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: true);
 
-            // 3. Tick 反推回 秒数
-            var chart = vm.ProjectManager.EditingProject.Chart;
-            if (chart == null) return;
+            double newSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(
+                snappedTick,
+                vm.Timeline.CurrentChart.BpmKeyFrames,
+                vm.Timeline.CurrentChart.InitialBpm);
 
-            // 先减去谱面偏移，得到纯粹的相对 Tick
-            double relativeTick = currentTick - chart.Offset;
-            if (relativeTick < 0) relativeTick = 0;
-
-            // 🌟 召唤你写好的绝对映射神器！它会自动处理跨越 BPM 关键帧时的折线计算！
-            double seconds = TimeTickConverter.TickToTime(relativeTick, chart.BpmKeyFrames, chart.InitialBpm);
-
-            // 4. 更新大管家的时间，红线会立刻跟着鼠标走！
-            vm.Timeline.CurrentPlayTimeSeconds = seconds;
-
-            // 5. 实时驱动画面渲染器（这就是高帧率丝滑预览的关键！）
-            MainChartDisplay.InternalChartRenderer.Time = TimeSpan.FromSeconds(seconds);
+            vm.Timeline.CurrentPlayTimeSeconds = newSeconds;
         }
     }
 
@@ -249,13 +246,11 @@ public partial class MainWindow : Window
     // 刚捏住游标的一瞬间
     private void Playhead_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
     {
-        // 记录按下鼠标那一刻的状态
-        _wasPlayingBeforeDrag = MainChartDisplay.IsPlaying;
-
-        // 如果正在播放，强行打断施法，进入暂停模式！
-        if (_wasPlayingBeforeDrag)
+        // TimelineMainGrid 也是绝对静止的！
+        _playheadLastMousePos = Mouse.GetPosition(TimelineMainGrid);
+        if (this.DataContext is MainViewModel vm)
         {
-            MainChartDisplay.ForcePause();
+            _playheadVirtualPixelX = vm.Timeline.PlayheadPositionX;
         }
     }
 

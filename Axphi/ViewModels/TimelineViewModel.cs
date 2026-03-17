@@ -356,5 +356,108 @@ namespace Axphi.ViewModels
                 }
             }
         }
+
+
+
+        // TimelineViewModel.cs 里新增：
+
+        /// <summary>
+        /// 智能磁吸算法：根据当前缩放比例，寻找最近的小节线或关键帧
+        /// </summary>
+        // 🌟 新增参数 isPlayhead，用来告诉雷达：“现在是不是游标正在移动？”
+        public int SnapToClosest(double exactTickDouble, bool isPlayhead = false)
+        {
+            // 没按 Shift，原样返回，完全不吸附
+            if (!System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
+                return (int)Math.Round(exactTickDouble, MidpointRounding.AwayFromZero);
+
+            int rawTick = (int)Math.Round(exactTickDouble, MidpointRounding.AwayFromZero);
+            double pixelsPerTick = TickToPixel(1000) / 1000.0;
+            if (pixelsPerTick <= 0) return rawTick;
+
+            int snapThresholdPixels = 12;
+            int tickThreshold = (int)(snapThresholdPixels / pixelsPerTick);
+
+            int bestTick = rawTick;
+            double minDiff = double.MaxValue;
+
+            // ================= A. 动态网格线吸附 =================
+            int[] intervals = { 128, 64, 32, 16, 8, 4, 2 };
+            int currentInterval = 128;
+
+            foreach (var interval in intervals)
+            {
+                if (interval * pixelsPerTick >= 20)
+                    currentInterval = interval;
+                else
+                    break;
+            }
+
+            int gridTick = (int)Math.Round((double)rawTick / currentInterval) * currentInterval;
+            if (Math.Abs(gridTick - rawTick) <= tickThreshold)
+            {
+                bestTick = gridTick;
+                minDiff = Math.Abs(gridTick - rawTick);
+            }
+
+            // ================= B. 全局元素吸附 =================
+            void TrySnap(int targetTick)
+            {
+                int diff = Math.Abs(targetTick - rawTick);
+                if (diff <= tickThreshold && diff < minDiff)
+                {
+                    minDiff = diff;
+                    bestTick = targetTick;
+                }
+            }
+
+            // 🌟 绝佳体验：如果拖拽的不是游标，让物体也能吸附到静止的游标上！
+            if (!isPlayhead)
+            {
+                int playheadTick = (int)Math.Round(PixelToTick(PlayheadPositionX));
+                TrySnap(playheadTick);
+            }
+
+            // 🌟 权限判定：游标拖拽时可以吸附【被选中】的元素，但物体拖拽时必须无视【选中的自己】
+            bool ShouldIgnore(bool isSelected) => !isPlayhead && isSelected;
+
+            // 1. 扫荡全局 BPM
+            if (BpmTrack != null)
+                foreach (var kf in BpmTrack.UIBpmKeyframes)
+                    if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+
+            // 2. 扫荡所有轨道
+            foreach (var track in Tracks)
+            {
+                // 判定线自身的关键帧
+                foreach (var kf in track.UIOffsetKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+                foreach (var kf in track.UIScaleKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+                foreach (var kf in track.UIRotationKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+                foreach (var kf in track.UIOpacityKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+                foreach (var kf in track.UISpeedKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+
+                // 音符本体及其尾巴
+                foreach (var note in track.UINotes)
+                {
+                    if (!ShouldIgnore(note.IsSelected))
+                    {
+                        TrySnap(note.Model.HitTime);
+                        if (note.CurrentNoteKind == Axphi.Data.NoteKind.Hold)
+                            TrySnap(note.Model.HitTime + note.HoldDuration);
+                    }
+
+                    // 🌟 重点补漏：把音符【内部】的所有关键帧也扔进雷达！
+                    foreach (var kf in note.UIOffsetKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+                    foreach (var kf in note.UIScaleKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+                    foreach (var kf in note.UIRotationKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+                    foreach (var kf in note.UIOpacityKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+
+                    if (note.UINoteKindKeyframes != null)
+                        foreach (var kf in note.UINoteKindKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
+                }
+            }
+
+            return bestTick;
+        }
     }
 }

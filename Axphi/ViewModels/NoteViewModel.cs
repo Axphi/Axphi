@@ -498,6 +498,7 @@ namespace Axphi.ViewModels
             _wasSelectedBeforeDrag = IsSelected;
         }
 
+        // ================= 拖拽接收端 (处理实际的数值变化) =================
         private void ReceiveDragDelta(double horizontalChange)
         {
             _dragAccumulated += Math.Abs(horizontalChange);
@@ -506,11 +507,13 @@ namespace Axphi.ViewModels
             // 可以加一个限制，防止音符拖到负数时间
             if (_virtualPixelX < 0) _virtualPixelX = 0;
 
-            PixelX = _virtualPixelX;
+            // 1. 算出纯鼠标位置的绝对 Tick
+            double exactTickDouble = _timeline.PixelToTick(_virtualPixelX);
 
-            double exactTick = _timeline.PixelToTick(_virtualPixelX);
-            int newTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
+            // 2. 🌟 召唤大管家的智能磁吸雷达！
+            int newTick = _timeline.SnapToClosest(exactTickDouble);
 
+            // 3. 只有数值真正变化了才修改底层和发重绘
             if (newTick != Model.HitTime)
             {
                 // 直接修改底层 Model，防止触发 HitTime 的 setter 导致 PixelX 强制吸附回滚
@@ -520,6 +523,18 @@ namespace Axphi.ViewModels
 
                 // 性能优化提示：这里每一帧都在发重绘广播
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+
+            // 4. 【核心防闪烁】：UI 像素的更新必须放在最后，且只赋值一次！
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            {
+                // 按了 Shift，UI 强行锁死在吸附点的像素上！绝对不许跟着鼠标乱动！
+                PixelX = _timeline.TickToPixel(newTick);
+            }
+            else
+            {
+                // 没按 Shift，UI 才跟着鼠标丝滑走
+                PixelX = _virtualPixelX;
             }
         }
 

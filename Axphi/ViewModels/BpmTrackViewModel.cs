@@ -6,13 +6,15 @@ using CommunityToolkit.Mvvm.Messaging;
 using Axphi.Data;
 using Axphi.Data.KeyFrames;
 using Axphi.Utilities;
+using System.Drawing;
+
 
 namespace Axphi.ViewModels
 {
     public partial class BpmTrackViewModel : ObservableObject
     {
         private readonly Chart _chart;
-
+        
         // 1. 保留原来的字段，这样你下面的代码（比如 _timeline.GetCurrentTick()）都不用改！
         public TimelineViewModel _timeline;
 

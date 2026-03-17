@@ -51,6 +51,14 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private double _pixelX;
 
+        // 供 XAML 绑定的长按持续时间（Tick）
+        [ObservableProperty]
+        private int _holdDuration;
+
+        // 供 XAML 长条矩形绑定的物理像素宽度！
+        [ObservableProperty]
+        private double _uIHoldPixelWidth;
+
         // ================= 3. 音符【专属】的动画 UI 替身集合 =================
         public ObservableCollection<KeyFrameUIWrapper<Vector>> UIOffsetKeyframes { get; } = new();
         public ObservableCollection<KeyFrameUIWrapper<Vector>> UIScaleKeyframes { get; } = new();
@@ -77,6 +85,8 @@ namespace Axphi.ViewModels
             Model = model;
             _timeline = timeline;
             UpdatePosition();
+            HoldDuration = Model.HoldDuration;
+
 
             // === 把底层已有的数据全部包上保镖 ===
             if (Model.AnimatableProperties.Offset.KeyFrames != null)
@@ -144,6 +154,8 @@ namespace Axphi.ViewModels
         private void UpdatePosition()
         {
             PixelX = _timeline.TickToPixel(Model.HitTime);
+            // 🌟 新增：缩放时，Hold 尾巴的像素宽度也要跟着按比例伸缩！
+            UIHoldPixelWidth = _timeline.TickToPixel(Model.HoldDuration);
         }
 
         // ================= 5. 核心拦截器 (当你在面板上拖拽音符的属性时触发) =================
@@ -219,7 +231,17 @@ namespace Axphi.ViewModels
         }
 
 
-
+        // 当用户在属性面板里手动修改了数字时，同步更新底层 Model 和前端宽度
+        partial void OnHoldDurationChanged(int value)
+        {
+            if (Model != null)
+            {
+                Model.HoldDuration = value;
+                UIHoldPixelWidth = _timeline.TickToPixel(value);
+                // 发送重绘广播，让渲染器里的 9 宫格尾巴也跟着伸长！
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+        }
 
         partial void OnCurrentNoteKindChanged(NoteKind value)
         {

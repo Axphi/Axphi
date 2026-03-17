@@ -24,7 +24,7 @@ namespace Axphi.Data
         public NoteKind InitialKind { get; set; } = NoteKind.Tap;
         public List<NoteKindKeyFrame> KindKeyFrames { get; set; } = new();
         public int HitTime { get; set; }
-        public int HoldDuration { get; set; } = 100;
+        public int HoldDuration { get; set; } = 128;
         public double? CustomSpeed { get; set; }
 
         /// <summary>

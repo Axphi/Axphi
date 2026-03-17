@@ -124,5 +124,30 @@ namespace Axphi.Views
                 noteVM.OnDragCompleted();
             }
         }
+
+
+        // 拖拽 Hold 尾巴，改变长度
+        private void HoldTail_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is NoteViewModel noteVM)
+            {
+                // 1. 获取外层的大管家
+                if (this.DataContext is TrackViewModel trackVM)
+                {
+                    var timeline = trackVM._timeline; // 确保你能拿到 TimelineViewModel 的实例
+
+                    // 2. 计算拖拽后的新像素宽度
+                    double newPixelWidth = noteVM.UIHoldPixelWidth + e.HorizontalChange;
+                    if (newPixelWidth < 0) newPixelWidth = 0; // 不能变负数！
+
+                    // 3. 把像素宽度完美反推回 Tick！(直接复用你写好的公式)
+                    double exactTicks = timeline.PixelToTick(newPixelWidth);
+                    int newHoldDurationTicks = (int)Math.Round(exactTicks, MidpointRounding.AwayFromZero);
+
+                    // 4. 赋值给 ViewModel（它会自动触发 OnHoldDurationChanged 拦截器去更新画面！）
+                    noteVM.HoldDuration = newHoldDurationTicks;
+                }
+            }
+        }
     }
 }

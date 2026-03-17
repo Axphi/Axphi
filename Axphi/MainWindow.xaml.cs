@@ -215,6 +215,13 @@ public partial class MainWindow : Window
                 vm.Timeline.CurrentChart.InitialBpm);
 
             vm.Timeline.CurrentPlayTimeSeconds = newSeconds;
+
+            // ================= 🌟 补上这两句发消息！ =================
+            // 1. 告诉播放引擎强制跳转到这个时间（防止拖拽时和播放器打架）
+            CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new ForceSeekMessage(newSeconds));
+
+            // 2. 告诉右侧的渲染器立刻重绘画面！
+            CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
     }
 
@@ -252,6 +259,8 @@ public partial class MainWindow : Window
         {
             _playheadVirtualPixelX = vm.Timeline.PlayheadPositionX;
         }
+
+        WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
     }
 
 

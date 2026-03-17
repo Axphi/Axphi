@@ -146,6 +146,7 @@ namespace Axphi.Views
 
                     // 4. 赋值给 ViewModel（它会自动触发 OnHoldDurationChanged 拦截器去更新画面！）
                     noteVM.HoldDuration = newHoldDurationTicks;
+
                 }
             }
         }

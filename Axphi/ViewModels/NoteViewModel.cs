@@ -240,6 +240,9 @@ namespace Axphi.ViewModels
                 UIHoldPixelWidth = _timeline.TickToPixel(value);
                 // 发送重绘广播，让渲染器里的 9 宫格尾巴也跟着伸长！
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+
+                // 2. 🌟 核心新增：尾巴变长变短了，可能会撞到别人！立刻通知大管家重新排车道！
+                WeakReferenceMessenger.Default.Send(new NotesNeedSortMessage());
             }
         }
 
@@ -545,6 +548,24 @@ namespace Axphi.ViewModels
 
             // 发送音符重排信号，让 TrackViewModel 把底层 Note List 重新按时间排个序
             WeakReferenceMessenger.Default.Send(new NotesNeedSortMessage());
+        }
+
+
+
+
+        // 记录音符当前在第几条子轨道 (0代表第一条，1代表第二条...)
+        [ObservableProperty]
+        private int _laneIndex;
+
+        // 供 XAML 绑定的垂直物理像素坐标
+        [ObservableProperty]
+        private double _pixelY;
+
+        // 当车道改变时，自动计算它的物理高度！
+        partial void OnLaneIndexChanged(int value)
+        {
+            // 假设每一条子轨道的高度是 24 像素 (给点上下间距，原来是 20)
+            PixelY = value * 24;
         }
     }
 }

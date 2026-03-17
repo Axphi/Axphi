@@ -140,10 +140,33 @@ namespace Axphi.ViewModels
                     {
                         r.SortAndMergeDuplicates(note.Model.KindKeyFrames, note.UINoteKindKeyframes);
                     }
+
+
                 }
+
+
+                // 🌟 新增：排完序后，立刻重新计算大家的车道和重叠！
+                r.RecalculateLanes();
+
+
+
                 // 杀完人后，通知右侧渲染器和左侧面板重新加载一次画面，防残留！
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+
+                
             });
+
+            // 🌟 新增：专门接收“音符需要重排和算碰撞”的专属邮局！
+            WeakReferenceMessenger.Default.Register<TrackViewModel, NotesNeedSortMessage>(this, (r, m) =>
+            {
+                // 收到信件后，立刻重新计算大家的碰撞和车道！
+                r.RecalculateLanes();
+
+                // 通知右侧重绘
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            });
+
+            RecalculateLanes();
         }
 
         // ================= 5. 核心拦截器 (黑魔法) =================
@@ -489,9 +512,88 @@ namespace Axphi.ViewModels
         }
 
 
+        // 供 XAML 绑定，整个轨道动态伸缩的总高度
+        [ObservableProperty]
+        private double _uITrackHeight = 24; // 默认最少有一条轨道的高度 (24px)
 
+        // ================= 核心：子轨道碰撞检测与自动扩容 (终极防抖版) =================
+        public void RecalculateLanes()
+        {
+            if (UINotes == null || UINotes.Count == 0)
+            {
+                UITrackHeight = 24;
+                return;
+            }
 
+            // 🌟 视觉防碰撞缓冲：12像素宽度的隔离带
+            int buffer = (int)Math.Round(_timeline.PixelToTick(12));
 
+            // 🌟 核心破局点：先按【当前车道】排，再按【时间】排！
+            // 这样在互相穿透时，原先在底下的音符有绝对优先权，杜绝上下乱跳！
+            var sortedNotes = UINotes
+                .OrderBy(n => n.LaneIndex)
+                .ThenBy(n => n.Model.HitTime)
+                .ToList();
+
+            // 虚拟车道容器，记录每条车道停了哪些音符
+            List<List<NoteViewModel>> lanes = new List<List<NoteViewModel>>();
+
+            // 内部方法：判断某个区间在这条车道里是否空闲
+            bool IsLaneFree(int laneIdx, int start, int end)
+            {
+                if (laneIdx >= lanes.Count) return true;
+                foreach (var n in lanes[laneIdx])
+                {
+                    int nStart = n.Model.HitTime;
+                    int nEnd = nStart + (n.CurrentNoteKind == NoteKind.Hold ? n.HoldDuration : 0) + buffer;
+                    // 经典的线段重叠检测公式
+                    if (Math.Max(start, nStart) < Math.Min(end, nEnd))
+                    {
+                        return false; // 重叠了
+                    }
+                }
+                return true;
+            }
+
+            foreach (var note in sortedNotes)
+            {
+                int start = note.Model.HitTime;
+                int end = start + (note.CurrentNoteKind == NoteKind.Hold ? note.HoldDuration : 0) + buffer;
+
+                int assigned = -1;
+
+                // 永远从最底下的 0 车道开始找空隙
+                // 这保证了只要它们分开了，上面的音符会像水一样自动流回最底下！
+                for (int i = 0; i < lanes.Count; i++)
+                {
+                    if (IsLaneFree(i, start, end))
+                    {
+                        assigned = i;
+                        break;
+                    }
+                }
+
+                // 如果现有车道全被占满了，只能新开辟一条高架桥
+                if (assigned == -1)
+                {
+                    assigned = lanes.Count;
+                }
+
+                // 填补容器，防止越界
+                while (assigned >= lanes.Count)
+                {
+                    lanes.Add(new List<NoteViewModel>());
+                }
+
+                // 正式入驻新车道
+                lanes[assigned].Add(note);
+                note.LaneIndex = assigned;
+                note.PixelY = assigned * 24;
+            }
+
+            // 撑开整个背景的高度
+            UITrackHeight = Math.Max(1, lanes.Count) * 24;
+        }
     }
 
 

@@ -367,6 +367,7 @@ namespace Axphi.Components
             drawingContext.PushOpacity(opacity / 100);
 
             // ================= 5. 开始画图 =================
+            // ================= 5. 开始画图 =================
             if (currentKind == NoteKind.Hold)
             {
                 // 算术题：算出 Hold 的物理像素长度
@@ -388,8 +389,11 @@ namespace Axphi.Components
                     holdDistance = CalculateIntegralDistance(note.HitTime, note.HitTime + note.HoldDuration, line, chart);
                 }
 
-                // 转成像素长度并取绝对值
-                double holdPixelLength = renderInfo.ChartUnitToPixel(holdDistance);
+                // 🌟 【修复核心】：侦测真实物理距离是否为负数！(负数说明速度是倒退的)
+                bool isFlipped = holdDistance < 0;
+
+                // 转成像素长度并取绝对值，保证几何算出来始终是正数面积
+                double holdPixelLength = renderInfo.ChartUnitToPixel(Math.Abs(holdDistance));
 
                 // 算出各个方块的尺寸
                 double notePixelWidth = renderInfo.ChartUnitToPixel(2);
@@ -400,7 +404,7 @@ namespace Axphi.Components
                 double bodyHeight = holdPixelLength - partHeight;
                 if (bodyHeight < 0) bodyHeight = 0;
 
-                // 摆放积木并加 1 像素重叠防锯齿
+                // 摆放积木并加 1 像素重叠防锯齿 (默认全部往 -Y 方向画)
                 Rect headRect = new Rect(-notePixelWidth / 2, -partHeight / 2, notePixelWidth, partHeight);
                 Rect tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength - partHeight / 2, notePixelWidth, partHeight);
 
@@ -412,9 +416,25 @@ namespace Axphi.Components
                     bodyHeight + overlap * 2
                 );
 
+                // ================= 🌟 魔法施法时刻 =================
+                // 如果速度是负的，加一个 Y 轴镜像翻转画笔！
+                // 这样原本画在上方的尾巴，会被瞬间翻转到下方，乖乖拖在音符头的后面！
+                if (isFlipped)
+                {
+                    drawingContext.PushTransform(new ScaleTransform(1, -1));
+                }
+
+                // 依次画出三段
                 drawingContext.DrawRectangle(_brushHoldBody, null, bodyRect);
                 drawingContext.DrawRectangle(_brushHoldTail, null, tailRect);
                 drawingContext.DrawRectangle(_brushHoldHead, null, headRect);
+
+                // 🌟 画完一定要把镜像魔法撤销，防止影响后面的绘制
+                if (isFlipped)
+                {
+                    drawingContext.Pop();
+                }
+                // ===================================================
             }
             else
             {

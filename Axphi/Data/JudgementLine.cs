@@ -15,8 +15,8 @@ namespace Axphi.Data
 
        public List<KeyFrame<double>> SpeedKeyFrames { get; set; } = new();
 
-        // 默认使用积分(Integral)模式，也可选实时(Realtime)模式
-        public string SpeedMode { get; set; } = "Integral";
+        // 默认使用实时(Realtime)模式，也可选积分(Integral)模式
+        public string SpeedMode { get; set; } = "Realtime";
 
         /// <summary>
         /// 动画属性

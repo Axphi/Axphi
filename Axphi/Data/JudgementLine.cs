@@ -11,7 +11,12 @@ namespace Axphi.Data
     {
         public string ID { get; set; } = Guid.NewGuid().ToString();
         public string Name { get; set; } = string.Empty;
-        public double Speed { get; set; } = 1;
+        public double InitialSpeed { get; set; } = 1;
+
+       public List<KeyFrame<double>> SpeedKeyFrames { get; set; } = new();
+
+        // 默认使用积分(Integral)模式，也可选实时(Realtime)模式
+        public string SpeedMode { get; set; } = "Integral";
 
         /// <summary>
         /// 动画属性

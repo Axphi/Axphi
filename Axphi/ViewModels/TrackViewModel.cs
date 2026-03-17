@@ -34,6 +34,16 @@ namespace Axphi.ViewModels
         public ObservableCollection<KeyFrameUIWrapper<double>> UIRotationKeyframes { get; } = new();
         public ObservableCollection<KeyFrameUIWrapper<double>> UIOpacityKeyframes { get; } = new();
 
+
+        // 供 UI 绑定的替身集合
+        public ObservableCollection<KeyFrameUIWrapper<double>> UISpeedKeyframes { get; } = new();
+
+        // 供 XAML 左侧属性面板绑定的当前速度
+        [ObservableProperty]
+        private double _currentSpeed = 1.0; // 默认值和底层 InitialSpeed 保持一致
+        [ObservableProperty]
+        private string _currentSpeedMode = "Integral";
+
         // ================= 1. 底层数据源 =================
         // 这个属性是只读的，它紧紧抓住那个不会被污染的底层老实人
         public JudgementLine Data { get; }
@@ -73,6 +83,7 @@ namespace Axphi.ViewModels
             TrackName = name;
             _timeline = timeline;
 
+            
             // 如果底层数据里已经有关键帧了，把它们请进 UI 替身集合里
             // 初始化时，把底层已有的关键帧全部包上一层保镖！
             // ================= 2. 构造时，把底层已有的数据全部包上保镖 =================
@@ -92,7 +103,10 @@ namespace Axphi.ViewModels
                 foreach (var kf in Data.AnimatableProperties.Opacity.KeyFrames)
                     UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
 
-
+            // 【加在构造函数里：把底层的 Speed 关键帧包上保镖】
+            if (Data.SpeedKeyFrames != null)
+                foreach (var kf in Data.SpeedKeyFrames)
+                    UISpeedKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
 
 
 
@@ -109,6 +123,10 @@ namespace Axphi.ViewModels
             // 刚出生时，立刻强行同步一次当前时间的数据！这样一显示就是对的！
             int currentTick = _timeline.GetCurrentTick();
             var easingDir = _timeline.CurrentChart.KeyFrameEasingDirection; // 从大管家那拿全局缓动方向
+
+
+            CurrentSpeedMode = Data.SpeedMode ?? "Integral";
+
 
             // 1. 同步轨道自己的四个属性
             this.SyncValuesToTime(currentTick, easingDir);
@@ -143,6 +161,11 @@ namespace Axphi.ViewModels
 
 
                 }
+
+
+                // 【加在 1号邮局 KeyframesNeedSortMessage 的里面：给 Speed 排序去重】
+                r.SortAndMergeDuplicates(r.Data.SpeedKeyFrames, r.UISpeedKeyframes);
+
 
 
                 // 🌟 新增：排完序后，立刻重新计算大家的车道和重叠！
@@ -270,7 +293,13 @@ namespace Axphi.ViewModels
             }
         }
 
+        partial void OnCurrentSpeedModeChanged(string value)
+        {
+            if (_isSyncing || Data == null) return;
 
+            Data.SpeedMode = value; // 同步给底层
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage()); // 瞬间重绘！
+        }
 
         // ================= 添加 Offset (Position) 关键帧 =================
         [RelayCommand]
@@ -386,6 +415,48 @@ namespace Axphi.ViewModels
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
+
+        // ================= Speed 拦截器 =================
+        partial void OnCurrentSpeedChanged(double value)
+        {
+            if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+
+            // 注意：这里直接访问 Data.SpeedKeyFrames
+            if (Data.SpeedKeyFrames.Count == 0)
+            {
+                Data.InitialSpeed = CurrentSpeed;
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            else
+            {
+                AddSpeedKeyframe();
+            }
+        }
+
+        // ================= Speed 添加命令 =================
+        [RelayCommand]
+        private void AddSpeedKeyframe()
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var speedKeyframesData = Data.SpeedKeyFrames; // 直接拿底层的 List
+            var existingWrapper = UISpeedKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = CurrentSpeed;
+            }
+            else
+            {
+                // 直接 new 一个通用的 KeyFrame<double>
+                var newFrame = new KeyFrame<double>() { Time = currentTick, Value = CurrentSpeed };
+                speedKeyframesData.Add(newFrame);
+                speedKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UISpeedKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
+            }
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
         // 【新增】暴露给大管家调用的同步方法
         public void SyncValuesToTime(int currentTick, KeyFrameEasingDirection direction)
         {
@@ -405,6 +476,21 @@ namespace Axphi.ViewModels
             CurrentScaleY = scale.Y;
             CurrentRotation = rotationAngle;
             CurrentOpacity = opacity;
+
+            // ================= 🌟 新增：单独呼叫泛型神兽算出 Speed！ =================
+            // 因为 Speed 也是 double 类型，插值逻辑和 Opacity 是一模一样的
+            EasingUtils.CalculateObjectSingleTransform(
+                currentTick,
+                direction,
+                Data.InitialSpeed,       // 基础值
+                Data.SpeedKeyFrames,     // 关键帧集合
+                Axphi.Utilities.MathUtils.Lerp, // 你的双精度线性插值函数
+                out var finalSpeed);     // 吐出结果
+
+            CurrentSpeed = finalSpeed;   // 塞给前端 UI！
+            // =======================================================================
+
+
 
             _isSyncing = false; // 放下免死金牌
         }

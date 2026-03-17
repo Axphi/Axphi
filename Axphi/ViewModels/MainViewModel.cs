@@ -161,6 +161,13 @@ namespace Axphi.ViewModels
                         wrapper.Model.Easing = newEasing;
                         hasModified = true;
                     }
+
+                    // ✨ 🌟 加上这段：扫荡判定线的新属性 Speed 的关键帧！
+                    foreach (var wrapper in track.UISpeedKeyframes.Where(k => k.IsSelected))
+                    {
+                        wrapper.Model.Easing = newEasing;
+                        hasModified = true;
+                    }
                 }
             }
 

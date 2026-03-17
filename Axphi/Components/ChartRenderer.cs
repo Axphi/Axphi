@@ -214,7 +214,44 @@ namespace Axphi.Components
         {
 
         }
+        // ================= 核心：数值积分求真实下落距离 =================
+        private static double CalculateIntegralDistance(int startTick, int endTick, JudgementLine line, Chart chart)
+        {
+            if (startTick == endTick) return 0;
 
+            int steps = 15; // 15 段微积分切片，足以在 60fps 下骗过人类的眼睛
+            double totalDistance = 0;
+
+            int tMin = Math.Min(startTick, endTick);
+            int tMax = Math.Max(startTick, endTick);
+
+            double stepTick = (double)(tMax - tMin) / steps;
+
+            for (int i = 0; i < steps; i++)
+            {
+                // 1. 切割出极小的时间片段
+                int t1 = (int)Math.Round(tMin + i * stepTick);
+                int t2 = (int)Math.Round(tMin + (i + 1) * stepTick);
+
+                double sec1 = TimeTickConverter.TickToTime(t1, chart.BpmKeyFrames, chart.InitialBpm);
+                double sec2 = TimeTickConverter.TickToTime(t2, chart.BpmKeyFrames, chart.InitialBpm);
+
+                // 2. 抓取这个时间片段【正中间】的那一瞬间的速度（直接白嫖你写好的神兽方法）
+                int midTick = (t1 + t2) / 2;
+                EasingUtils.CalculateObjectSingleTransform(
+                    midTick,
+                    chart.KeyFrameEasingDirection,
+                    line.InitialSpeed,
+                    line.SpeedKeyFrames,
+                    Axphi.Utilities.MathUtils.Lerp,
+                    out var midSpeed);
+
+                // 3. 微小距离 = 瞬间速度 × 微小时间，然后累加！
+                totalDistance += midSpeed * (sec2 - sec1);
+            }
+
+            return startTick <= endTick ? totalDistance : -totalDistance;
+        }
         private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, int currentTick)
         {
             EasingUtils.CalculateObjectTransform(
@@ -248,9 +285,11 @@ namespace Axphi.Components
             {
                 foreach (var note in notes)
                 {
-                    
+
                     // 传递 currentTick
-                    RenderNote(drawingContext, renderInfo, chart, note, currentTick, line.Speed); // speed 默认: 1, 渲染器宽 16 , 高 9
+                    //RenderNote(drawingContext, renderInfo, chart, note, currentTick, line.InitialSpeed); // speed 默认: 1, 渲染器宽 16 , 高 9
+                    // ✅ 新代码：直接把 line 传给它
+                    RenderNote(drawingContext, renderInfo, chart, note, currentTick, line);
                 }
             }
 
@@ -258,37 +297,50 @@ namespace Axphi.Components
             drawingContext.Pop();
         }
 
-        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, int currentTick, double speed)
+        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, int currentTick, JudgementLine line)
         {
-
-            // 现在的 HitTime 是 int, currentTick 也是 int
             var ticksFromNow = note.HitTime - currentTick;
 
-            // 旧版是绝对值 > 10秒 就不渲染。10秒在120BPM下大约是 640个Tick。我们给个宽裕的 1000。
-            if (Math.Abs(ticksFromNow) > 1000)
-            {
-                return;
-            }
+            // 绝对值 > 1000 Tick 就不渲染，优化性能
+            if (Math.Abs(ticksFromNow) > 1000) return;
 
-            var finalSpeed = note.CustomSpeed ?? speed;
-
-            
-
-            
-            // ================= 音符的真实物理下落距离 =================
-            // 我们必须知道【现在】是第几秒，【音符该被打中】是第几秒
-            // 两者的真实时间差，乘以固定速度，才是它在屏幕上绝对正确的距离！
+            // ================= 1. 提取基础时间和实时速度 (不管什么模式都得先拿出来) =================
             double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, chart.InitialBpm);
             double hitTimeSeconds = TimeTickConverter.TickToTime(note.HitTime, chart.BpmKeyFrames, chart.InitialBpm);
 
-            double secondsFromNow = hitTimeSeconds - currentSeconds;
+            // 提取当前瞬间的实时速度 (如果是 Realtime 模式才需要算)
+            double currentRealtimeSpeed = line.InitialSpeed;
+            if (line.SpeedMode == "Realtime" && !note.CustomSpeed.HasValue)
+            {
+                EasingUtils.CalculateObjectSingleTransform(
+                    currentTick, chart.KeyFrameEasingDirection,
+                    line.InitialSpeed, line.SpeedKeyFrames,
+                    Axphi.Utilities.MathUtils.Lerp, out currentRealtimeSpeed);
+            }
 
-            // 4. 用秒数去乘以速度 (这样 Speed 就依然是 "单位/秒" 的含义了)
-            var distance = -finalSpeed * secondsFromNow;
+            // ================= 2. 算术题：音符的真实物理下落距离 =================
+            double distance = 0;
+            if (note.CustomSpeed.HasValue)
+            {
+                // 独立匀速
+                distance = note.CustomSpeed.Value * (hitTimeSeconds - currentSeconds);
+            }
+            else if (line.SpeedMode == "Realtime")
+            {
+                // 实时模式：当前瞬间速度直接乘
+                distance = currentRealtimeSpeed * (hitTimeSeconds - currentSeconds);
+            }
+            else
+            {
+                // 积分模式：微积分算真实距离
+                distance = CalculateIntegralDistance(currentTick, note.HitTime, line, chart);
+            }
 
-            
+            // 距离取反（因为在屏幕坐标系里，未来是从上方往 Y 的负方向掉落的）
+            distance = -distance;
             var pixelDistance = renderInfo.ChartUnitToPixel(distance);
 
+            // ================= 3. 计算音符本体的变换和透明度 =================
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
                 note.AnimatableProperties,
@@ -301,83 +353,78 @@ namespace Axphi.Components
             var noteTransform = new TransformGroup()
             {
                 Children =
-                {
-                    new ScaleTransform(scale.X, scale.Y),
-                    new RotateTransform(rotationAngle),  // 旋转中心是 note 中心
-                    new TranslateTransform(pixelOffset.X, pixelOffset.Y + pixelDistance),
-                }
+        {
+            new ScaleTransform(scale.X, scale.Y),
+            new RotateTransform(rotationAngle),
+            new TranslateTransform(pixelOffset.X, pixelOffset.Y + pixelDistance), // 👈 这里用到了 pixelDistance
+        }
             };
 
-
-            // 实时获取在 currentTick 这个时间点，音符到底变成了什么种类！
             var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentTick, note.InitialKind);
 
-            //var fill = currentKind switch
-            //{
-            //    NoteKind.Tap => _noteTap,
-            //    NoteKind.Drag => _noteDrag,
-            //    NoteKind.Hold => _noteHold,
-            //    NoteKind.Flick => _noteFlick,
-            //    _ => Brushes.Purple,
-            //};
-
-
+            // ================= 4. 推入画板变换 =================
             drawingContext.PushTransform(noteTransform);
             drawingContext.PushOpacity(opacity / 100);
 
-
+            // ================= 5. 开始画图 =================
             if (currentKind == NoteKind.Hold)
             {
-                // ================= 1. 算术题：算出 Hold 的物理像素长度 =================
-                // 获取头部和尾部的精确秒数
+                // 算术题：算出 Hold 的物理像素长度
                 double endTimeSeconds = TimeTickConverter.TickToTime(note.HitTime + note.HoldDuration, chart.BpmKeyFrames, chart.InitialBpm);
-                double durationSeconds = endTimeSeconds - hitTimeSeconds;
+                double holdDistance = 0;
 
-                // 用持续时间 × 速度，算出总像素长度
-                double holdPixelLength = renderInfo.ChartUnitToPixel(durationSeconds * Math.Abs(finalSpeed));
+                if (note.CustomSpeed.HasValue)
+                {
+                    holdDistance = note.CustomSpeed.Value * (endTimeSeconds - hitTimeSeconds);
+                }
+                else if (line.SpeedMode == "Realtime")
+                {
+                    // 实时模式：用刚刚拿到的 currentRealtimeSpeed 乘
+                    holdDistance = currentRealtimeSpeed * (endTimeSeconds - hitTimeSeconds);
+                }
+                else
+                {
+                    // 积分模式
+                    holdDistance = CalculateIntegralDistance(note.HitTime, note.HitTime + note.HoldDuration, line, chart);
+                }
 
-                // ================= 2. 算术题：算出各个方块的尺寸 =================
-                double notePixelWidth = renderInfo.ChartUnitToPixel(2); // 固定宽度
-                                                                        // 头部和尾部的真实高度（根据你说的宽高比 50/989 计算）
+                // 转成像素长度并取绝对值
+                double holdPixelLength = renderInfo.ChartUnitToPixel(Math.Abs(holdDistance));
+
+                // 算出各个方块的尺寸
+                double notePixelWidth = renderInfo.ChartUnitToPixel(2);
                 double partHeight = notePixelWidth * (50.0 / 989.0);
 
-                // 如果 Hold 极其短（比如写错了只按1个Tick），防止身体算出负数高度
                 if (holdPixelLength < partHeight) holdPixelLength = partHeight;
 
-                // 身体的高度 = 总长度 - 半个头 - 半个尾（因为头尾坐标是基于中心点的）
                 double bodyHeight = holdPixelLength - partHeight;
                 if (bodyHeight < 0) bodyHeight = 0;
 
-                // ================= 3. 摆放积木：计算三个部分的绘制区域 (Y负数代表往轨道上方长) =================
-                // 头在最下面 (原点 0 处)
+                // 摆放积木并加 1 像素重叠防锯齿
                 Rect headRect = new Rect(-notePixelWidth / 2, -partHeight / 2, notePixelWidth, partHeight);
-
-                // 尾巴在最上面 (向未来延伸 holdPixelLength 距离)
                 Rect tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength - partHeight / 2, notePixelWidth, partHeight);
 
-                // ✨ 核心神操作：给身体上下各增加 1 像素的重叠量，彻底干掉抗锯齿缝隙！
-                double overlap = 1.0; // 1 像素的重叠绰绰有余
+                double overlap = 1.0;
                 Rect bodyRect = new Rect(
                     -notePixelWidth / 2,
-                    -holdPixelLength + partHeight / 2 - overlap, // Y 往上（尾部方向）多伸出 1 像素
+                    -holdPixelLength + partHeight / 2 - overlap,
                     notePixelWidth,
-                    bodyHeight + overlap * 2                     // 高度增加 2 像素，保证两头都钻进去
+                    bodyHeight + overlap * 2
                 );
 
-                // ================= 4. 依次画出三段 =================
-                drawingContext.DrawRectangle(_brushHoldBody, null, bodyRect); // 画拉伸的身体
-                drawingContext.DrawRectangle(_brushHoldTail, null, tailRect); // 画尾部
-                drawingContext.DrawRectangle(_brushHoldHead, null, headRect); // 画头部
+                drawingContext.DrawRectangle(_brushHoldBody, null, bodyRect);
+                drawingContext.DrawRectangle(_brushHoldTail, null, tailRect);
+                drawingContext.DrawRectangle(_brushHoldHead, null, headRect);
             }
             else
             {
-                // ================= 普通音符，依然用整张图自适应渲染 =================
+                // 普通音符，自适应渲染
                 ImageSource imgSrc = currentKind switch
                 {
                     NoteKind.Tap => _imgTap,
                     NoteKind.Drag => _imgDrag,
                     NoteKind.Flick => _imgFlick,
-                    _ => _imgTap, // 兜底
+                    _ => _imgTap,
                 };
 
                 var aspectRatio = imgSrc.Height / imgSrc.Width;
@@ -386,10 +433,9 @@ namespace Axphi.Components
 
                 drawingContext.DrawImage(imgSrc, new Rect(-notePixelWidth / 2, -notePixelHeight / 2, notePixelWidth, notePixelHeight));
             }
-            
 
-            drawingContext.Pop();
-            drawingContext.Pop();
+            drawingContext.Pop(); // opacity
+            drawingContext.Pop(); // transform
         }
     }
 }

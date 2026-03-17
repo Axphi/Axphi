@@ -354,6 +354,28 @@ public partial class DraggableValueBox : UserControl
         }
     }
 
+    //private void FinishEdit(bool commit)
+    //{
+    //    if (!IsEditable)
+    //    {
+    //        return;
+    //    }
+
+    //    if (commit)
+    //    {
+    //        var text = (EditBox.Text ?? string.Empty).Trim();
+    //        if (TryParseDouble(text, out var val))
+    //        {
+    //            Value = val; // DP 内部会 Coerce
+    //        }
+    //    }
+
+    //    // 无论提交/取消，都用当前 Value 刷新显示文本
+    //    SyncDisplayText();
+    //    IsEditable = false;
+    //    Keyboard.ClearFocus();
+    //}
+
     private void FinishEdit(bool commit)
     {
         if (!IsEditable)
@@ -363,17 +385,26 @@ public partial class DraggableValueBox : UserControl
 
         if (commit)
         {
+            // 先强行清除焦点，确保中文输入法 (IME) 等悬停文本被完全提交到 Text 属性
+            Keyboard.ClearFocus();
+
             var text = (EditBox.Text ?? string.Empty).Trim();
             if (TryParseDouble(text, out var val))
             {
-                Value = val; // DP 内部会 Coerce
+                // 🌟 终极防弹操作 1：使用 SetCurrentValue 赋值，绝对不破坏 XAML 里的 TwoWay 绑定体系
+                SetCurrentValue(ValueProperty, val);
+
+                // 🌟 终极防弹操作 2：强行揪出这根绑定的神经管，命令它在 UI 坍塌前，立刻把数据推给 ViewModel！
+                var bindingExpression = GetBindingExpression(ValueProperty);
+                bindingExpression?.UpdateSource();
             }
         }
 
         // 无论提交/取消，都用当前 Value 刷新显示文本
         SyncDisplayText();
+
+        // 确认数据已经安全送到大管家手里了，再安全地折叠隐藏输入框
         IsEditable = false;
-        Keyboard.ClearFocus();
     }
 
     //private void FinishEdit()

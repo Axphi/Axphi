@@ -389,7 +389,7 @@ namespace Axphi.Components
                 }
 
                 // 转成像素长度并取绝对值
-                double holdPixelLength = renderInfo.ChartUnitToPixel(Math.Abs(holdDistance));
+                double holdPixelLength = renderInfo.ChartUnitToPixel(holdDistance);
 
                 // 算出各个方块的尺寸
                 double notePixelWidth = renderInfo.ChartUnitToPixel(2);

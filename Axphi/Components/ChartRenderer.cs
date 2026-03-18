@@ -30,10 +30,10 @@ namespace Axphi.Components
 
         // 🌟 1. 静态缓存音符图片 (路径里的 pack://application:,,,/ 是 WPF 的标准资源路径写法)
         // 请把 Resources/Notes/... 换成你实际的文件夹和文件名！
-        private static readonly BitmapImage _imgTap = new BitmapImage(new Uri("pack://application:,,,/Resources/Notes/tap.png"));
-        private static readonly BitmapImage _imgDrag = new BitmapImage(new Uri("pack://application:,,,/Resources/Notes/drag.png"));
-        private static readonly BitmapImage _imgHoldHead = new BitmapImage(new Uri("pack://application:,,,/Resources/Notes/hold.png"));
-        private static readonly BitmapImage _imgFlick = new BitmapImage(new Uri("pack://application:,,,/Resources/Notes/flick.png"));
+        private static readonly BitmapImage _imgTap = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/tap.png"));
+        private static readonly BitmapImage _imgDrag = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/drag.png"));
+        private static readonly BitmapImage _imgHoldHead = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/hold.png"));
+        private static readonly BitmapImage _imgFlick = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/flick.png"));
 
         // 2. 声明 Hold 专属的三段画刷
         private static readonly ImageBrush _brushHoldTail;

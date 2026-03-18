@@ -102,37 +102,43 @@
 
 
                 <!--  时间线区  -->
-                <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="2,0,2,0"
+                <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,0"
                       x:Name="TimelineMainGrid"
                       PreviewMouseLeftButtonDown="TimelineMainGrid_PreviewMouseLeftButtonDown"
                       PreviewMouseMove="TimelineMainGrid_PreviewMouseMove"
                       PreviewMouseLeftButtonUp="TimelineMainGrid_PreviewMouseLeftButtonUp">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*" />
+                        
                         <ColumnDefinition Width="2.8*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
                         <RowDefinition Height="25" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="1" Grid.Column="2" Background="#363636" />
+
 
                     <!--  标题栏  -->
                     <comp:TabPane Grid.Row="0" Grid.Column="0">
                         <comp:TabPane.Header>
                             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                                 <TextBlock VerticalAlignment="Center" Text="Line" />
-                                <ws:Button Margin="10,0,0,0" Padding="8,0" Command="{Binding Timeline.AddJudgementLineCommand}" Content="+" ToolTip="添加图层" />
+                                <ws:Button Margin="8,0,0,0" Padding="8,0" Command="{Binding Timeline.AddJudgementLineCommand}" Content="+" ToolTip="添加图层" />
                             </StackPanel>
                         </comp:TabPane.Header>
                     </comp:TabPane>
+
                     <comp:TabPane Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Header="Timeline" />
 
                     <!--  时间标尺  -->
-                    <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e">
+                    <Border Grid.Row="2" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e">
                         <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True">
                             <comp:TimelineRuler
                                 x:Name="MainTimelineRuler"
@@ -149,7 +155,7 @@
                     </Border>
 
                     <!--  图层区  -->
-                    <ScrollViewer Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
+                    <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
                         <StackPanel>
                             <v:BpmTrackControl DataContext="{Binding Timeline.BpmTrack}" Margin="0,0,0,5" />
 
@@ -165,7 +171,7 @@
 
 
                     <!--  游标  -->
-                    <Grid Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" ClipToBounds="True">
+                    <Grid Grid.Row="2" Grid.RowSpan="2" Grid.Column="1" ClipToBounds="True">
 
                         <Canvas x:Name="OverlayCanvas">
                             <Rectangle x:Name="MarqueeRect"
@@ -175,6 +181,50 @@
                                        Visibility="Collapsed"
                                        HorizontalAlignment="Left"
                                        VerticalAlignment="Top" />
+
+                            <Canvas Panel.ZIndex="10">
+                                <Canvas.RenderTransform>
+                                    <TranslateTransform X="{Binding X, ElementName=PlayheadTransform}" />
+                                </Canvas.RenderTransform>
+
+                                <Rectangle Canvas.Left="{Binding Timeline.WorkspaceStartX}"
+                                           Width="{Binding Timeline.WorkspaceWidth}"
+                                           Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
+                                           Fill="#09FFFFFF" 
+                                           IsHitTestVisible="False" />
+
+                                <Thumb Canvas.Left="{Binding Timeline.WorkspaceStartX}"
+                                       Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
+                                       Cursor="SizeWE"
+                                       DragStarted="WorkspaceLeft_DragStarted"
+                                       DragDelta="WorkspaceLeft_DragDelta">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Grid Width="12" Margin="-12,0,0,0" Background="Transparent">
+                                                <Polygon Points="12,0 12,12 0,0" Fill="#5285F3" />
+                                                <Rectangle Width="2" HorizontalAlignment="Right" Fill="#5285F3" />
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+
+                                <Thumb Canvas.Left="{Binding Timeline.WorkspaceEndX}"
+                                       Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
+                                       Cursor="SizeWE"
+                                       DragStarted="WorkspaceRight_DragStarted"
+                                       DragDelta="WorkspaceRight_DragDelta">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Grid Width="12" Margin="0,0,-12,0" Background="Transparent">
+                                                <Polygon Points="0,0 0,12 12,0" Fill="#5285F3" />
+                                                <Rectangle Width="2" HorizontalAlignment="Left" Fill="#5285F3" />
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Canvas>
+
+
                             <Thumb x:Name="PlayheadThumb"
                                    Canvas.Left="{Binding Timeline.PlayheadPositionX}"
                                    Cursor="SizeWE"
@@ -202,14 +252,14 @@
 
                     <!--  图层全局水平滚动条  -->
                     <ScrollBar x:Name="GlobalHorizontalScroll"
-                               Grid.Row="3" Grid.Column="1" Height="12" Margin="0,0,0,2"
+                               Grid.Row="4" Grid.Column="1" Height="12" Margin="0,0,0,0"
                                Orientation="Horizontal" VerticalAlignment="Bottom"
                                Minimum="0" Maximum="{Binding Timeline.TotalPixelWidth}"
                                ViewportSize="800" ValueChanged="GlobalHorizontalScrollBar_ValueChanged" />
 
                     <!--  图层全局垂直滚动条  -->
                     <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"
-                               Grid.Row="1" Grid.Column="2" Width="12" Margin="2,0,0,0"
+                               Grid.Row="2" Grid.Column="2" Width="12" Margin="0,0,0,0"
                                Orientation="Vertical" HorizontalAlignment="Right"
                                Minimum="0"
                                ValueChanged="GlobalVerticalScrollBar_ValueChanged" />

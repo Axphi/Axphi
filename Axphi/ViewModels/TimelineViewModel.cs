@@ -84,6 +84,10 @@ namespace Axphi.ViewModels
             // 注意：因为 TotalPixelWidth 用了 NotifyPropertyChangedFor
             // 它会自动更新，但我们必须手动调用更新游标
             UpdatePlayheadPosition();
+
+            UpdateWorkspacePixels(); // 🌟 补上这句：缩放时也要更新工作区宽度
+
+
             // 告诉全网：缩放变了！所有的关键帧请重新计算你们的 X 坐标！
             WeakReferenceMessenger.Default.Send(new ZoomScaleChangedMessage(value));
         }
@@ -115,6 +119,11 @@ namespace Axphi.ViewModels
         {
 
             _projectManager = projectManager; // 存进私有变量
+
+
+            // 🌟 必须加上这行！让它一出生就计算宽度！
+            UpdateWorkspacePixels();
+
 
             // 然后再从 manager 里把 Chart 拿出来赋值给 _currentChart
             // 极其重要的防坑提示：软件刚启动时，工程可能是空的！所以要做个判空！
@@ -195,6 +204,8 @@ namespace Axphi.ViewModels
             // 🌟 【新增核心修复】：同时发信给右侧渲染器和音频播放器，强制它们也空降回 0 秒！
             // 这样前后端的记忆就彻底统一了！
             WeakReferenceMessenger.Default.Send(new ForceSeekMessage(0));
+
+            UpdateWorkspacePixels();
 
             // 5. 顺便大喊一声，让右侧的渲染器也强制刷新一下画面！
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
@@ -459,5 +470,76 @@ namespace Axphi.ViewModels
 
             return bestTick;
         }
+
+
+
+
+
+
+
+
+
+
+
+        // ================= 工作区 (循环区间) =================
+        [ObservableProperty]
+        private int _workspaceStartTick = 0;
+
+        [ObservableProperty]
+        private int _workspaceEndTick = 1920; // 默认给个 1920 的长度先看着
+
+        [ObservableProperty]
+        private double _workspaceStartX;
+
+        [ObservableProperty]
+        private double _workspaceEndX;
+
+        [ObservableProperty]
+        private double _workspaceWidth;
+
+        // 只要 Tick 改变，立刻重新计算像素
+        partial void OnWorkspaceStartTickChanged(int value) => UpdateWorkspacePixels();
+        partial void OnWorkspaceEndTickChanged(int value) => UpdateWorkspacePixels();
+
+        public void UpdateWorkspacePixels()
+        {
+            WorkspaceStartX = TickToPixel(WorkspaceStartTick);
+            WorkspaceEndX = TickToPixel(WorkspaceEndTick);
+            WorkspaceWidth = Math.Max(0, WorkspaceEndX - WorkspaceStartX);
+        }
+        // ================= 工作区循环拦截引擎 =================
+        // 供外部播放引擎在“正在播放”状态下每一帧调用
+        // ================= 工作区循环拦截引擎 =================
+        // 🌟 增加两个参数：接收上一帧的时间和当前帧的时间
+        public void CheckWorkspaceLoop(double prevTimeSeconds, double currentTimeSeconds)
+        {
+            if (CurrentChart == null) return;
+
+            // 1. 安全锁：防止左右手柄捏在一起重合，导致死循环爆炸
+            if (WorkspaceStartTick >= WorkspaceEndTick) return;
+
+            // 2. 算出工作区右边界的物理秒数
+            double endSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(WorkspaceEndTick, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
+
+            // 3. 核心拦截：🌟 只有当“上一瞬还在界内（或左侧），且这一瞬刚好越界”时，才触发循环！
+            if (prevTimeSeconds < endSeconds && currentTimeSeconds >= endSeconds)
+            {
+                // 算出左边界的物理秒数
+                double startSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(WorkspaceStartTick, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
+
+                // 强行将大管家的时间拽回左边界
+                CurrentPlayTimeSeconds = startSeconds;
+
+                // 寄加急信：命令右侧的渲染器和底层的音频播放器，立刻给我空降回这个时间重播！
+                CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new ForceSeekMessage(startSeconds));
+
+                // 确保画面同步刷新
+                CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+        }
     }
+
+
+
+  
 }

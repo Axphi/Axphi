@@ -492,5 +492,66 @@ public partial class MainWindow : Window
         }
     }
 
+    // ================= 工作区拖拽逻辑 =================
+    private Point _workspaceLastMousePos;
+    private double _workspaceVirtualPixelX;
 
+    // === 左手柄 ===
+    private void WorkspaceLeft_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+    {
+        _workspaceLastMousePos = Mouse.GetPosition(TimelineMainGrid);
+        if (this.DataContext is MainViewModel vm)
+            _workspaceVirtualPixelX = vm.Timeline.WorkspaceStartX;
+    }
+
+    private void WorkspaceLeft_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        Point currentPos = Mouse.GetPosition(TimelineMainGrid);
+        double stableDeltaX = currentPos.X - _workspaceLastMousePos.X;
+        _workspaceLastMousePos = currentPos;
+
+        if (this.DataContext is MainViewModel vm)
+        {
+            _workspaceVirtualPixelX += stableDeltaX;
+            if (_workspaceVirtualPixelX < 0) _workspaceVirtualPixelX = 0;
+
+            // 物理防撞墙：左手柄不能越过右手柄，最少保持 10 像素距离
+            if (_workspaceVirtualPixelX > vm.Timeline.WorkspaceEndX - 10)
+                _workspaceVirtualPixelX = vm.Timeline.WorkspaceEndX - 10;
+
+            double exactTick = vm.Timeline.PixelToTick(_workspaceVirtualPixelX);
+            int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: false);
+
+            vm.Timeline.WorkspaceStartTick = snappedTick;
+        }
+    }
+
+    // === 右手柄 ===
+    private void WorkspaceRight_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+    {
+        _workspaceLastMousePos = Mouse.GetPosition(TimelineMainGrid);
+        if (this.DataContext is MainViewModel vm)
+            _workspaceVirtualPixelX = vm.Timeline.WorkspaceEndX;
+    }
+
+    private void WorkspaceRight_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        Point currentPos = Mouse.GetPosition(TimelineMainGrid);
+        double stableDeltaX = currentPos.X - _workspaceLastMousePos.X;
+        _workspaceLastMousePos = currentPos;
+
+        if (this.DataContext is MainViewModel vm)
+        {
+            _workspaceVirtualPixelX += stableDeltaX;
+
+            // 物理防撞墙：右手柄不能越过左手柄
+            if (_workspaceVirtualPixelX < vm.Timeline.WorkspaceStartX + 10)
+                _workspaceVirtualPixelX = vm.Timeline.WorkspaceStartX + 10;
+
+            double exactTick = vm.Timeline.PixelToTick(_workspaceVirtualPixelX);
+            int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: false);
+
+            vm.Timeline.WorkspaceEndTick = snappedTick;
+        }
+    }
 }

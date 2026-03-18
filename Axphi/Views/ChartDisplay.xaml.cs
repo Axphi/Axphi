@@ -157,11 +157,23 @@ namespace Axphi.Views
             // 这样红线不仅绝对不会闪回，而且移动会极其丝滑（因为秒表精度极高）
             TimeSpan currentTime = _manualTimeOffset + _renderStopwatch.Elapsed;
 
+
             InternalChartRenderer.Time = currentTime;
 
             if (this.DataContext is MainViewModel vm)
             {
+
+                // ================= 🌟 1. 提取“上一帧”的时间 =================
+                // 这个值在上面还没被覆盖，所以它完美代表了之前的时间！
+                // （如果你刚刚拖拽了游标，它就会等于你拖拽到的那个绝对准确的时间）
+                double prevSeconds = vm.Timeline.CurrentPlayTimeSeconds;
+
+
                 vm.Timeline.CurrentPlayTimeSeconds = currentTime.TotalSeconds;
+
+                // ================= 🌟 2. 加上这一句！召唤拦截探测器！ =================
+                vm.Timeline.CheckWorkspaceLoop(prevSeconds, currentTime.TotalSeconds);
+                // ===================================================================
             }
         }
 

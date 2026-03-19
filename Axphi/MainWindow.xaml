@@ -109,7 +109,7 @@
                       PreviewMouseLeftButtonUp="TimelineMainGrid_PreviewMouseLeftButtonUp">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*" />
-                        
+
                         <ColumnDefinition Width="2.8*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
@@ -137,22 +137,40 @@
 
                     <comp:TabPane Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Header="Timeline" />
 
-                    <!--  时间标尺  -->
-                    <Border Grid.Row="2" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e">
-                        <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True">
+
+
+                    <!--  重构  -->
+                    <Grid Grid.Row="2" Grid.Column="0" Grid.RowSpan="2" Grid.ColumnSpan="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="2.8*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="25" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!--  时间标尺  -->
+
+                        <Border Grid.Row="0" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True">
                             <comp:TimelineRuler
-                                x:Name="MainTimelineRuler"
-                                VirtualTotalWidth="{Binding Timeline.TotalPixelWidth}"
-                                TotalTicks="{Binding Timeline.TotalDurationTicks}"
-                                HorizontalAlignment="Stretch"
-                                VisibleOffsetX="{Binding Value, ElementName=GlobalHorizontalScroll}"
-                                ViewportWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border}}"
-                                PreviewMouseLeftButtonDown="TimelineRuler_PreviewMouseLeftButtonDown"
-                                PreviewMouseMove="TimelineRuler_PreviewMouseMove"
-                                PreviewMouseLeftButtonUp="TimelineRuler_PreviewMouseLeftButtonUp"
-                                Cursor="Hand" />
+                                    x:Name="MainTimelineRuler"
+                                    VirtualTotalWidth="{Binding Timeline.TotalPixelWidth}"
+                                    TotalTicks="{Binding Timeline.TotalDurationTicks}"
+                                    HorizontalAlignment="Stretch"
+                                    VisibleOffsetX="{Binding Value, ElementName=GlobalHorizontalScroll}"
+                                    ViewportWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border}}"
+                                    PreviewMouseLeftButtonDown="TimelineRuler_PreviewMouseLeftButtonDown"
+                                    PreviewMouseMove="TimelineRuler_PreviewMouseMove"
+                                    PreviewMouseLeftButtonUp="TimelineRuler_PreviewMouseLeftButtonUp"
+                                    Cursor="Hand" />
                         </Border>
-                    </Border>
+
+
+                    </Grid>
+
+
+
 
                     <!--  图层区  -->
                     <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
@@ -190,7 +208,7 @@
                                 <Rectangle Canvas.Left="{Binding Timeline.WorkspaceStartX}"
                                            Width="{Binding Timeline.WorkspaceWidth}"
                                            Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
-                                           Fill="#09FFFFFF" 
+                                           Fill="#09FFFFFF"
                                            IsHitTestVisible="False" />
 
                                 <Thumb Canvas.Left="{Binding Timeline.WorkspaceStartX}"

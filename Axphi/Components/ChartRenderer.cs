@@ -396,7 +396,7 @@ namespace Axphi.Components
                 double holdPixelLength = renderInfo.ChartUnitToPixel(Math.Abs(holdDistance));
 
                 // 算出各个方块的尺寸
-                double notePixelWidth = renderInfo.ChartUnitToPixel(2);
+                double notePixelWidth = renderInfo.ChartUnitToPixel(1.95);
                 double partHeight = notePixelWidth * (50.0 / 989.0);
 
                 if (holdPixelLength < partHeight) holdPixelLength = partHeight;
@@ -448,7 +448,7 @@ namespace Axphi.Components
                 };
 
                 var aspectRatio = imgSrc.Height / imgSrc.Width;
-                var notePixelWidth = renderInfo.ChartUnitToPixel(2);
+                var notePixelWidth = renderInfo.ChartUnitToPixel(1.95);
                 var notePixelHeight = notePixelWidth * aspectRatio;
 
                 drawingContext.DrawImage(imgSrc, new Rect(-notePixelWidth / 2, -notePixelHeight / 2, notePixelWidth, notePixelHeight));

@@ -16,14 +16,15 @@
                             BorderThickness="1">
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="24"/>
                                 <RowDefinition Height="1*"/>
                             </Grid.RowDefinitions>
 
                             <ContentPresenter Grid.Row="0"
                                               Margin="2"
                                               ContentSource="Header"
-                                              TextBlock.Foreground="#eeeeee"/>
+                                              TextBlock.Foreground="#eeeeee"
+                                              VerticalAlignment="Center"/>
                             <Border Grid.Row="1"
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"

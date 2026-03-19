@@ -319,7 +319,7 @@
                             <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas />
+                                        <Canvas Margin="8,0,0,0"/>
                                         <!--  设置容器  -->
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
@@ -368,7 +368,7 @@
                             <ItemsControl ItemsSource="{Binding UIScaleKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas />
+                                        <Canvas Margin="8,0,0,0"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
 
@@ -416,7 +416,7 @@
                             <ItemsControl ItemsSource="{Binding UIRotationKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas />
+                                        <Canvas Margin="8,0,0,0"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
 
@@ -464,7 +464,7 @@
                             <ItemsControl ItemsSource="{Binding UIOpacityKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas />
+                                        <Canvas Margin="8,0,0,0"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
 
@@ -513,7 +513,7 @@
                             <ItemsControl ItemsSource="{Binding UISpeedKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas />
+                                        <Canvas Margin="8,0,0,0"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
@@ -561,7 +561,7 @@
                             <ItemsControl ItemsSource="{Binding UINotes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas Height="{Binding UITrackHeight}" Background="#2A2A2A" />
+                                        <Canvas Height="{Binding UITrackHeight}" Background="#2A2A2A" Margin="8,0,0,0"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
 
@@ -663,7 +663,7 @@
                                 <ItemsControl ItemsSource="{Binding UINoteKindKeyframes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <Canvas />
+                                            <Canvas Margin="8,0,0,0"/>
                                             <!--  设置容器  -->
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
@@ -715,7 +715,7 @@
                                 <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <Canvas />
+                                            <Canvas Margin="8,0,0,0"/>
 
                                             <!--  设置容器  -->
 
@@ -765,7 +765,7 @@
                                 <ItemsControl ItemsSource="{Binding UIScaleKeyframes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <Canvas />
+                                            <Canvas Margin="8,0,0,0"/>
 
                                             <!--  设置容器  -->
 
@@ -815,7 +815,7 @@
                                 <ItemsControl ItemsSource="{Binding UIRotationKeyframes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <Canvas />
+                                            <Canvas Margin="8,0,0,0"/>
 
                                             <!--  设置容器  -->
 
@@ -865,7 +865,7 @@
                                 <ItemsControl ItemsSource="{Binding UIOpacityKeyframes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <Canvas />
+                                            <Canvas Margin="8,0,0,0"/>
 
                                             <!--  设置容器  -->
 

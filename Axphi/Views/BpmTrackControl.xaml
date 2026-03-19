@@ -41,7 +41,7 @@
                     <ItemsControl ItemsSource="{Binding UIBpmKeyframes}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <Canvas />
+                                <Canvas Margin="8,0,0,0"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
 

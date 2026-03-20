@@ -129,8 +129,8 @@
                                 </comp:DraggableOptionBox.Options>
                             </comp:DraggableOptionBox>
 
-                            <TextBlock VerticalAlignment="Center" Foreground="#555" Text=" | " Margin="4,0"/>
-                            
+                            <TextBlock VerticalAlignment="Center" Foreground="#555" Text=" | " Margin="4,0" />
+
                             <comp:DraggableValueBox DragSpeed="0.1" NumberFormat="0.00" Value="{Binding CurrentSpeed, Mode=TwoWay}" />
                         </StackPanel>
                     </Grid>
@@ -311,15 +311,36 @@
                       PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
                 <StackPanel>
-                    <Grid Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" Background="#374561">
-                        <!--  这里是图层  -->
-                    </Grid>
+
+
+                    <Canvas Margin="8,0,0,0" Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left">
+                        <Thumb>
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Rectangle x:Name="LayerRect" Width="{Binding Timeline.TotalPixelWidth}" Height="20" Fill="#374561">
+                                    </Rectangle>
+                                    <ControlTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <Setter TargetName="LayerRect" Property="Fill" Value="#5285F3" />
+                                            <Setter TargetName="LayerRect" Property="Stroke" Value="#FFF" />
+                                            <Setter TargetName="LayerRect" Property="StrokeThickness" Value="1.5" />
+                                        </DataTrigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="LayerRect" Property="Opacity" Value="0.8" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+
+                    </Canvas>
+
                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                         <Border Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
                             <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas Margin="8,0,0,0"/>
+                                        <Canvas Margin="8,0,0,0" />
                                         <!--  设置容器  -->
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
@@ -368,7 +389,7 @@
                             <ItemsControl ItemsSource="{Binding UIScaleKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas Margin="8,0,0,0"/>
+                                        <Canvas Margin="8,0,0,0" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
 
@@ -416,7 +437,7 @@
                             <ItemsControl ItemsSource="{Binding UIRotationKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas Margin="8,0,0,0"/>
+                                        <Canvas Margin="8,0,0,0" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
 
@@ -464,7 +485,7 @@
                             <ItemsControl ItemsSource="{Binding UIOpacityKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas Margin="8,0,0,0"/>
+                                        <Canvas Margin="8,0,0,0" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
 
@@ -513,7 +534,7 @@
                             <ItemsControl ItemsSource="{Binding UISpeedKeyframes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas Margin="8,0,0,0"/>
+                                        <Canvas Margin="8,0,0,0" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
@@ -561,7 +582,7 @@
                             <ItemsControl ItemsSource="{Binding UINotes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas Height="{Binding UITrackHeight}" Background="#2A2A2A" Margin="8,0,0,0"/>
+                                        <Canvas Height="{Binding UITrackHeight}" Background="#2A2A2A" Margin="8,0,0,0" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
 
@@ -663,7 +684,7 @@
                                 <ItemsControl ItemsSource="{Binding UINoteKindKeyframes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0"/>
+                                            <Canvas Margin="8,0,0,0" />
                                             <!--  设置容器  -->
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
@@ -715,7 +736,7 @@
                                 <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0"/>
+                                            <Canvas Margin="8,0,0,0" />
 
                                             <!--  设置容器  -->
 
@@ -765,7 +786,7 @@
                                 <ItemsControl ItemsSource="{Binding UIScaleKeyframes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0"/>
+                                            <Canvas Margin="8,0,0,0" />
 
                                             <!--  设置容器  -->
 
@@ -815,7 +836,7 @@
                                 <ItemsControl ItemsSource="{Binding UIRotationKeyframes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0"/>
+                                            <Canvas Margin="8,0,0,0" />
 
                                             <!--  设置容器  -->
 
@@ -865,7 +886,7 @@
                                 <ItemsControl ItemsSource="{Binding UIOpacityKeyframes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0"/>
+                                            <Canvas Margin="8,0,0,0" />
 
                                             <!--  设置容器  -->
 

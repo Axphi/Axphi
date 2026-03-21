@@ -327,11 +327,20 @@ namespace Axphi.Components
             // 绝对值 > 1000 Tick 就不渲染，优化性能
             if (Math.Abs(ticksFromNow) > 1000) return;
 
-            // ================= 1. 提取基础时间和实时速度 (不管什么模式都得先拿出来) =================
+            // ================= 1. 提前提取音符类型 =================
+            var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentTick, note.InitialKind);
+
+            // ================= 2. 视觉消失引擎 =================
+            // Tap, Drag, Flick：只要越过判定线，直接消失！
+            if (currentKind != NoteKind.Hold && currentTick >= note.HitTime) return;
+
+            // Hold：只有当整条尾巴都彻底越过判定线时，才完全消失！
+            if (currentKind == NoteKind.Hold && currentTick >= note.HitTime + note.HoldDuration) return;
+
+            // ================= 3. 计算物理下落距离 (保持真实下落，绝不定住！) =================
             double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, chart.InitialBpm);
             double hitTimeSeconds = TimeTickConverter.TickToTime(note.HitTime, chart.BpmKeyFrames, chart.InitialBpm);
 
-            // 提取当前瞬间的实时速度 (如果是 Realtime 模式才需要算)
             double currentRealtimeSpeed = line.InitialSpeed;
             if (line.SpeedMode == "Realtime" && !note.CustomSpeed.HasValue)
             {
@@ -341,127 +350,94 @@ namespace Axphi.Components
                     Axphi.Utilities.MathUtils.Lerp, out currentRealtimeSpeed);
             }
 
-            // ================= 2. 算术题：音符的真实物理下落距离 =================
             double distance = 0;
-            if (note.CustomSpeed.HasValue)
-            {
-                // 独立匀速
-                distance = note.CustomSpeed.Value * (hitTimeSeconds - currentSeconds);
-            }
-            else if (line.SpeedMode == "Realtime")
-            {
-                // 实时模式：当前瞬间速度直接乘
-                distance = currentRealtimeSpeed * (hitTimeSeconds - currentSeconds);
-            }
-            else
-            {
-                // 积分模式：微积分算真实距离
-                distance = CalculateIntegralDistance(currentTick, note.HitTime, line, chart);
-            }
+            if (note.CustomSpeed.HasValue) distance = note.CustomSpeed.Value * (hitTimeSeconds - currentSeconds);
+            else if (line.SpeedMode == "Realtime") distance = currentRealtimeSpeed * (hitTimeSeconds - currentSeconds);
+            else distance = CalculateIntegralDistance(currentTick, note.HitTime, line, chart);
 
-            // 距离取反（因为在屏幕坐标系里，未来是从上方往 Y 的负方向掉落的）
+            // 距离取反（屏幕上方是负方向）
             distance = -distance;
             var pixelDistance = renderInfo.ChartUnitToPixel(distance);
 
-            // ================= 3. 计算音符本体的变换和透明度 =================
+            // 计算音符本体的变换和透明度
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
                 note.AnimatableProperties,
                 out var offset, out var scale, out var rotationAngle, out var opacity);
 
-            var pixelOffset = new Vector(
-                renderInfo.ChartUnitToPixel(offset.X),
-                renderInfo.ChartUnitToPixel(offset.Y));
+            var pixelOffset = new Vector(renderInfo.ChartUnitToPixel(offset.X), renderInfo.ChartUnitToPixel(offset.Y));
 
             var noteTransform = new TransformGroup()
             {
-                Children =
-        {
+                Children = {
             new ScaleTransform(scale.X, scale.Y),
             new RotateTransform(rotationAngle),
-            new TranslateTransform(pixelOffset.X, pixelOffset.Y + pixelDistance), // 👈 这里用到了 pixelDistance
+            new TranslateTransform(pixelOffset.X, pixelOffset.Y + pixelDistance),
         }
             };
 
-            var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentTick, note.InitialKind);
+            // ================= 🌟 魔法点 1：施加隐形裁切蒙版 (Clip) 🌟 =================
+            bool isHold = currentKind == NoteKind.Hold;
+            bool isHoldPassed = isHold && currentTick >= note.HitTime;
 
-            // ================= 4. 推入画板变换 =================
+            if (isHold)
+            {
+                // 我们在判定线（Y=0）的上方画一张无限大的隐形纸！
+                // Rect 的参数：X, Y, Width, Height。
+                // 从 Y = -100000 开始，高度 100000，正好切在 Y=0（判定线中轴线）的位置。
+                // 只有在这个矩形范围内的画面才会被显示，越过判定线（Y>0）的部分直接被隐形！
+                var clipGeometry = new RectangleGeometry(new Rect(-100000, -100000, 200000, 100000));
+                drawingContext.PushClip(clipGeometry);
+            }
+            // =========================================================================
+
             drawingContext.PushTransform(noteTransform);
             drawingContext.PushOpacity(opacity / 100);
 
             // ================= 5. 开始画图 =================
-            // ================= 5. 开始画图 =================
             if (currentKind == NoteKind.Hold)
             {
-                // 算术题：算出 Hold 的物理像素长度
+                // 🌟 魔法点 2：恢复它真实的物理全长，不要去缩短它！
+                // 因为有了蒙版，它无论多长，只要越过线就会被切掉。
                 double endTimeSeconds = TimeTickConverter.TickToTime(note.HitTime + note.HoldDuration, chart.BpmKeyFrames, chart.InitialBpm);
                 double holdDistance = 0;
 
-                if (note.CustomSpeed.HasValue)
-                {
-                    holdDistance = note.CustomSpeed.Value * (endTimeSeconds - hitTimeSeconds);
-                }
-                else if (line.SpeedMode == "Realtime")
-                {
-                    // 实时模式：用刚刚拿到的 currentRealtimeSpeed 乘
-                    holdDistance = currentRealtimeSpeed * (endTimeSeconds - hitTimeSeconds);
-                }
-                else
-                {
-                    // 积分模式
-                    holdDistance = CalculateIntegralDistance(note.HitTime, note.HitTime + note.HoldDuration, line, chart);
-                }
+                if (note.CustomSpeed.HasValue) holdDistance = note.CustomSpeed.Value * (endTimeSeconds - hitTimeSeconds);
+                else if (line.SpeedMode == "Realtime") holdDistance = currentRealtimeSpeed * (endTimeSeconds - hitTimeSeconds);
+                else holdDistance = CalculateIntegralDistance(note.HitTime, note.HitTime + note.HoldDuration, line, chart);
 
-                // 🌟 【修复核心】：侦测真实物理距离是否为负数！(负数说明速度是倒退的)
                 bool isFlipped = holdDistance < 0;
-
-                // 转成像素长度并取绝对值，保证几何算出来始终是正数面积
                 double holdPixelLength = renderInfo.ChartUnitToPixel(Math.Abs(holdDistance));
 
-                // 算出各个方块的尺寸
                 double notePixelWidth = renderInfo.ChartUnitToPixel(1.95);
                 double partHeight = notePixelWidth * (50.0 / 989.0);
-
                 if (holdPixelLength < partHeight) holdPixelLength = partHeight;
 
                 double bodyHeight = holdPixelLength - partHeight;
                 if (bodyHeight < 0) bodyHeight = 0;
 
-                // 摆放积木并加 1 像素重叠防锯齿 (默认全部往 -Y 方向画)
                 Rect headRect = new Rect(-notePixelWidth / 2, -partHeight / 2, notePixelWidth, partHeight);
                 Rect tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength - partHeight / 2, notePixelWidth, partHeight);
 
                 double overlap = 1.0;
-                Rect bodyRect = new Rect(
-                    -notePixelWidth / 2,
-                    -holdPixelLength + partHeight / 2 - overlap,
-                    notePixelWidth,
-                    bodyHeight + overlap * 2
-                );
+                Rect bodyRect = new Rect(-notePixelWidth / 2, -holdPixelLength + partHeight / 2 - overlap, notePixelWidth, bodyHeight + overlap * 2);
 
-                // ================= 🌟 魔法施法时刻 =================
-                // 如果速度是负的，加一个 Y 轴镜像翻转画笔！
-                // 这样原本画在上方的尾巴，会被瞬间翻转到下方，乖乖拖在音符头的后面！
-                if (isFlipped)
-                {
-                    drawingContext.PushTransform(new ScaleTransform(1, -1));
-                }
+                if (isFlipped) drawingContext.PushTransform(new ScaleTransform(1, -1));
 
-                // 依次画出三段
+                // 身体和尾巴照常画，越线的部位交给外层的蒙版去切
                 drawingContext.DrawRectangle(_brushHoldBody, null, bodyRect);
                 drawingContext.DrawRectangle(_brushHoldTail, null, tailRect);
-                drawingContext.DrawRectangle(_brushHoldHead, null, headRect);
 
-                // 🌟 画完一定要把镜像魔法撤销，防止影响后面的绘制
-                if (isFlipped)
+                // 🌟 魔法点 3：如果越线了，"头"直接完全消失，不画了！
+                if (!isHoldPassed)
                 {
-                    drawingContext.Pop();
+                    drawingContext.DrawRectangle(_brushHoldHead, null, headRect);
                 }
-                // ===================================================
+
+                if (isFlipped) drawingContext.Pop();
             }
             else
             {
-                // 普通音符，自适应渲染
                 ImageSource imgSrc = currentKind switch
                 {
                     NoteKind.Tap => _imgTap,
@@ -479,6 +455,13 @@ namespace Axphi.Components
 
             drawingContext.Pop(); // opacity
             drawingContext.Pop(); // transform
+
+            // ================= 撤销蒙版 =================
+            if (isHold)
+            {
+                // 有借有还，如果是 Hold，必须把刚才 Push 进去的 Clip 给 Pop 出来
+                drawingContext.Pop();
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using Axphi.Services;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace Axphi.Views
@@ -29,7 +30,8 @@ namespace Axphi.Views
             InitializeComponent();
             // 可以在 Unloaded 事件中清理资源，防止内存泄漏
             this.Unloaded += (s, e) => CleanUpResources();
-
+            // 🌟 初始化全局音效引擎，它会在后台待命
+            HitSoundManager.Init();
 
             WeakReferenceMessenger.Default.Register<ChartDisplay, UpdateRendererMessage>(this, (recipient, message) =>
             {
@@ -169,6 +171,38 @@ namespace Axphi.Views
                 double prevSeconds = vm.Timeline.CurrentPlayTimeSeconds;
 
 
+                double currSeconds = currentTime.TotalSeconds;
+
+                // ================= 🌟 音效判定引擎 =================
+                // 只有正常正向播放时才触发音效 (如果是拖拽游标导致的时间跳跃，或者倒退，则屏蔽声音)
+                if (currSeconds > prevSeconds && (currSeconds - prevSeconds) < 0.2)
+                {
+                    var chart = vm.ProjectManager.EditingProject.Chart;
+
+                    // 算出上一帧和这一帧对应的绝对 Tick
+                    int prevTick = (int)Math.Round(TimeTickConverter.TimeToTick(prevSeconds, chart.BpmKeyFrames, chart.InitialBpm) + chart.Offset, MidpointRounding.AwayFromZero);
+                    int currTick = (int)Math.Round(TimeTickConverter.TimeToTick(currSeconds, chart.BpmKeyFrames, chart.InitialBpm) + chart.Offset, MidpointRounding.AwayFromZero);
+
+                    foreach (var line in chart.JudgementLines)
+                    {
+                        if (line.Notes == null) continue;
+
+                        foreach (var note in line.Notes)
+                        {
+                            // 🌟 核心拦截：音符的 HitTime 刚好落在了这极短的两帧之间！
+                            if (note.HitTime > prevTick && note.HitTime <= currTick)
+                            {
+                                // 取出音符类型
+                                var kind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currTick, note.InitialKind);
+                                // 呼叫音效播放器
+                                PlayHitSound(kind);
+                            }
+                        }
+                    }
+                }
+                // ===================================================
+
+
                 vm.Timeline.CurrentPlayTimeSeconds = currentTime.TotalSeconds;
 
                 // ================= 🌟 2. 加上这一句！召唤拦截探测器！ =================
@@ -176,6 +210,15 @@ namespace Axphi.Views
                 // ===================================================================
             }
         }
+
+        private void PlayHitSound(Axphi.Data.NoteKind kind)
+        {
+            // 直接呼叫神级引擎！
+            HitSoundManager.Play(kind);
+        }
+
+
+
 
         private void CleanUpResources()
         {

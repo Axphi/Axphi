@@ -18,6 +18,11 @@ namespace Axphi.Data
         // 默认使用实时(Realtime)模式，也可选积分(Integral)模式
         public string SpeedMode { get; set; } = "Realtime";
 
+
+        
+        public int StartTick { get; set; } = 0;
+        public int DurationTicks { get; set; } = 7680; // 默认给个长度
+
         /// <summary>
         /// 动画属性
         /// </summary>

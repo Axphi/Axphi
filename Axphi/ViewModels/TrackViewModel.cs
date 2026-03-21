@@ -83,7 +83,11 @@ namespace Axphi.ViewModels
             TrackName = name;
             _timeline = timeline;
 
-            
+            // 🌟 1. 出生时，读取底层的寿命数据
+            LayerStartTick = Data.StartTick;
+            LayerDurationTicks = Data.DurationTicks;
+
+
             // 如果底层数据里已经有关键帧了，把它们请进 UI 替身集合里
             // 初始化时，把底层已有的关键帧全部包上一层保镖！
             // ================= 2. 构造时，把底层已有的数据全部包上保镖 =================

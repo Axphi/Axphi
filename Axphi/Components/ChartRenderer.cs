@@ -178,6 +178,18 @@ namespace Axphi.Components
 
             foreach (var judgementLine in judgementLines)
             {
+                // ================= 🌟 核心拦截：生死判定！ (性能起飞点) =================
+                // 如果当前时间 < 图层的出生时间，或者 > 图层的死亡时间
+                if (currentTick < judgementLine.StartTick || currentTick > (judgementLine.StartTick + judgementLine.DurationTicks))
+                {
+                    // 不在寿命范围内，直接跳过！
+                    // 这根线，连同它肚子里的所有音符，不仅不画，连算都不用算了！
+                    continue;
+                }
+                // =====================================================================
+
+
+
                 //RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, time);
                 // 5. 往下传的是 currentTick (int)
                 RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick);

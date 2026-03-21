@@ -209,6 +209,12 @@ namespace Axphi.Views
                     // 2. 更新记忆
                     _lastAppliedTick = snappedTick;
 
+                    // ================= 🌟 补上这句！ =================
+                    // 实时同步给底层数据，防止图层在移动时被渲染器“越界误杀”！
+                    trackVM.Data.StartTick = _lastAppliedTick;
+                    // =================================================
+
+
                     // 3. 极其关键：实时发信给渲染器，让右侧画面也能实时跟着鼠标动！
                     CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
                 }
@@ -219,6 +225,9 @@ namespace Axphi.Views
                     trackVM.LayerPixelXOffset = trackVM._timeline.TickToPixel(snappedTick);
                 else
                     trackVM.LayerPixelXOffset = _layerVirtualPixelX;
+
+
+                
             }
         }
 
@@ -228,9 +237,10 @@ namespace Axphi.Views
             {
                 // 🌟 彻底收尾：把最终停留的真实 Tick 存进大管家，用来抵抗未来的 Alt 缩放！
                 trackVM.LayerStartTick = _lastAppliedTick;
-
+                trackVM.Data.StartTick = trackVM.LayerStartTick;
                 // 确保松手时，图层块完美对齐到物理像素上
                 trackVM.LayerPixelXOffset = trackVM._timeline.TickToPixel(_lastAppliedTick);
+                
             }
         }
 
@@ -287,13 +297,30 @@ namespace Axphi.Views
                 {
                     trackVM.LayerPixelXOffset = trackVM._timeline.TickToPixel(snappedLeftTick);
                     trackVM.LayerPixelWidth = trackVM._timeline.TickToPixel(rightTick - snappedLeftTick);
+
+                    // 🌟 1. 实时更新底层寿命 (磁吸态)
+                    trackVM.Data.StartTick = snappedLeftTick;
+                    trackVM.Data.DurationTicks = rightTick - snappedLeftTick;
+
                 }
                 else
                 {
                     trackVM.LayerPixelXOffset = _layerLeftVirtualX;
                     trackVM.LayerPixelWidth = _layerLeftVirtualWidth;
+
+                    // 🌟 2. 实时更新底层寿命 (丝滑平滑态，算出一个临时的准确 Tick 给渲染器)
+                    int tempStartTick = (int)Math.Round(exactLeftTick, MidpointRounding.AwayFromZero);
+                    if (tempStartTick > rightTick - 1) tempStartTick = rightTick - 1;
+
+                    trackVM.Data.StartTick = tempStartTick;
+                    trackVM.Data.DurationTicks = rightTick - tempStartTick;
+
                 }
+                // 🌟 3. 发送重绘信件，让右边的画面实时跟着修剪！
+                CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             }
+
+            
             e.Handled = true;
         }
 
@@ -312,6 +339,10 @@ namespace Axphi.Views
 
                 trackVM.LayerPixelXOffset = trackVM._timeline.TickToPixel(trackVM.LayerStartTick);
                 trackVM.LayerPixelWidth = trackVM._timeline.TickToPixel(trackVM.LayerDurationTicks);
+
+
+                trackVM.Data.StartTick = trackVM.LayerStartTick; // 🌟 【新增】同步给底层！
+                trackVM.Data.DurationTicks = trackVM.LayerDurationTicks; // 🌟 【新增】同步给底层！
             }
             e.Handled = true;
         }
@@ -358,9 +389,22 @@ namespace Axphi.Views
                 if (newDurationTicks < 1) newDurationTicks = 1; // 最小允许 1 tick 长度
 
                 if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
+                {
                     trackVM.LayerPixelWidth = trackVM._timeline.TickToPixel(newDurationTicks);
+                    // 🌟 1. 实时更新底层寿命 (磁吸态)
+                    trackVM.Data.DurationTicks = newDurationTicks;
+                }
                 else
+                {
                     trackVM.LayerPixelWidth = _layerRightVirtualWidth;
+                    // 🌟 2. 实时更新底层寿命 (丝滑平滑态)
+                    int tempDuration = (int)Math.Round(exactRightTick - trackVM.LayerStartTick, MidpointRounding.AwayFromZero);
+                    if (tempDuration < 1) tempDuration = 1;
+
+                    trackVM.Data.DurationTicks = tempDuration;
+                }
+                // 🌟 3. 发送重绘信件，让右侧画面实时响应！
+                CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             }
             e.Handled = true;
         }
@@ -375,6 +419,7 @@ namespace Axphi.Views
                 trackVM.LayerDurationTicks = Math.Max(1, finalRightTick - trackVM.LayerStartTick);
                 
                 trackVM.LayerPixelWidth = trackVM._timeline.TickToPixel(trackVM.LayerDurationTicks);
+                trackVM.Data.DurationTicks = trackVM.LayerDurationTicks; // 🌟 【新增】同步给底层！
             }
             e.Handled = true;
         }

@@ -515,12 +515,19 @@ public partial class MainWindow : Window
             _workspaceVirtualPixelX += stableDeltaX;
             if (_workspaceVirtualPixelX < 0) _workspaceVirtualPixelX = 0;
 
-            // 物理防撞墙：左手柄不能越过右手柄，最少保持 10 像素距离
-            if (_workspaceVirtualPixelX > vm.Timeline.WorkspaceEndX - 10)
-                _workspaceVirtualPixelX = vm.Timeline.WorkspaceEndX - 10;
+            // 🌟 1. 算出当前缩放比例下，1 个 Tick 在屏幕上占多少像素
+            double minDistancePixels = vm.Timeline.TickToPixel(1);
+
+            // 🌟 2. 物理防撞墙：左手柄不能越过右手柄，最少保持 1 个 Tick 的像素距离
+            if (_workspaceVirtualPixelX > vm.Timeline.WorkspaceEndX - minDistancePixels)
+                _workspaceVirtualPixelX = vm.Timeline.WorkspaceEndX - minDistancePixels;
 
             double exactTick = vm.Timeline.PixelToTick(_workspaceVirtualPixelX);
             int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: false);
+
+            // 🌟 3. 逻辑防撞墙：防止因为四舍五入或吸附导致的 Tick 重叠或越界
+            if (snappedTick >= vm.Timeline.WorkspaceEndTick)
+                snappedTick = vm.Timeline.WorkspaceEndTick - 1;
 
             vm.Timeline.WorkspaceStartTick = snappedTick;
         }
@@ -544,12 +551,19 @@ public partial class MainWindow : Window
         {
             _workspaceVirtualPixelX += stableDeltaX;
 
-            // 物理防撞墙：右手柄不能越过左手柄
-            if (_workspaceVirtualPixelX < vm.Timeline.WorkspaceStartX + 10)
-                _workspaceVirtualPixelX = vm.Timeline.WorkspaceStartX + 10;
+            // 🌟 1. 算出当前缩放比例下，1 个 Tick 在屏幕上占多少像素
+            double minDistancePixels = vm.Timeline.TickToPixel(1);
+
+            // 🌟 2. 物理防撞墙：右手柄不能越过左手柄，最少保持 1 个 Tick 的像素距离
+            if (_workspaceVirtualPixelX < vm.Timeline.WorkspaceStartX + minDistancePixels)
+                _workspaceVirtualPixelX = vm.Timeline.WorkspaceStartX + minDistancePixels;
 
             double exactTick = vm.Timeline.PixelToTick(_workspaceVirtualPixelX);
             int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: false);
+
+            // 🌟 3. 逻辑防撞墙：防止因为四舍五入或吸附导致的 Tick 重叠或越界
+            if (snappedTick <= vm.Timeline.WorkspaceStartTick)
+                snappedTick = vm.Timeline.WorkspaceStartTick + 1;
 
             vm.Timeline.WorkspaceEndTick = snappedTick;
         }

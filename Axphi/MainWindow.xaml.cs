@@ -86,21 +86,35 @@ public partial class MainWindow : Window
                 if (e.Delta > 0) newScale *= 1.1;
                 else if (e.Delta < 0) newScale /= 1.1;
 
-                if (newScale < 0.01) newScale = 0.01;
+
+                // ================= 🌟 新增：动态计算“刚好填满屏幕”的最小缩放比例 =================
+                double basePixelsPerTick = 0.5; // 你的 TimelineViewModel 基础常数
+                double minScale = vm.Timeline.ViewportActualWidth / (vm.Timeline.TotalDurationTicks * basePixelsPerTick);
+
+                // 绝对不允许画面比屏幕窄！(防穿模、防走光)
+                if (newScale < minScale) newScale = minScale;
                 if (newScale > 100.0) newScale = 100.0;
+                // ==============================================================================
+
+
+                
 
                 // 核心计算公式不变
                 double ratio = newScale / oldScale;
                 double newOffset = (oldOffset + mouseX) * ratio - mouseX;
 
                 // ================= 【解决频闪的终极黑科技】 =================
-                // 1. 我们不再使用 BeginInvoke 延迟了！
-                // 2. 为了防止滚动条在同步赋值时把我们截断，我们先“预判”它放大后的总长度，并强行撑开它的 Maximum！
-                double expectedNewMaximum = GlobalHorizontalScroll.Maximum * ratio;
+                // 🌟 1. 预测新缩放下的物理总宽度
+                double expectedNewTotalWidth = vm.Timeline.TotalDurationTicks * 0.5 * newScale;
+                // 🌟 2. 预测正确的滚动条最大边界 (总宽 - 视口宽)
+                double expectedNewMaximum = Math.Max(0, expectedNewTotalWidth - vm.Timeline.ViewportActualWidth);
+
                 GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedNewMaximum);
 
-                // 3. 现在，Maximum 足够大了，我们立刻在同一帧内，同时更新 比例 和 位置！
-                // 这样刻度尺在下一次渲染时，拿到的就是完美匹配的“新比例 + 新坐标”，绝不会產生废片！
+                // 🌟 3. 严防死守！防止缩放时，游标或画面偏移到视口之外
+                if (newOffset > expectedNewMaximum) newOffset = expectedNewMaximum;
+                if (newOffset < 0) newOffset = 0;
+
                 vm.Timeline.ZoomScale = newScale;
                 GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newOffset);
 
@@ -637,6 +651,27 @@ public partial class MainWindow : Window
             double visiblePixels = MainTimelineRuler.ActualWidth;
             if (visiblePixels <= 0) return;
 
+            // ===== 🌟 新增：将当前视口宽度同步给 ViewModel，驱动限制和游标比例更新 =====
+            vm.Timeline.ViewportActualWidth = visiblePixels;
+
+
+            // ================= 🌟 新增：窗口拉宽时的“防走光”自适应 =================
+            double basePixelsPerTick = 0.5;
+            double minScale = visiblePixels / (vm.Timeline.TotalDurationTicks * basePixelsPerTick);
+
+            // 如果窗口变宽，导致当前的缩放比例不足以填满全屏，就强行把它撑满！
+            if (vm.Timeline.ZoomScale < minScale)
+            {
+                vm.Timeline.ZoomScale = minScale;
+                // 既然已经撑满全屏了，说明不需要滚动了，强行把滚动条位置归零！
+                GlobalHorizontalScroll.Value = 0;
+                leftPixel = 0;
+            }
+            // ========================================================================
+
+
+
+
             // 转换为 Tick 并更新 ViewModel
             vm.Timeline.ViewportStartTick = vm.Timeline.PixelToTick(leftPixel);
             vm.Timeline.ViewportEndTick = vm.Timeline.PixelToTick(leftPixel + visiblePixels);
@@ -773,25 +808,31 @@ public partial class MainWindow : Window
         // 1. 根据新的可视 Tick 数量，反推算出需要的 ZoomScale
         double newZoom = rulerWidth / (visibleTicks * basePixelsPerTick);
 
-        // 限制极端缩放
-        if (newZoom < 0.01) newZoom = 0.01;
-        if (newZoom > 100.0) newZoom = 100.0;
+        // ================= 🌟 新增：同样在这里限制最小缩放比例 =================
+        double minScale = vm.Timeline.ViewportActualWidth / (vm.Timeline.TotalDurationTicks * basePixelsPerTick);
 
-        // 2. 完美防频闪黑科技（和 Alt+滚轮 完全一致的做法）
-        double ratio = newZoom / vm.Timeline.ZoomScale;
-        double expectedNewMaximum = GlobalHorizontalScroll.Maximum * ratio;
+        if (newZoom < minScale) newZoom = minScale;
+        if (newZoom > 100.0) newZoom = 100.0;
+        // ========================================================================
+
+        // ================= 🌟 核心修复 =================
+        double expectedNewTotalWidth = vm.Timeline.TotalDurationTicks * basePixelsPerTick * newZoom;
+        double expectedNewMaximum = Math.Max(0, expectedNewTotalWidth - vm.Timeline.ViewportActualWidth);
+
         GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedNewMaximum);
 
         // 3. 应用新的缩放比例和滚动条位置
         vm.Timeline.ZoomScale = newZoom;
         double newOffset = startTick * basePixelsPerTick * newZoom;
+
+        // 严防死守
+        if (newOffset > expectedNewMaximum) newOffset = expectedNewMaximum;
+        if (newOffset < 0) newOffset = 0;
+
         GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newOffset);
 
-        // ================= 🌟 核心修复 =================
-        // 如果 newOffset 刚好没有发生变化（比如左侧在 0 的时候），
-        // 滚动条的 ValueChanged 事件就不会触发！所以我们必须手动强制刷新一次视野！
+        // 强制刷新一次视野！
         UpdateMinimapViewport();
-        // ===============================================
     }
 
 

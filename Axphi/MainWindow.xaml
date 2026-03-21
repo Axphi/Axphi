@@ -321,8 +321,9 @@
                     <ScrollBar x:Name="GlobalHorizontalScroll"
                                Grid.Row="4" Grid.Column="1" Height="12" Margin="0,0,0,0"
                                Orientation="Horizontal" VerticalAlignment="Bottom"
-                               Minimum="0" Maximum="{Binding Timeline.TotalPixelWidth}"
-                               ViewportSize="800" ValueChanged="GlobalHorizontalScrollBar_ValueChanged" />
+                               Minimum="0" Maximum="{Binding Timeline.MaxScrollOffset}"
+                               ViewportSize="{Binding Timeline.ViewportActualWidth}"
+                               ValueChanged="GlobalHorizontalScrollBar_ValueChanged" />
 
                     <!--  图层全局垂直滚动条  -->
                     <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"

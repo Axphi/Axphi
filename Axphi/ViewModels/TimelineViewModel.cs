@@ -23,13 +23,15 @@ namespace Axphi.ViewModels
 
         // 1. 缩放比例 (Zoom)：相当于按住 Alt 滚轮修改的值，默认是 1.0
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(TotalPixelWidth))] // 当 Zoom 改变时，通知界面重新获取总宽度
+        [NotifyPropertyChangedFor(nameof(TotalPixelWidth))]
+        [NotifyPropertyChangedFor(nameof(MaxScrollOffset))]// 当 Zoom 改变时，通知界面重新获取总宽度
         private double _zoomScale = 1.0;
 
         // 2. 谱面总长度 (以 128分音符/Tick 为单位)
         // 假设一首 2 分钟的 120BPM 歌曲，大约有 240 拍 * 32 = 7680 个 Tick。我们先给个默认值 10000 够长了。
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(TotalPixelWidth))]
+        [NotifyPropertyChangedFor(nameof(MaxScrollOffset))]
         private int _totalDurationTicks = 10000;
 
         // 3. 基础缩放系数：1 个 Tick 默认占多少像素？
@@ -38,6 +40,16 @@ namespace Axphi.ViewModels
 
         // 4. 【核心魔法】计算出右侧轨道的物理总像素宽度！UI 会绑定这个值！
         public double TotalPixelWidth => TotalDurationTicks * BasePixelsPerTick * ZoomScale;
+
+        // ================= 🌟 新增：滚动条防越界限制 =================
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(MaxScrollOffset))]
+        private double _viewportActualWidth = 800; // 默认给个安全值
+
+        // 计算真正的最大允许滚动距离（总宽 - 屏幕宽，最小为0防止缩放太小报错）
+        public double MaxScrollOffset => Math.Max(0, TotalPixelWidth - ViewportActualWidth);
+
+
 
         // === 游标核心属性 ===
 

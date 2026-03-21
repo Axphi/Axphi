@@ -518,20 +518,33 @@ public partial class MainWindow : Window
 
     // ================= 【时间标尺交互逻辑】 =================
 
+    // ================= 【时间标尺交互逻辑 (已接入 60 帧引擎)】 =================
+
     private void TimelineRuler_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // 捕获鼠标，这样即使拖到了标尺外面，也能继续响应移动事件
+        // 1. 捕获鼠标并强行抢夺焦点
         MainTimelineRuler.CaptureMouse();
-        SeekFromRulerMousePosition(e.GetPosition(MainTimelineRuler));
+        if (!this.IsActive) this.Activate();
+        MainTimelineRuler.Focus();
+
+        // 2. 拖拽标尺时强制暂停播放
+        WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+
+        // 3. 将任务交给全局 60 帧引擎！
+        _currentDragAction = UpdateRulerDragPosition;
+        _dragTimer.Start();
+
+        // 立刻执行一次空降
+        _currentDragAction?.Invoke();
         e.Handled = true;
     }
 
     private void TimelineRuler_PreviewMouseMove(object sender, MouseEventArgs e)
     {
-        // 如果左键被按下且被捕获，说明用户正在标尺上拖拽（Scrubbing）
+        // 鼠标在屏幕内移动时，也强制触发一次位置更新，保证丝滑
         if (e.LeftButton == MouseButtonState.Pressed && MainTimelineRuler.IsMouseCaptured)
         {
-            SeekFromRulerMousePosition(e.GetPosition(MainTimelineRuler));
+            _currentDragAction?.Invoke();
         }
     }
 
@@ -541,44 +554,55 @@ public partial class MainWindow : Window
         {
             MainTimelineRuler.ReleaseMouseCapture();
         }
-    }
 
-    // 核心换算与发信方法
-    private void SeekFromRulerMousePosition(Point mousePos)
-    {
-        // 1. 拿到鼠标在总画布中的绝对物理像素位置 (当前点击的屏幕 X + 滚动条滚过的 X)
-        double absolutePixelX = mousePos.X + MainTimelineRuler.VisibleOffsetX;
+        // 🌟 松手时立刻熄火！
+        _dragTimer.Stop();
+        _currentDragAction = null;
 
-        // 防止用户拖拽到 0 以前导致报错
-        if (absolutePixelX < 0) absolutePixelX = 0;
-
-        if (this.DataContext is Axphi.ViewModels.MainViewModel vm)
+        if (this.DataContext is MainViewModel vm)
         {
-            // 2. 将像素完美转换回精确的小数 Tick
-            double exactTick = vm.Timeline.PixelToTick(absolutePixelX);
+            // 告诉音频播放器跳到这个时间
+            MainChartDisplay.SeekTo(TimeSpan.FromSeconds(vm.Timeline.CurrentPlayTimeSeconds));
 
-            // 四舍五入，吸附到最近的整数 Tick
-            int snappedTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
-
-            var chart = vm.ProjectManager.EditingProject?.Chart;
-            if (chart != null)
-            {
-                // 3. 减去 Offset，获取真正用于音频计算的 Tick
-                double relativeTick = snappedTick - chart.Offset;
-
-                // 4. 将 Tick 换算成物理现实的秒数
-                // (调用你封装好的 TimeTickConverter)
-                double seconds = Axphi.Utilities.TimeTickConverter.TickToTime(relativeTick, chart.BpmKeyFrames, chart.InitialBpm);
-
-                // 音频不能在负数时间播放，所以限制最低为 0
-                if (seconds < 0) seconds = 0;
-
-                // 5. 大喊一声：全军空降！
-                // ChartDisplay 听到后会自动切音频、切画面，并同步把红线拉过来！
-                WeakReferenceMessenger.Default.Send(new Axphi.ViewModels.ForceSeekMessage(seconds));
-            }
+            if (_wasPlayingBeforeDrag)
+                MainChartDisplay.ForceResume();
+            else
+                MainChartDisplay.SnapToNearestTick();
         }
     }
+
+    // 🌟 新增：标尺拖拽的绝对计算函数
+    private void UpdateRulerDragPosition()
+    {
+        if (this.DataContext is MainViewModel vm)
+        {
+            // 统一使用 OverlayCanvas 作为判定坐标系，完美匹配边界！
+            Point currentPos = Mouse.GetPosition(OverlayCanvas);
+
+            // 核心公式：点击标尺不需要“初始偏差”，鼠标指哪，游标就绝对去哪
+            double targetAbsolutePixel = currentPos.X + GlobalHorizontalScroll.Value;
+
+            // 物理撞墙限制（不准拖出整首曲子的头和尾）
+            if (targetAbsolutePixel < 0) targetAbsolutePixel = 0;
+            if (targetAbsolutePixel > vm.Timeline.TotalPixelWidth) targetAbsolutePixel = vm.Timeline.TotalPixelWidth;
+
+            // 换算 Tick 并结算吸附
+            double exactTick = vm.Timeline.PixelToTick(targetAbsolutePixel);
+            int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: true);
+
+            double newSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(
+                snappedTick,
+                vm.Timeline.CurrentChart.BpmKeyFrames,
+                vm.Timeline.CurrentChart.InitialBpm);
+
+            vm.Timeline.CurrentPlayTimeSeconds = newSeconds;
+
+            WeakReferenceMessenger.Default.Send(new ForceSeekMessage(newSeconds));
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+    }
+
+    
 
     // ================= 工作区拖拽逻辑 =================
 

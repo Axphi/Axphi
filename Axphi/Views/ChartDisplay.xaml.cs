@@ -10,7 +10,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using Axphi.Services;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace Axphi.Views
 {
@@ -32,6 +31,10 @@ namespace Axphi.Views
             this.Unloaded += (s, e) => CleanUpResources();
             // 🌟 初始化全局音效引擎，它会在后台待命
             HitSoundManager.Init();
+
+            // ================= 🌟 优雅订阅：当设备改变时重启 BGM =================
+            SystemAudioMonitor.OnDefaultDeviceChanged += ReloadBgmDevice;
+            // ======================================================================
 
             WeakReferenceMessenger.Default.Register<ChartDisplay, UpdateRendererMessage>(this, (recipient, message) =>
             {
@@ -76,6 +79,33 @@ namespace Axphi.Views
             
         }
 
+        // ================= 🌟 现在的复活方法变得极其简洁 =================
+        private void ReloadBgmDevice()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (_musicReader == null) return;
+
+                bool wasPlaying = IsPlaying;
+
+                if (_wasapiOut != null)
+                {
+                    if (wasPlaying) _wasapiOut.Stop();
+                    _wasapiOut.Dispose();
+                }
+
+                _wasapiOut = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 50);
+                _wasapiOut.Init(_musicReader);
+
+                if (wasPlaying)
+                {
+                    _wasapiOut.Play();
+                }
+            });
+        }
+
+
+
         // --- 供外部调用的 API ---
 
         /// <summary>
@@ -83,13 +113,14 @@ namespace Axphi.Views
         /// </summary>
         public void LoadAudio(string fileName)
         {
-            // 清理旧资源
-            CleanUpResources();
+            _wasapiOut?.Stop();
+            _wasapiOut?.Dispose();
+            _musicReader?.Dispose();
 
             try
             {
                 _musicReader = new MediaFoundationReader(fileName);
-                _wasapiOut = new WasapiOut();
+                _wasapiOut = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 50);
                 _wasapiOut.Init(_musicReader);
             }
             catch (Exception ex)
@@ -231,6 +262,10 @@ namespace Axphi.Views
             // ================= 【注销逻辑】 =================
             // 控件被销毁时，告诉邮局：“别给我发信了”，释放内存！
             WeakReferenceMessenger.Default.UnregisterAll(this);
+
+
+            // 🌟 退订全局事件
+            SystemAudioMonitor.OnDefaultDeviceChanged -= ReloadBgmDevice;
         }
 
 

@@ -139,12 +139,12 @@
 
 
 
-                    
 
-                        <!--  时间标尺  -->
+
+                    <!--  时间标尺  -->
 
                     <Border Grid.Row="2" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True" Margin="8,0,0,0">
-                            <comp:TimelineRuler
+                        <comp:TimelineRuler
                                     x:Name="MainTimelineRuler"
                                     VirtualTotalWidth="{Binding Timeline.TotalPixelWidth}"
                                     TotalTicks="{Binding Timeline.TotalDurationTicks}"
@@ -155,10 +155,10 @@
                                     PreviewMouseMove="TimelineRuler_PreviewMouseMove"
                                     PreviewMouseLeftButtonUp="TimelineRuler_PreviewMouseLeftButtonUp"
                                     Cursor="Hand" />
-                        </Border>
+                    </Border>
 
 
-                   
+
 
 
 
@@ -209,9 +209,11 @@
                                        DragDelta="WorkspaceLeft_DragDelta">
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Grid Width="12" Margin="-12,0,0,0" Background="Transparent">
-                                                <Polygon Points="12,0 12,12 0,0" Fill="#5285F3" />
-                                                <Rectangle Width="2" HorizontalAlignment="Right" Fill="#5285F3" />
+                                            <Grid Width="24" Margin="-24,0,0,0">
+                                                <Rectangle Height="24" VerticalAlignment="Top" Fill="Transparent" />
+
+                                                <Polygon Points="12,0 12,12 0,0" Fill="#5285F3" HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" />
+                                                <Rectangle Width="2" HorizontalAlignment="Right" Fill="#5285F3" IsHitTestVisible="False" />
                                             </Grid>
                                         </ControlTemplate>
                                     </Thumb.Template>
@@ -224,9 +226,11 @@
                                        DragDelta="WorkspaceRight_DragDelta">
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Grid Width="12" Margin="0,0,-12,0" Background="Transparent">
-                                                <Polygon Points="0,0 0,12 12,0" Fill="#5285F3" />
-                                                <Rectangle Width="2" HorizontalAlignment="Left" Fill="#5285F3" />
+                                            <Grid Width="24" Margin="0,0,-24,0">
+                                                <Rectangle Height="24" VerticalAlignment="Top" Fill="Transparent" />
+
+                                                <Polygon Points="0,0 0,12 12,0" Fill="#5285F3" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False" />
+                                                <Rectangle Width="2" HorizontalAlignment="Left" Fill="#5285F3" IsHitTestVisible="False" />
                                             </Grid>
                                         </ControlTemplate>
                                     </Thumb.Template>
@@ -247,10 +251,14 @@
 
                                 <Thumb.Template>
                                     <ControlTemplate TargetType="Thumb">
-                                        <Grid Width="16" Margin="-8,0,0,0" Background="Transparent">
+                                        <Grid Width="32" Margin="-16,0,0,0">
+                                            <Rectangle Height="24" VerticalAlignment="Top" Fill="Transparent" />
+
                                             <Rectangle Width="1.5" Fill="#FF3333" HorizontalAlignment="Center"
-                                                       Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}" />
-                                            <Polygon Points="0,0 16,0 8,10" Fill="#FF3333" VerticalAlignment="Top" />
+                                                       Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"
+                                                       IsHitTestVisible="False" />
+
+                                            <Polygon Points="0,0 16,0 8,10" Fill="#FF3333" VerticalAlignment="Top" HorizontalAlignment="Center" IsHitTestVisible="False" />
                                         </Grid>
                                     </ControlTemplate>
                                 </Thumb.Template>

@@ -210,24 +210,28 @@ namespace Axphi.Components
             var transformToCenter = new TranslateTransform(renderInfo.CanvasWidth / 2, renderInfo.CanvasHeight / 2);
             drawingContext.PushTransform(transformToCenter);
 
+            // ================= 🌟 核心修改：双Pass分层渲染引擎 =================
+
+            // 【第一遍遍历】：只画所有的判定线本身（铺在最底层）
             foreach (var judgementLine in judgementLines)
             {
-                // ================= 🌟 核心拦截：生死判定！ (性能起飞点) =================
-                // 如果当前时间 < 图层的出生时间，或者 > 图层的死亡时间
                 if (currentTick < judgementLine.StartTick || currentTick > (judgementLine.StartTick + judgementLine.DurationTicks))
-                {
-                    // 不在寿命范围内，直接跳过！
-                    // 这根线，连同它肚子里的所有音符，不仅不画，连算都不用算了！
                     continue;
-                }
-                // =====================================================================
 
-
-
-                //RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, time);
-                // 5. 往下传的是 currentTick (int)
-                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick);
+                // 传入 true, false (只画线，不画音符)
+                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, true, false);
             }
+
+            // 【第二遍遍历】：只画所有的音符（盖在所有判定线的上面）
+            foreach (var judgementLine in judgementLines)
+            {
+                if (currentTick < judgementLine.StartTick || currentTick > (judgementLine.StartTick + judgementLine.DurationTicks))
+                    continue;
+
+                // 传入 false, true (只画音符，不画线)
+                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, false, true);
+            }
+            // =====================================================================
 
 
             // ================= 新增：2. 最后在最上层画独立的击打特效 =================
@@ -316,7 +320,7 @@ namespace Axphi.Components
 
             return startTick <= endTick ? totalDistance : -totalDistance;
         }
-        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, int currentTick)
+        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, int currentTick, bool drawLine, bool drawNotes)
         {
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
@@ -338,16 +342,22 @@ namespace Axphi.Components
             };
 
             drawingContext.PushTransform(transform);
-            drawingContext.PushOpacity(opacity / 100);
 
-            double lineLength = renderInfo.CanvasHeight * 5.76;
-            double thickness = renderInfo.CanvasHeight * 0.0075;
-
-            drawingContext.DrawRectangle(_lineYellow, null, new Rect(-lineLength / 2, -thickness / 2, lineLength, thickness));
-            drawingContext.Pop(); // note 不继承 line 的 opacity
-            if (line.Notes is { } notes)
+            // ================= 🌟 分离逻辑 1：绘制判定线本体 =================
+            if (drawLine)
             {
+                drawingContext.PushOpacity(opacity / 100);
 
+                double lineLength = renderInfo.CanvasHeight * 5.76;
+                double thickness = renderInfo.CanvasHeight * 0.0075;
+
+                drawingContext.DrawRectangle(_lineYellow, null, new Rect(-lineLength / 2, -thickness / 2, lineLength, thickness));
+
+                drawingContext.Pop(); // note 不继承 line 的 opacity
+            }
+            // ================= 🌟 分离逻辑 2：绘制附着的音符 =================
+            if (drawNotes && line.Notes is { } notes)
+            {
                 // speed 默认: 1, 渲染器宽 16 , 高 9
                 // ================= 🌟 核心修改：音符渲染层级 (Z-Index) =================
                 // 画家算法：先画的在底层，后画的在顶层。
@@ -355,15 +365,13 @@ namespace Axphi.Components
                 // 所以渲染顺序必须是 Hold(0) -> Tap(1) -> Flick(2) -> Drag(3)
                 var sortedNotes = notes.OrderBy(note =>
                 {
-                    // 实时获取该音符在当前帧的类型
                     var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentTick, note.InitialKind);
-
                     return currentKind switch
                     {
-                        NoteKind.Hold => 0,   // 最先渲染，垫在最底
-                        NoteKind.Tap => 1,    // 倒数第二底层
-                        NoteKind.Flick => 2,  // 倒数第三底层
-                        NoteKind.Drag => 3,   // 最后渲染，盖在最上面！
+                        NoteKind.Hold => 0,
+                        NoteKind.Tap => 1,
+                        NoteKind.Flick => 2,
+                        NoteKind.Drag => 3,
                         _ => 0
                     };
                 });
@@ -372,7 +380,6 @@ namespace Axphi.Components
                 {
                     RenderNote(drawingContext, renderInfo, chart, note, currentTick, line);
                 }
-
             }
 
 

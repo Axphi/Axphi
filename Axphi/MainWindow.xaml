@@ -337,9 +337,18 @@
                     Grid.Row="1"
                     Grid.Column="2"
                     Header="Project">
-                    <StackPanel>
+                    <StackPanel Margin="10">
                         <StackPanel Orientation="Horizontal">
-                            <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import" />
+                            <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import Music" Padding="15,5"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                            <TextBlock Text="Total Ticks:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#d6d6d6" />
+
+                            <comp:DraggableValueBox DragSpeed="100" 
+                                                    NumberFormat="0" 
+                                                    Value="{Binding Timeline.TotalDurationTicks}" 
+                                                    Width="80" />
                         </StackPanel>
                     </StackPanel>
                 </comp:TabPane>

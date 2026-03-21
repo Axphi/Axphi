@@ -91,6 +91,29 @@ namespace Axphi.ViewModels
             // 告诉全网：缩放变了！所有的关键帧请重新计算你们的 X 坐标！
             WeakReferenceMessenger.Default.Send(new ZoomScaleChangedMessage(value));
         }
+        // ================= 🌟 新增：当总时长被修改时，重新换算所有的进度比例 =================
+        partial void OnTotalDurationTicksChanged(int value)
+        {
+            // 防御性编程：总时长不能小于或者等于 0
+            if (value <= 100)
+            {
+                TotalDurationTicks = 100;
+                return;
+            }
+
+            // 1. 确保工作区右边界不会越界（如果把总时长改短了）
+            if (WorkspaceEndTick > value)
+            {
+                WorkspaceEndTick = value;
+            }
+
+            // 2. 刷新时间轴上的循环工作区物理像素
+            UpdateWorkspacePixels();
+
+            // 3. 刷新小地图里工作区和视野框的比例和物理像素
+            UpdateMinimapPixels();
+        }
+
 
         // 核心换算公式
         private void UpdatePlayheadPosition()

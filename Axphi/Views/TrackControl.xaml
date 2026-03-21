@@ -324,7 +324,7 @@
 
                                     <Grid Width="{Binding LayerPixelWidth}" Height="20">
 
-                                        <Rectangle x:Name="LayerRect" Fill="#374561" RadiusX="3" RadiusY="3" />
+                                        <Rectangle x:Name="LayerRect" Fill="#374561"/>
 
                                         <Thumb Width="8" HorizontalAlignment="Left" Cursor="SizeWE"
                                                DragStarted="LayerLeftHandle_DragStarted"

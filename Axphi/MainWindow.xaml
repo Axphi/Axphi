@@ -126,7 +126,7 @@
                     <Border Grid.Row="1" Grid.Column="1" Background="#252525"  ClipToBounds="True">
 
                         <Canvas x:Name="MinimapCanvas" SizeChanged="MinimapCanvas_SizeChanged"
-                                Margin="8,0,0,0">
+                                Margin="8,0,4,0">
 
                             <Rectangle Canvas.Left="{Binding Timeline.MinimapWorkspaceX}"
                                        Width="{Binding Timeline.MinimapWorkspaceWidth}"

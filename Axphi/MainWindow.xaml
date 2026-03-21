@@ -256,7 +256,8 @@
                                        Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
                                        Cursor="SizeWE"
                                        DragStarted="WorkspaceLeft_DragStarted"
-                                       DragDelta="WorkspaceLeft_DragDelta">
+                                       DragDelta="WorkspaceLeft_DragDelta"
+                                       DragCompleted="WorkspaceLeft_DragCompleted">
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
                                             <Grid Width="24" Margin="-24,0,0,0">
@@ -273,7 +274,8 @@
                                        Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
                                        Cursor="SizeWE"
                                        DragStarted="WorkspaceRight_DragStarted"
-                                       DragDelta="WorkspaceRight_DragDelta">
+                                       DragDelta="WorkspaceRight_DragDelta"
+                                       DragCompleted="WorkspaceRight_DragCompleted">
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
                                             <Grid Width="24" Margin="0,0,-24,0">

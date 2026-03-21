@@ -556,25 +556,43 @@ namespace Axphi.ViewModels
         {
             if (CurrentChart == null) return;
 
-            // 1. 安全锁：防止左右手柄捏在一起重合，导致死循环爆炸
-            if (WorkspaceStartTick >= WorkspaceEndTick) return;
+            // 1. 算出整首曲子“绝对尽头 (TotalDurationTicks)”的物理秒数
+            double totalSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(
+                TotalDurationTicks, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
 
             // 2. 算出工作区右边界的物理秒数
-            double endSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(WorkspaceEndTick, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
+            double workspaceEndSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(
+                WorkspaceEndTick, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
 
-            // 3. 核心拦截：🌟 只有当“上一瞬还在界内（或左侧），且这一瞬刚好越界”时，才触发循环！
-            if (prevTimeSeconds < endSeconds && currentTimeSeconds >= endSeconds)
+            bool shouldLoop = false;
+
+            // 核心拦截 A：正常越过工作区 (从工作区内部穿过右侧手柄)
+            if (WorkspaceStartTick < WorkspaceEndTick &&
+                prevTimeSeconds < workspaceEndSeconds &&
+                currentTimeSeconds >= workspaceEndSeconds)
             {
-                // 算出左边界的物理秒数
-                double startSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(WorkspaceStartTick, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
+                shouldLoop = true;
+            }
+            // 核心拦截 B：游标已经在工作区外，并且一路播放到了整首歌的尽头！
+            else if (currentTimeSeconds >= totalSeconds)
+            {
+                shouldLoop = true;
+            }
 
-                // 强行将大管家的时间拽回左边界
+            // 执行跳回动作
+            if (shouldLoop)
+            {
+                // 算出工作区左边界的物理秒数
+                double startSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(
+                    WorkspaceStartTick, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
+
+                // 强行将大管家的时间拽回工作区起跑线
                 CurrentPlayTimeSeconds = startSeconds;
 
-                // 寄加急信：命令右侧的渲染器和底层的音频播放器，立刻给我空降回这个时间重播！
+                // 发送加急信：命令渲染器和底层音频引擎立刻空降回这个时间重播！
                 CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new ForceSeekMessage(startSeconds));
 
-                // 确保画面同步刷新
+                // 强制画面同步刷新
                 CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             }
         }

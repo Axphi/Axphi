@@ -347,14 +347,32 @@ namespace Axphi.Components
             drawingContext.Pop(); // note 不继承 line 的 opacity
             if (line.Notes is { } notes)
             {
-                foreach (var note in notes)
-                {
 
-                    // 传递 currentTick
-                    //RenderNote(drawingContext, renderInfo, chart, note, currentTick, line.InitialSpeed); // speed 默认: 1, 渲染器宽 16 , 高 9
-                    // ✅ 新代码：直接把 line 传给它
+                // speed 默认: 1, 渲染器宽 16 , 高 9
+                // ================= 🌟 核心修改：音符渲染层级 (Z-Index) =================
+                // 画家算法：先画的在底层，后画的在顶层。
+                // 我们希望的顶层显示顺序是 Drag > Flick > Tap > Hold
+                // 所以渲染顺序必须是 Hold(0) -> Tap(1) -> Flick(2) -> Drag(3)
+                var sortedNotes = notes.OrderBy(note =>
+                {
+                    // 实时获取该音符在当前帧的类型
+                    var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentTick, note.InitialKind);
+
+                    return currentKind switch
+                    {
+                        NoteKind.Hold => 0,   // 最先渲染，垫在最底
+                        NoteKind.Tap => 1,    // 倒数第二底层
+                        NoteKind.Flick => 2,  // 倒数第三底层
+                        NoteKind.Drag => 3,   // 最后渲染，盖在最上面！
+                        _ => 0
+                    };
+                });
+
+                foreach (var note in sortedNotes)
+                {
                     RenderNote(drawingContext, renderInfo, chart, note, currentTick, line);
                 }
+
             }
 
 

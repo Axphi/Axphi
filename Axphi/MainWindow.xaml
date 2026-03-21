@@ -123,7 +123,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="1" Grid.Column="1" Background="#252525"  ClipToBounds="True">
+                    <Border Grid.Row="1" Grid.Column="1" Background="#252525" ClipToBounds="True">
 
                         <Canvas x:Name="MinimapCanvas" SizeChanged="MinimapCanvas_SizeChanged"
                                 Margin="8,0,4,0">
@@ -131,7 +131,7 @@
                             <Rectangle Canvas.Left="{Binding Timeline.MinimapWorkspaceX}"
                                        Width="{Binding Timeline.MinimapWorkspaceWidth}"
                                        Height="{Binding ActualHeight, ElementName=MinimapCanvas}"
-                                       Fill="#10FFFFFF" 
+                                       Fill="#10FFFFFF"
                                        IsHitTestVisible="False" />
 
                             <Grid Canvas.Left="{Binding Timeline.MinimapViewportX}"
@@ -165,7 +165,7 @@
                                        Margin="0,0,-4,0">
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Rectangle Fill="#5285F3"  />
+                                            <Rectangle Fill="#5285F3" />
                                         </ControlTemplate>
                                     </Thumb.Template>
                                 </Thumb>
@@ -217,6 +217,18 @@
                     <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
                         <StackPanel>
                             <v:BpmTrackControl DataContext="{Binding Timeline.BpmTrack}" Margin="0,0,0,5" />
+                            <v:AudioTrackControl DataContext="{Binding Timeline.AudioTrack}">
+                                <v:AudioTrackControl.Style>
+                                    <Style TargetType="UserControl">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </v:AudioTrackControl.Style>
+                            </v:AudioTrackControl>
 
                             <ItemsControl ItemsSource="{Binding Timeline.Tracks}">
                                 <ItemsControl.ItemTemplate>
@@ -342,15 +354,15 @@
                     Header="Project">
                     <StackPanel Margin="10">
                         <StackPanel Orientation="Horizontal">
-                            <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import Music" Padding="15,5"/>
+                            <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import Music" Padding="15,5" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
                             <TextBlock Text="Total Ticks:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#d6d6d6" />
 
-                            <comp:DraggableValueBox DragSpeed="100" 
-                                                    NumberFormat="0" 
-                                                    Value="{Binding Timeline.TotalDurationTicks}" 
+                            <comp:DraggableValueBox DragSpeed="100"
+                                                    NumberFormat="0"
+                                                    Value="{Binding Timeline.TotalDurationTicks}"
                                                     Width="80" />
                         </StackPanel>
                     </StackPanel>

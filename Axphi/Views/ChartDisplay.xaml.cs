@@ -1,4 +1,6 @@
-﻿using Axphi.Utilities;
+﻿using Axphi.Data;
+using Axphi.Services;
+using Axphi.Utilities;
 using Axphi.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -9,7 +11,6 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
-using Axphi.Services;
 
 namespace Axphi.Views
 {
@@ -146,7 +147,8 @@ namespace Axphi.Views
 
             if (_dispatcherTimer.IsEnabled)
             {
-                _wasapiOut?.Play();
+                // _wasapiOut?.Play();
+                // 因为我们已经在 RenderTimerCallback 里做了智能判断：游标踩中图层才会出声！
                 _renderStopwatch.Start();
             }
             else
@@ -195,7 +197,7 @@ namespace Axphi.Views
 
             if (this.DataContext is MainViewModel vm)
             {
-
+                var chart = vm.ProjectManager.EditingProject.Chart; // 全局共享的 chart
                 // ================= 🌟 1. 提取“上一帧”的时间 =================
                 // 这个值在上面还没被覆盖，所以它完美代表了之前的时间！
                 // （如果你刚刚拖拽了游标，它就会等于你拖拽到的那个绝对准确的时间）
@@ -208,11 +210,11 @@ namespace Axphi.Views
                 // 只有正常正向播放时才触发音效 (如果是拖拽游标导致的时间跳跃，或者倒退，则屏蔽声音)
                 if (currSeconds > prevSeconds && (currSeconds - prevSeconds) < 0.2)
                 {
-                    var chart = vm.ProjectManager.EditingProject.Chart;
+                    // var chart = vm.ProjectManager.EditingProject.Chart;
 
                     // 算出上一帧和这一帧对应的绝对 Tick
-                    int prevTick = (int)Math.Round(TimeTickConverter.TimeToTick(prevSeconds, chart.BpmKeyFrames, chart.InitialBpm) + chart.Offset, MidpointRounding.AwayFromZero);
-                    int currTick = (int)Math.Round(TimeTickConverter.TimeToTick(currSeconds, chart.BpmKeyFrames, chart.InitialBpm) + chart.Offset, MidpointRounding.AwayFromZero);
+                    int prevTick = (int)Math.Round(TimeTickConverter.TimeToTick(prevSeconds, chart.BpmKeyFrames, chart.InitialBpm), MidpointRounding.AwayFromZero);
+                    int currTick = (int)Math.Round(TimeTickConverter.TimeToTick(currSeconds, chart.BpmKeyFrames, chart.InitialBpm), MidpointRounding.AwayFromZero);
 
                     foreach (var line in chart.JudgementLines)
                     {
@@ -232,7 +234,38 @@ namespace Axphi.Views
                     }
                 }
                 // ===================================================
+                // ================= 🌟 新增：智能音频启停控制器 =================
+                // 算出音频图层放在了宇宙的哪个位置（Offset的物理秒数）
+                double offsetSeconds = TimeTickConverter.TickToTime(chart.Offset, chart.BpmKeyFrames, chart.InitialBpm);
+                // 算出当前宇宙时间减去音频位置，得到“音频文件自己该播哪一秒”
+                double targetAudioSeconds = currSeconds - offsetSeconds;
 
+                if (_wasapiOut != null && _musicReader != null)
+                {
+                    // 🌟 核心修复：划定严格的“音频存活区间”
+                    // 必须大于 0，且必须小于音频的总时长！
+                    bool isInsideAudio = targetAudioSeconds >= 0 && targetAudioSeconds < _musicReader.TotalTime.TotalSeconds;
+
+                    if (isInsideAudio)
+                    {
+                        if (_wasapiOut.PlaybackState != NAudio.Wave.PlaybackState.Playing)
+                        {
+                            // 只要游标回到合法区间，且没在播放，就校准时间并唤醒！
+                            _musicReader.CurrentTime = TimeSpan.FromSeconds(targetAudioSeconds);
+                            _wasapiOut.Play();
+                        }
+                    }
+                    else
+                    {
+                        // 游标还没跑到图层上，【或者已经越过了图层的尾巴】！
+                        if (_wasapiOut.PlaybackState == NAudio.Wave.PlaybackState.Playing)
+                        {
+                            // 强制按住它的头让它休眠，防止它在尾巴处疯狂起死回生导致崩溃！
+                            _wasapiOut.Pause();
+                        }
+                    }
+                }
+                // ==========================================================
 
                 vm.Timeline.CurrentPlayTimeSeconds = currentTime.TotalSeconds;
 
@@ -274,9 +307,30 @@ namespace Axphi.Views
         /// </summary>
         public void SeekTo(TimeSpan time)
         {
-            if (_musicReader != null)
+            if (this.DataContext is MainViewModel vm && vm.ProjectManager.EditingProject?.Chart != null)
             {
-                _musicReader.CurrentTime = time;
+                var chart = vm.ProjectManager.EditingProject.Chart;
+
+                // 🌟 算出音频图层距离宇宙起点 (Tick=0) 的物理秒数
+                double offsetSeconds = TimeTickConverter.TickToTime(chart.Offset, chart.BpmKeyFrames, chart.InitialBpm);
+
+                // 🌟 音频自己真正该播的时间 = 当前宇宙时间 - 图层开始的时间
+                double audioSeconds = time.TotalSeconds - offsetSeconds;
+
+                if (_musicReader != null)
+                {
+                    if (audioSeconds < 0)
+                    {
+                        // 如果游标在音频图层的左边，让音频回到开头待命
+                        _musicReader.CurrentTime = TimeSpan.Zero;
+                    }
+                    else
+                    {
+                        // 如果游标踩在了音频图层上，让音频空降到对应进度
+                        if (audioSeconds <= _musicReader.TotalTime.TotalSeconds)
+                            _musicReader.CurrentTime = TimeSpan.FromSeconds(audioSeconds);
+                    }
+                }
             }
 
             // 1. 记住你拖拽到的目标时间
@@ -297,9 +351,9 @@ namespace Axphi.Views
 
             // 空降完成后，立刻把最新的秒数同步给时间轴大管家！
             // 这样红线就会瞬间跳到对应的位置！
-            if (this.DataContext is MainViewModel vm)
+            if (this.DataContext is MainViewModel vm2)
             {
-                vm.Timeline.CurrentPlayTimeSeconds = time.TotalSeconds;
+                vm2.Timeline.CurrentPlayTimeSeconds = time.TotalSeconds;
             }
             // ===================================================
         }
@@ -337,10 +391,9 @@ namespace Axphi.Views
                 // 2. 四舍五入，吸附到最近的整数 Tick
                 int snappedTick = vm.Timeline.GetCurrentTick();
                 
-                
 
-                // 3. 减去 Offset，准备反推时间
-                double relativeTick = snappedTick - chart.Offset;
+                // 🌟 3. 删除旧的减去 Offset 的逻辑！全局时间就是绝对时间！
+                double relativeTick = snappedTick;
                 if (relativeTick < 0) relativeTick = 0;
 
                 // 4. 召唤积分器，算出这个完美整数 Tick 对应的绝对秒数！

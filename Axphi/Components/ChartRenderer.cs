@@ -250,10 +250,10 @@ namespace Axphi.Components
         {
             // 积分计算
             double exactTick = TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, chart.InitialBpm);
-            double absoluteTick = exactTick + chart.Offset;
+            // double absoluteTick = exactTick + chart.Offset;
 
             // 保持全宇宙统一的四舍五入！
-            return (int)Math.Round(absoluteTick, MidpointRounding.AwayFromZero);
+            return (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
         }
 
         private static void RenderProgress(DrawingContext drawingContext, RenderInfo renderInfo, double progress)

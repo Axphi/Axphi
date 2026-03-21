@@ -149,6 +149,11 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private BpmTrackViewModel? _bpmTrack;
 
+
+        // ✨ 全局唯一的 Audio 轨道！
+        [ObservableProperty]
+        private AudioTrackViewModel? _audioTrack;
+
         // ================= 新增：专供 UI 绑定的轨道视图模型集合 =================
         public ObservableCollection<TrackViewModel> Tracks { get; } = new ObservableCollection<TrackViewModel>();
         
@@ -223,6 +228,10 @@ namespace Axphi.ViewModels
             BpmTrack = new BpmTrackViewModel(CurrentChart, this);
             // =====================================================================
 
+            // ================= ✨ 新增：实例化 Audio 轨道！ =================
+            AudioTrack = new AudioTrackViewModel(CurrentChart, this, _projectManager);
+
+
             // 2. 砸碎旧舞台：清空前端的 Track UI 集合 (这一步让旧 UI 被 GC 回收)
             Tracks.Clear();
 
@@ -277,7 +286,8 @@ namespace Axphi.ViewModels
             
             // 不做强制 int 转换，原汁原味返回精确小数
             double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
-            return exactTick + CurrentChart.Offset;
+            //return exactTick + CurrentChart.Offset;
+            return exactTick;
         }
 
         // ================= 核心命令：全局删除选中的关键帧 =================

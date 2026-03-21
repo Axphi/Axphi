@@ -1,0 +1,65 @@
+﻿<UserControl x:Class="Axphi.Views.AudioTrackControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Axphi.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="40" d:DesignWidth="800">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="2.8*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1">
+            <Grid Height="20" Background="Transparent" VerticalAlignment="Top">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Rectangle Grid.Column="0" Fill="#28E857" />
+
+                <TextBlock Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#28E857" Text="♫" FontSize="14" />
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="5,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Foreground="#d6d6d6" Text="Audio (BGM)" FontWeight="Bold" />
+                    <TextBlock Foreground="#888" Text="{Binding AudioDurationSeconds, StringFormat=' ({0:F1}s)'}" Margin="5,0,0,0" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <ScrollViewer x:Name="TrackScrollViewer"
+                      Grid.Column="1" HorizontalScrollBarVisibility="Hidden"
+                      VerticalScrollBarVisibility="Disabled"
+                      PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
+
+            <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1" Height="20" VerticalAlignment="Top">
+                <Canvas Margin="8,0,0,0" Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left">
+
+                    <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
+                           DragStarted="AudioThumb_DragStarted"
+                           DragDelta="AudioThumb_DragDelta"
+                           DragCompleted="AudioThumb_DragCompleted">
+                        <Thumb.Template>
+                            <ControlTemplate TargetType="Thumb">
+                                <Grid Width="{Binding LayerPixelWidth}" Height="20">
+                                    <Rectangle x:Name="LayerRect" Fill="#28E857" Opacity="0.5" />
+                                    <TextBlock Text="||||||||||||||||||||||" Foreground="#55FFFFFF" VerticalAlignment="Center" ClipToBounds="True" />
+                                </Grid>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="LayerRect" Property="Opacity" Value="0.8" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Thumb.Template>
+                    </Thumb>
+                </Canvas>
+            </Border>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

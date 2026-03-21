@@ -26,7 +26,26 @@ namespace Axphi.ViewModels
         [NotifyPropertyChangedFor(nameof(AudioDurationTicks))]
         private double _audioDurationSeconds = 0;
 
-        public int AudioDurationTicks => (int)Math.Round(TimeTickConverter.TimeToTick(AudioDurationSeconds, Chart.BpmKeyFrames, Chart.InitialBpm), MidpointRounding.AwayFromZero);
+        // ================= 🌟 核心修复：基于积分的动态跨度计算 =================
+        public int AudioDurationTicks
+        {
+            get
+            {
+                if (Chart == null || AudioDurationSeconds <= 0) return 0;
+
+                // 1. 算出音频图层左边界（Offset）在宇宙中的绝对起步秒数
+                double startSeconds = TimeTickConverter.TickToTime(Chart.Offset, Chart.BpmKeyFrames, Chart.InitialBpm);
+
+                // 2. 加上音频自身的物理总时长（秒），得到它结束时的绝对秒数
+                double endSeconds = startSeconds + AudioDurationSeconds;
+
+                // 3. 召唤你的积分器！把结束的物理秒数，反推回宇宙中绝对的结束 Tick！
+                double exactEndTick = TimeTickConverter.TimeToTick(endSeconds, Chart.BpmKeyFrames, Chart.InitialBpm);
+
+                // 4. 结束的 Tick 减去 起步的 Tick(Offset) = 这个音频在当前 BPM 环境下跨越的总 Tick 长度！
+                return (int)Math.Round(exactEndTick - Chart.Offset, MidpointRounding.AwayFromZero);
+            }
+        }
 
         // ================= 🌟 改为和 TrackViewModel 相同的独立 UI 属性 =================
         [ObservableProperty]
@@ -62,12 +81,20 @@ namespace Axphi.ViewModels
             {
                 LoadDurationFromBytes(_projectManager.EditingProject.EncodedAudio);
             }
+
+
+            // (加在构造函数里) 监听关键帧变动（包括 BPM 关键帧被拖拽重排）
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, KeyframesNeedSortMessage>(this, (r, m) =>
+            {
+                r.UpdatePixels();
+            });
         }
 
         // 根据底层数据（Chart.Offset 和 Duration）强制重算像素！
         public void UpdatePixels()
         {
             LayerPixelXOffset = _timeline.TickToPixel(Chart.Offset);
+            LayerPixelWidth = Math.Max(10, _timeline.TickToPixel(AudioDurationTicks));
             LayerPixelWidth = Math.Max(10, _timeline.TickToPixel(AudioDurationTicks));
         }
 

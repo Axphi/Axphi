@@ -75,21 +75,20 @@ namespace Axphi.Views
                 _layerVirtualPixelX += stableDeltaX;
 
                 double exactTick = vm.Timeline.PixelToTick(_layerVirtualPixelX);
-                // 🌟 召唤吸附引擎！
                 int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: false);
 
                 int stepDelta = snappedTick - _lastAppliedTick;
 
-                // 发生了实质性的 Tick 移动
                 if (stepDelta != 0)
                 {
                     _lastAppliedTick = snappedTick;
-
-                    // 实时同步给底层数据 (音频的 Offset)
                     vm.Chart.Offset = _lastAppliedTick;
 
-                    // 如果你有需要，可以在这里发消息让音乐引擎重新调整音频进度
-                    // WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                    // ================= 🌟 核心修复 =================
+                    // 只要 Offset 发生了哪怕 1 个 Tick 的变化，
+                    // 立刻调用积分器重新计算一次当前的物理宽度，并同步给 UI！
+                    vm.LayerPixelWidth = Math.Max(10, vm.Timeline.TickToPixel(vm.AudioDurationTicks));
+                    // ===============================================
                 }
 
                 // 视觉块的平滑渲染 vs 磁吸渲染
@@ -105,9 +104,11 @@ namespace Axphi.Views
         {
             if (this.DataContext is AudioTrackViewModel vm)
             {
-                // 彻底收尾：确保底层和 UI 完美对齐到物理像素上
+                // 彻底收尾：确保底层和 UI 的 X 坐标和 Width 完美对齐到物理像素上
                 vm.Chart.Offset = _lastAppliedTick;
-                vm.LayerPixelXOffset = vm.Timeline.TickToPixel(_lastAppliedTick);
+
+                // 🌟 直接调用 ViewModel 里的统一刷新方法，确保松手时绝对精准！
+                vm.UpdatePixels();
             }
             e.Handled = true;
         }

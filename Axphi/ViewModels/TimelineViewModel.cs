@@ -407,6 +407,11 @@ namespace Axphi.ViewModels
                 // 发信重绘右侧画面
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
 
+
+                // ================= 🌟 补上这句：防漏，确保删了 BPM 后音频长度正确还原 =================
+                AudioTrack?.UpdatePixels();
+
+
                 // 强制刷新一次左侧面板的数值，防止删掉关键帧后数值还停留在幽灵状态
                 int currentTick = GetCurrentTick();
                 var easingDirection = CurrentChart.KeyFrameEasingDirection;

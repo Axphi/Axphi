@@ -87,7 +87,11 @@ namespace Axphi.ViewModels
                 // 动手后，去修正时间！
                 // 否则, 游标会突变
                 SyncPlayheadToTick(currentExactTick);
-                
+
+
+                // ================= 🌟 补上这句：通知音频轨道刷新 =================
+                _timeline.AudioTrack?.UpdatePixels();
+
             }
             else
             {
@@ -124,6 +128,9 @@ namespace Axphi.ViewModels
 
             // 通知渲染器重绘 (因为 BPM 变了，所有判定线的位置都会跟着变！)
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+
+            // ================= 🌟 补上这句：通知音频轨道刷新 =================
+            _timeline.AudioTrack?.UpdatePixels();
         }
 
         private void SyncPlayheadToTick(double targetExactTick)

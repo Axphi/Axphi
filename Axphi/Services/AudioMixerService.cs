@@ -11,7 +11,8 @@ namespace Axphi.Services
     // ================= 🌟 终极音游 0 延迟混音引擎 =================
     public static class HitSoundManager
     {
-        private static WaveOutEvent? _outputDevice;
+        // private static WaveOutEvent? _outputDevice;
+        private static WasapiOut? _outputDevice;
         private static MixingSampleProvider? _mixer;
         private static Dictionary<NoteKind, CachedSound> _soundCache = new();
         private static bool _isInitialized = false;
@@ -28,8 +29,15 @@ namespace Axphi.Services
                     ReadFully = true // 核心魔法：保持静音播放，随时准备接客
                 };
 
-                // 2. 绑定到极低延迟的 WaveOutEvent
-                _outputDevice = new WaveOutEvent { DesiredLatency = 50 };
+                
+                // ================= 修复 =================
+                // 抛弃老旧的 WaveOutEvent，改用现代的 WasapiOut。
+                // 参数1：共享模式 (不独占声卡)
+                // 参数2：延迟设置为 50ms (Wasapi 在 50ms 下极其稳定，不会撕裂)
+                _outputDevice = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 50);
+                // ===============================================
+
+
                 _outputDevice.Init(_mixer);
                 _outputDevice.Play();
 

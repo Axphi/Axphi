@@ -568,4 +568,26 @@ public partial class MainWindow : Window
             vm.Timeline.WorkspaceEndTick = snappedTick;
         }
     }
+
+
+    // ================= 拦截 Alt 键按下，防止系统菜单抢夺焦点 =================
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        // 如果按下的是系统键，且具体按键是左 Alt 或 右 Alt
+        if (e.Key == Key.System && (e.SystemKey == Key.LeftAlt || e.SystemKey == Key.RightAlt))
+        {
+            e.Handled = true; // 拦截它！不准激活系统菜单！
+        }
+        base.OnPreviewKeyDown(e);
+    }
+
+    // ================= 拦截 Alt 键抬起，彻底封死焦点丢失 =================
+    protected override void OnPreviewKeyUp(KeyEventArgs e)
+    {
+        if (e.Key == Key.System && (e.SystemKey == Key.LeftAlt || e.SystemKey == Key.RightAlt))
+        {
+            e.Handled = true;
+        }
+        base.OnPreviewKeyUp(e);
+    }
 }

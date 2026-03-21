@@ -107,6 +107,25 @@ public partial class MainWindow : Window
                 e.Handled = true;
             }
         }
+        // 2. 🌟 新增：Shift + 滚轮 = 时间轴水平滚动 (Pan)
+        else if (Keyboard.Modifiers == ModifierKeys.Shift)
+        {
+            // e.Delta 通常是 120 (向上滚) 或 -120 (向下滚)
+            // 向上滚 -> 画面向右走 (游标向左，滚动条变小)
+            // 向下滚 -> 画面向左走 (游标向右，滚动条变大)
+
+            double scrollSensitivity = 1.0; // 滚动灵敏度，如果觉得滚得太快/太慢可以改这个系数 (比如 0.5)
+            double newOffset = GlobalHorizontalScroll.Value - (e.Delta * scrollSensitivity);
+
+            // 物理防撞墙：不能超出滚动条的极限范围
+            if (newOffset < 0) newOffset = 0;
+            if (newOffset > GlobalHorizontalScroll.Maximum) newOffset = GlobalHorizontalScroll.Maximum;
+
+            // 直接给水平滚动条强行赋值，它会自动触发联动事件，带动所有轨道一起滚动！
+            GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newOffset);
+
+            e.Handled = true; // 拦截掉，防止底层继续触发默认的上下垂直滚动
+        }
     }
 
     

@@ -126,9 +126,17 @@ public partial class MainWindow : Window
                 else if (e.Delta < 0) newScale /= 1.1;
 
 
+
+                
+
+
                 // ================= 🌟 新增：动态计算“刚好填满屏幕”的最小缩放比例 =================
                 double basePixelsPerTick = 0.5; // 你的 TimelineViewModel 基础常数
-                double minScale = vm.Timeline.ViewportActualWidth / (vm.Timeline.TotalDurationTicks * basePixelsPerTick);
+
+                double rightPadding = 15.0; // 与 ViewModel 保持一致
+
+
+                double minScale = (vm.Timeline.ViewportActualWidth- rightPadding) / (vm.Timeline.TotalDurationTicks * basePixelsPerTick);
 
                 // 绝对不允许画面比屏幕窄！(防穿模、防走光)
                 if (newScale < minScale) newScale = minScale;
@@ -146,7 +154,7 @@ public partial class MainWindow : Window
                 // 🌟 1. 预测新缩放下的物理总宽度
                 double expectedNewTotalWidth = vm.Timeline.TotalDurationTicks * 0.5 * newScale;
                 // 🌟 2. 预测正确的滚动条最大边界 (总宽 - 视口宽)
-                double expectedNewMaximum = Math.Max(0, expectedNewTotalWidth - vm.Timeline.ViewportActualWidth);
+                double expectedNewMaximum = Math.Max(0, expectedNewTotalWidth - vm.Timeline.ViewportActualWidth+ rightPadding);
 
                 GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedNewMaximum);
 
@@ -738,8 +746,9 @@ public partial class MainWindow : Window
 
             // ================= 🌟 新增：窗口拉宽时的“防走光”自适应 =================
             double basePixelsPerTick = 0.5;
-            double minScale = visiblePixels / (vm.Timeline.TotalDurationTicks * basePixelsPerTick);
-
+            double rightPadding = 15.0;
+            
+            double minScale = Math.Max(0.01, (visiblePixels - rightPadding) / (vm.Timeline.TotalDurationTicks * basePixelsPerTick));
             // 如果窗口变宽，导致当前的缩放比例不足以填满全屏，就强行把它撑满！
             if (vm.Timeline.ZoomScale < minScale)
             {
@@ -889,8 +898,11 @@ public partial class MainWindow : Window
         // 1. 根据新的可视 Tick 数量，反推算出需要的 ZoomScale
         double newZoom = rulerWidth / (visibleTicks * basePixelsPerTick);
 
+
+
         // ================= 🌟 新增：同样在这里限制最小缩放比例 =================
-        double minScale = vm.Timeline.ViewportActualWidth / (vm.Timeline.TotalDurationTicks * basePixelsPerTick);
+        double rightPadding = 15.0;
+        double minScale = (vm.Timeline.ViewportActualWidth - rightPadding) / (vm.Timeline.TotalDurationTicks * basePixelsPerTick);
 
         if (newZoom < minScale) newZoom = minScale;
         if (newZoom > 100.0) newZoom = 100.0;
@@ -898,7 +910,7 @@ public partial class MainWindow : Window
 
         // ================= 🌟 核心修复 =================
         double expectedNewTotalWidth = vm.Timeline.TotalDurationTicks * basePixelsPerTick * newZoom;
-        double expectedNewMaximum = Math.Max(0, expectedNewTotalWidth - vm.Timeline.ViewportActualWidth);
+        double expectedNewMaximum = Math.Max(0, expectedNewTotalWidth - vm.Timeline.ViewportActualWidth+ rightPadding);
 
         GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedNewMaximum);
 

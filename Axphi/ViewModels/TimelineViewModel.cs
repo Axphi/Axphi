@@ -46,8 +46,13 @@ namespace Axphi.ViewModels
         [NotifyPropertyChangedFor(nameof(MaxScrollOffset))]
         private double _viewportActualWidth = 800; // 默认给个安全值
 
+        // 🌟 新增：在最右侧强行留出一段安全空白（单位：像素）
+        // 你可以根据喜好调整大小
+        public double RightEmptyPadding => 15.0;
+
+
         // 计算真正的最大允许滚动距离（总宽 - 屏幕宽，最小为0防止缩放太小报错）
-        public double MaxScrollOffset => Math.Max(0, TotalPixelWidth - ViewportActualWidth);
+        public double MaxScrollOffset => Math.Max(0, TotalPixelWidth - ViewportActualWidth+ RightEmptyPadding);
 
 
 

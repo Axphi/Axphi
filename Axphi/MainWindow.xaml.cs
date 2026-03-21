@@ -148,6 +148,10 @@ public partial class MainWindow : Window
         {
             PlayheadTransform.X = -offset;
         }
+
+
+        // 🌟 新增：大滚动条一动，小地图的视野框必须跟着动！
+        UpdateMinimapViewport();
     }
 
 
@@ -609,4 +613,186 @@ public partial class MainWindow : Window
         }
         base.OnPreviewKeyUp(e);
     }
+
+
+    // ================= 【全局缩略图 (Minimap) 尺寸自适应】 =================
+    private void MinimapCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (this.DataContext is MainViewModel vm)
+        {
+            // 只要窗口大小改变，或者第一次加载，就把真实的物理宽度喂给 ViewModel
+            vm.Timeline.MinimapActualWidth = e.NewSize.Width;
+        }
+    }
+
+    // ================= 【全局缩略图 1：自动计算当前视野】 =================
+    private void UpdateMinimapViewport()
+    {
+        if (this.DataContext is MainViewModel vm && MainTimelineRuler != null)
+        {
+            // 当前屏幕左侧边缘的物理像素位置
+            double leftPixel = GlobalHorizontalScroll.Value;
+
+            // 当前屏幕的宽度 (用标尺的宽度代表可视宽度)
+            double visiblePixels = MainTimelineRuler.ActualWidth;
+            if (visiblePixels <= 0) return;
+
+            // 转换为 Tick 并更新 ViewModel
+            vm.Timeline.ViewportStartTick = vm.Timeline.PixelToTick(leftPixel);
+            vm.Timeline.ViewportEndTick = vm.Timeline.PixelToTick(leftPixel + visiblePixels);
+        }
+    }
+
+    // 窗口或布局大小改变时，更新视野
+    private void TimelineMainGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        UpdateMinimapViewport();
+    }
+
+
+    // ================= 【全局缩略图 2：拖拽蓝色滑块反向控制画面】 =================
+    private void MinimapViewport_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+    {
+        // 拖拽开始时可以记录一些状态，目前直接留空即可
+    }
+
+    private void MinimapViewport_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        if (this.DataContext is MainViewModel vm)
+        {
+            // e.HorizontalChange 是鼠标在【小地图】里移动的微小像素量
+            // 我们需要把它放大成【大时间轴】里真实的像素量！
+
+            // 1. 算比例：小地图里的 1 像素，等于大时间轴里的多少 Tick？
+            double ticksPerMinimapPixel = vm.Timeline.TotalDurationTicks / vm.Timeline.MinimapActualWidth;
+
+            // 2. 算位移：本次拖拽代表移动了多少 Tick？
+            double ticksDelta = e.HorizontalChange * ticksPerMinimapPixel;
+
+            // 3. 换算回真实大时间轴的物理像素位移！
+            double realPixelDelta = vm.Timeline.TickToPixel(ticksDelta);
+
+            // 4. 把位移加给底部的大滚动条
+            double newValue = GlobalHorizontalScroll.Value + realPixelDelta;
+
+            // 物理防撞墙
+            if (newValue < 0) newValue = 0;
+            if (newValue > GlobalHorizontalScroll.Maximum) newValue = GlobalHorizontalScroll.Maximum;
+
+            // 🌟 强行修改底部大滚动条的值，它会自动触发所有的联动！
+            GlobalHorizontalScroll.Value = newValue;
+        }
+    }
+
+    // ================= 【全局缩略图 2：视野框的平移与缩放】 =================
+
+    // === 中间拖拽平移 (Pan) ===
+    private void MinimapViewportPan_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e) { }
+
+    private void MinimapViewportPan_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        if (this.DataContext is MainViewModel vm)
+        {
+            double ticksPerMinimapPixel = vm.Timeline.TotalDurationTicks / vm.Timeline.MinimapActualWidth;
+            double realPixelDelta = vm.Timeline.TickToPixel(e.HorizontalChange * ticksPerMinimapPixel);
+            double newValue = GlobalHorizontalScroll.Value + realPixelDelta;
+
+            if (newValue < 0) newValue = 0;
+            if (newValue > GlobalHorizontalScroll.Maximum) newValue = GlobalHorizontalScroll.Maximum;
+
+            GlobalHorizontalScroll.Value = newValue; // 联动触发更新
+        }
+    }
+
+
+    private double _minimapViewportStartTick;
+    private double _minimapViewportEndTick;
+
+    // === 左侧手柄缩放 (Zoom & Pan) ===
+    private void MinimapViewportLeft_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+    {
+        if (this.DataContext is MainViewModel vm)
+        {
+            _minimapViewportStartTick = vm.Timeline.ViewportStartTick;
+            _minimapViewportEndTick = vm.Timeline.ViewportEndTick;
+        }
+    }
+
+    private void MinimapViewportLeft_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        if (this.DataContext is MainViewModel vm && MainTimelineRuler.ActualWidth > 0)
+        {
+            double ticksPerPixel = vm.Timeline.TotalDurationTicks / vm.Timeline.MinimapActualWidth;
+            _minimapViewportStartTick += e.HorizontalChange * ticksPerPixel;
+
+            // 限制：视野最少保持 100 Tick，防止无限放大导致崩溃
+            double minVisibleTicks = 100;
+            if (_minimapViewportStartTick > _minimapViewportEndTick - minVisibleTicks)
+                _minimapViewportStartTick = _minimapViewportEndTick - minVisibleTicks;
+            if (_minimapViewportStartTick < 0)
+                _minimapViewportStartTick = 0;
+
+            ApplyViewportChange(vm, _minimapViewportStartTick, _minimapViewportEndTick);
+        }
+    }
+
+    // === 右侧手柄缩放 (Zoom & Pan) ===
+    private void MinimapViewportRight_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+    {
+        if (this.DataContext is MainViewModel vm)
+        {
+            _minimapViewportStartTick = vm.Timeline.ViewportStartTick;
+            _minimapViewportEndTick = vm.Timeline.ViewportEndTick;
+        }
+    }
+
+    private void MinimapViewportRight_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        if (this.DataContext is MainViewModel vm && MainTimelineRuler.ActualWidth > 0)
+        {
+            double ticksPerPixel = vm.Timeline.TotalDurationTicks / vm.Timeline.MinimapActualWidth;
+            _minimapViewportEndTick += e.HorizontalChange * ticksPerPixel;
+
+            double minVisibleTicks = 100;
+            if (_minimapViewportEndTick < _minimapViewportStartTick + minVisibleTicks)
+                _minimapViewportEndTick = _minimapViewportStartTick + minVisibleTicks;
+            if (_minimapViewportEndTick > vm.Timeline.TotalDurationTicks)
+                _minimapViewportEndTick = vm.Timeline.TotalDurationTicks;
+
+            ApplyViewportChange(vm, _minimapViewportStartTick, _minimapViewportEndTick);
+        }
+    }
+
+    // === 核心：将视野的变化转换为底层 ZoomScale 和 滚动条的改变！ ===
+    private void ApplyViewportChange(MainViewModel vm, double startTick, double endTick)
+    {
+        double visibleTicks = endTick - startTick;
+        double rulerWidth = MainTimelineRuler.ActualWidth;
+        double basePixelsPerTick = 0.5; // 这是你定义在 TimelineViewModel 里的基础常数
+
+        // 1. 根据新的可视 Tick 数量，反推算出需要的 ZoomScale
+        double newZoom = rulerWidth / (visibleTicks * basePixelsPerTick);
+
+        // 限制极端缩放
+        if (newZoom < 0.01) newZoom = 0.01;
+        if (newZoom > 100.0) newZoom = 100.0;
+
+        // 2. 完美防频闪黑科技（和 Alt+滚轮 完全一致的做法）
+        double ratio = newZoom / vm.Timeline.ZoomScale;
+        double expectedNewMaximum = GlobalHorizontalScroll.Maximum * ratio;
+        GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedNewMaximum);
+
+        // 3. 应用新的缩放比例和滚动条位置
+        vm.Timeline.ZoomScale = newZoom;
+        double newOffset = startTick * basePixelsPerTick * newZoom;
+        GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newOffset);
+
+        // ================= 🌟 核心修复 =================
+        // 如果 newOffset 刚好没有发生变化（比如左侧在 0 的时候），
+        // 滚动条的 ValueChanged 事件就不会触发！所以我们必须手动强制刷新一次视野！
+        UpdateMinimapViewport();
+        // ===============================================
+    }
+
+
 }

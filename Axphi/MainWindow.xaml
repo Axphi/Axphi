@@ -106,7 +106,8 @@
                       x:Name="TimelineMainGrid"
                       PreviewMouseLeftButtonDown="TimelineMainGrid_PreviewMouseLeftButtonDown"
                       PreviewMouseMove="TimelineMainGrid_PreviewMouseMove"
-                      PreviewMouseLeftButtonUp="TimelineMainGrid_PreviewMouseLeftButtonUp">
+                      PreviewMouseLeftButtonUp="TimelineMainGrid_PreviewMouseLeftButtonUp"
+                      SizeChanged="TimelineMainGrid_SizeChanged">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*" />
 
@@ -122,7 +123,56 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="1" Grid.Column="2" Background="#363636" />
+                    <Border Grid.Row="1" Grid.Column="1" Background="#252525"  ClipToBounds="True">
+
+                        <Canvas x:Name="MinimapCanvas" SizeChanged="MinimapCanvas_SizeChanged"
+                                Margin="8,0,0,0">
+
+                            <Rectangle Canvas.Left="{Binding Timeline.MinimapWorkspaceX}"
+                                       Width="{Binding Timeline.MinimapWorkspaceWidth}"
+                                       Height="{Binding ActualHeight, ElementName=MinimapCanvas}"
+                                       Fill="#10FFFFFF" 
+                                       IsHitTestVisible="False" />
+
+                            <Grid Canvas.Left="{Binding Timeline.MinimapViewportX}"
+                                  Width="{Binding Timeline.MinimapViewportWidth}"
+                                  Height="{Binding ActualHeight, ElementName=MinimapCanvas}">
+
+                                <Thumb Cursor="Hand"
+                                       DragStarted="MinimapViewportPan_DragStarted"
+                                       DragDelta="MinimapViewportPan_DragDelta">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Rectangle Fill="#88FFFFFF" />
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+
+                                <Thumb Width="4" HorizontalAlignment="Left" Cursor="SizeWE"
+                                       DragStarted="MinimapViewportLeft_DragStarted"
+                                       DragDelta="MinimapViewportLeft_DragDelta"
+                                       Margin="-4,0,0,0">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Rectangle Fill="#5285F3" />
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+
+                                <Thumb Width="4" HorizontalAlignment="Right" Cursor="SizeWE"
+                                       DragStarted="MinimapViewportRight_DragStarted"
+                                       DragDelta="MinimapViewportRight_DragDelta"
+                                       Margin="0,0,-4,0">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Rectangle Fill="#5285F3"  />
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Grid>
+
+                        </Canvas>
+                    </Border>
 
 
                     <!--  标题栏  -->

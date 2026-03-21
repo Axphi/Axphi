@@ -506,6 +506,7 @@ namespace Axphi.ViewModels
             WorkspaceStartX = TickToPixel(WorkspaceStartTick);
             WorkspaceEndX = TickToPixel(WorkspaceEndTick);
             WorkspaceWidth = Math.Max(0, WorkspaceEndX - WorkspaceStartX);
+            UpdateMinimapPixels();
         }
         // ================= 工作区循环拦截引擎 =================
         // 供外部播放引擎在“正在播放”状态下每一帧调用
@@ -536,6 +537,49 @@ namespace Axphi.ViewModels
                 // 确保画面同步刷新
                 CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             }
+        }
+
+
+
+
+
+        // ================= 全局缩略图 (Minimap / Viewport) =================
+
+        // 当前屏幕左边缘对应的 Tick
+        [ObservableProperty]
+        private double _viewportStartTick;
+
+        // 当前屏幕右边缘对应的 Tick
+        [ObservableProperty]
+        private double _viewportEndTick;
+
+        // 缩略图所在区域的实际物理宽度（UI 传给我们的）
+        [ObservableProperty]
+        private double _minimapActualWidth = 1; // 给个默认值防 0 报错
+
+        // ================= 换算给 UI 绑定的像素值 =================
+
+        // 1. 工作区 (纯展示) 在缩略图里的 X 和 Width
+        public double MinimapWorkspaceX => TotalDurationTicks == 0 ? 0 : (WorkspaceStartTick / (double)TotalDurationTicks) * MinimapActualWidth;
+        public double MinimapWorkspaceWidth => TotalDurationTicks == 0 ? 0 : ((WorkspaceEndTick - WorkspaceStartTick) / (double)TotalDurationTicks) * MinimapActualWidth;
+
+        // 2. 屏幕视野 (带手柄) 在缩略图里的 X 和 Width
+        public double MinimapViewportX => TotalDurationTicks == 0 ? 0 : (ViewportStartTick / (double)TotalDurationTicks) * MinimapActualWidth;
+        public double MinimapViewportWidth => TotalDurationTicks == 0 ? 0 : ((ViewportEndTick - ViewportStartTick) / (double)TotalDurationTicks) * MinimapActualWidth;
+
+        // 当这些基础值改变时，通知 UI 更新缩略图的像素！
+        partial void OnMinimapActualWidthChanged(double value) => UpdateMinimapPixels();
+        partial void OnViewportStartTickChanged(double value) => UpdateMinimapPixels();
+        partial void OnViewportEndTickChanged(double value) => UpdateMinimapPixels();
+
+        // 在你原有的 OnWorkspaceStartTickChanged 和 OnWorkspaceEndTickChanged 里，也要加上 UpdateMinimapPixels() 的调用！
+
+        public void UpdateMinimapPixels()
+        {
+            OnPropertyChanged(nameof(MinimapWorkspaceX));
+            OnPropertyChanged(nameof(MinimapWorkspaceWidth));
+            OnPropertyChanged(nameof(MinimapViewportX));
+            OnPropertyChanged(nameof(MinimapViewportWidth));
         }
     }
 

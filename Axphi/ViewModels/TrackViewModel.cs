@@ -138,6 +138,17 @@ namespace Axphi.ViewModels
             }
 
 
+            // 放在构造函数里初始化一下
+            LayerPixelWidth = _timeline.TickToPixel(LayerDurationTicks);
+            // 当收到缩放比例改变的信件时，立刻根据绝对时间重算像素偏移！
+            CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Register<TrackViewModel, ZoomScaleChangedMessage>(this, (r, m) =>
+            {
+                r.LayerPixelXOffset = r._timeline.TickToPixel(r.LayerStartTick);
+                // 🌟 新增：缩放时宽度也要跟着变！
+                r.LayerPixelWidth = r._timeline.TickToPixel(r.LayerDurationTicks);
+            });
+
+
             WeakReferenceMessenger.Default.Register<TrackViewModel, KeyframesNeedSortMessage>(this, (r, m) =>
             {
                 // 只要松手，就把四个轨道的底层 List 强制按时间重排，并把撞车的关键帧直接吞噬！
@@ -161,6 +172,10 @@ namespace Axphi.ViewModels
 
 
                 }
+
+
+
+                
 
 
                 // 【加在 1号邮局 KeyframesNeedSortMessage 的里面：给 Speed 排序去重】
@@ -679,6 +694,46 @@ namespace Axphi.ViewModels
 
             // 撑开整个背景的高度
             UITrackHeight = Math.Max(1, lanes.Count) * 24;
+        }
+
+
+
+
+
+        // ================= 图层长度属性 =================
+        // 默认给个 7680 个 Tick (比如 60 拍的长度)
+        [ObservableProperty]
+        private int _layerDurationTicks = 7680;
+
+        [ObservableProperty]
+        private double _layerPixelWidth;
+
+
+        [ObservableProperty]
+        private bool _isLayerSelected;
+
+
+        [ObservableProperty]
+        private double _layerPixelXOffset;
+
+        // 专门用来抵抗 Alt 缩放的绝对物理时间
+        [ObservableProperty]
+        private int _layerStartTick = 0;
+
+        public void BatchShiftAllItems(int deltaTick)
+        {
+            // 1. 音符大军全体平移
+            foreach (var note in UINotes) note.ShiftBy(deltaTick);
+
+            // 2. 判定线自身附带的关键帧平移
+            foreach (var kf in UIOffsetKeyframes) kf.ShiftBy(deltaTick);
+            foreach (var kf in UIScaleKeyframes) kf.ShiftBy(deltaTick);
+            foreach (var kf in UIRotationKeyframes) kf.ShiftBy(deltaTick);
+            foreach (var kf in UIOpacityKeyframes) kf.ShiftBy(deltaTick);
+            foreach (var kf in UISpeedKeyframes) kf.ShiftBy(deltaTick);
+
+            // 3. 通知全局对关键帧重新排个序，防止因为“防越界”导致部分关键帧堆叠在一起乱了顺序
+            CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new KeyframesNeedSortMessage());
         }
     }
 

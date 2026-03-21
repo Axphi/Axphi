@@ -312,13 +312,43 @@
             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
                 <StackPanel>
 
-
+                    <!--  图层  -->
                     <Canvas Margin="8,0,0,0" Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left">
-                        <Thumb>
+
+                        <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
+                               DragStarted="LayerThumb_DragStarted"
+                               DragDelta="LayerThumb_DragDelta"
+                               DragCompleted="LayerThumb_DragCompleted">
                             <Thumb.Template>
                                 <ControlTemplate TargetType="Thumb">
-                                    <Rectangle x:Name="LayerRect" Width="{Binding Timeline.TotalPixelWidth}" Height="20" Fill="#374561">
-                                    </Rectangle>
+
+                                    <Grid Width="{Binding LayerPixelWidth}" Height="20">
+
+                                        <Rectangle x:Name="LayerRect" Fill="#374561" RadiusX="3" RadiusY="3" />
+
+                                        <Thumb Width="8" HorizontalAlignment="Left" Cursor="SizeWE"
+                                               DragStarted="LayerLeftHandle_DragStarted"
+                                               DragDelta="LayerLeftHandle_DragDelta"
+                                               DragCompleted="LayerLeftHandle_DragCompleted">
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="Thumb">
+                                                    <Rectangle Fill="Transparent" />
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+
+                                        <Thumb Width="8" HorizontalAlignment="Right" Cursor="SizeWE"
+                                               DragStarted="LayerRightHandle_DragStarted"
+                                               DragDelta="LayerRightHandle_DragDelta"
+                                               DragCompleted="LayerRightHandle_DragCompleted">
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="Thumb">
+                                                    <Rectangle Fill="Transparent" />
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Grid>
+
                                     <ControlTemplate.Triggers>
                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                             <Setter TargetName="LayerRect" Property="Fill" Value="#5285F3" />
@@ -332,7 +362,6 @@
                                 </ControlTemplate>
                             </Thumb.Template>
                         </Thumb>
-
                     </Canvas>
 
                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">

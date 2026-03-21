@@ -582,5 +582,30 @@ namespace Axphi.ViewModels
             // 假设每一条子轨道的高度是 24 像素 (给点上下间距，原来是 20)
             PixelY = value * 24;
         }
+
+
+
+
+
+        // 音符本体及内部关键帧平移 API
+        public void ShiftBy(int deltaTick)
+        {
+            Model.HitTime += deltaTick;
+            // if (Model.HitTime < 0) Model.HitTime = 0; // 防越界
+
+            // 手动触发 UI 左侧面板里的 HitTime 数值更新
+            OnPropertyChanged(nameof(HitTime));
+
+            // 🌟 核心：让自己肚子里的关键帧也跟着搬家！
+            foreach (var kf in UIOffsetKeyframes) kf.ShiftBy(deltaTick);
+            foreach (var kf in UIScaleKeyframes) kf.ShiftBy(deltaTick);
+            foreach (var kf in UIRotationKeyframes) kf.ShiftBy(deltaTick);
+            foreach (var kf in UIOpacityKeyframes) kf.ShiftBy(deltaTick);
+            if (UINoteKindKeyframes != null)
+                foreach (var kf in UINoteKindKeyframes) kf.ShiftBy(deltaTick);
+
+            // 更新音符本体在轨道上的像素位置
+            PixelX = _timeline.TickToPixel(Model.HitTime);
+        }
     }
 }

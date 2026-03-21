@@ -159,5 +159,224 @@ namespace Axphi.Views
                 }
             }
         }
+
+
+
+
+
+        // ================= 图层块 (LayerRect) 实时拖拽逻辑 =================
+        private Point _layerLastMousePos;
+        private double _layerVirtualPixelX;
+        private int _lastAppliedTick; // 🌟 新增：记录上一帧所在的 Tick，用来算增量！
+
+        private void LayerThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            _layerLastMousePos = Mouse.GetPosition(this);
+
+            if (this.DataContext is TrackViewModel trackVM)
+            {
+                _layerVirtualPixelX = trackVM.LayerPixelXOffset;
+
+                // 🌟 记录起步时的准确 Tick
+                double exactTick = trackVM._timeline.PixelToTick(_layerVirtualPixelX);
+                _lastAppliedTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
+            }
+        }
+
+        private void LayerThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            Point currentPos = Mouse.GetPosition(this);
+            double stableDeltaX = currentPos.X - _layerLastMousePos.X;
+            _layerLastMousePos = currentPos;
+
+            if (this.DataContext is TrackViewModel trackVM)
+            {
+                _layerVirtualPixelX += stableDeltaX;
+
+                double exactTick = trackVM._timeline.PixelToTick(_layerVirtualPixelX);
+                int snappedTick = trackVM._timeline.SnapToClosest(exactTick, isPlayhead: false);
+
+                // ================= 🌟 核心：实时增量平移 =================
+                // 算出当前帧和上一帧之间的 Tick 差值
+                int stepDelta = snappedTick - _lastAppliedTick;
+
+                // 只要发生了实质性的 Tick 移动，立刻发号施令！
+                if (stepDelta != 0)
+                {
+                    // 1. 让所有音符和关键帧实时跟着走！
+                    trackVM.BatchShiftAllItems(stepDelta);
+
+                    // 2. 更新记忆
+                    _lastAppliedTick = snappedTick;
+
+                    // 3. 极其关键：实时发信给渲染器，让右侧画面也能实时跟着鼠标动！
+                    CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                }
+                // ==========================================================
+
+                // 视觉块的平滑渲染
+                if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
+                    trackVM.LayerPixelXOffset = trackVM._timeline.TickToPixel(snappedTick);
+                else
+                    trackVM.LayerPixelXOffset = _layerVirtualPixelX;
+            }
+        }
+
+        private void LayerThumb_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            if (this.DataContext is TrackViewModel trackVM)
+            {
+                // 🌟 彻底收尾：把最终停留的真实 Tick 存进大管家，用来抵抗未来的 Alt 缩放！
+                trackVM.LayerStartTick = _lastAppliedTick;
+
+                // 确保松手时，图层块完美对齐到物理像素上
+                trackVM.LayerPixelXOffset = trackVM._timeline.TickToPixel(_lastAppliedTick);
+            }
+        }
+
+
+        // ================= 图层块左边缘修剪逻辑 =================
+        private Point _layerLeftLastMousePos;
+        private double _layerLeftVirtualX;
+        private double _layerLeftVirtualWidth;
+
+        private void LayerLeftHandle_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            _layerLeftLastMousePos = Mouse.GetPosition(this);
+            if (this.DataContext is TrackViewModel trackVM)
+            {
+                _layerLeftVirtualX = trackVM.LayerPixelXOffset;
+                _layerLeftVirtualWidth = trackVM.LayerPixelWidth;
+            }
+            e.Handled = true; // 🌟 极其重要：防止触发底下的整体移动！
+        }
+
+        private void LayerLeftHandle_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            Point currentPos = Mouse.GetPosition(this);
+            double stableDeltaX = currentPos.X - _layerLeftLastMousePos.X;
+            _layerLeftLastMousePos = currentPos;
+
+            if (this.DataContext is TrackViewModel trackVM)
+            {
+                _layerLeftVirtualX += stableDeltaX;
+                _layerLeftVirtualWidth -= stableDeltaX;
+
+                // 🌟 核心：算出 1 个 Tick 对应的物理像素，作为视觉和物理的双重防撞墙
+                double minWidthPixel = trackVM._timeline.TickToPixel(1);
+
+                // 视觉防撞墙：最少保留 1 Tick 的宽度
+                if (_layerLeftVirtualWidth < minWidthPixel)
+                {
+                    _layerLeftVirtualX += _layerLeftVirtualWidth - minWidthPixel;
+                    _layerLeftVirtualWidth = minWidthPixel;
+                }
+
+                double exactLeftTick = trackVM._timeline.PixelToTick(_layerLeftVirtualX);
+                int snappedLeftTick = trackVM._timeline.SnapToClosest(exactLeftTick, isPlayhead: false);
+
+                int rightTick = trackVM.LayerStartTick + trackVM.LayerDurationTicks; // 右边界是绝对死锁的
+
+
+                // 逻辑防撞墙：吸附后的 Tick 绝不能越过 (右边界 - 1)
+                if (snappedLeftTick > rightTick - 1)
+                    snappedLeftTick = rightTick - 1;
+
+
+                if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
+                {
+                    trackVM.LayerPixelXOffset = trackVM._timeline.TickToPixel(snappedLeftTick);
+                    trackVM.LayerPixelWidth = trackVM._timeline.TickToPixel(rightTick - snappedLeftTick);
+                }
+                else
+                {
+                    trackVM.LayerPixelXOffset = _layerLeftVirtualX;
+                    trackVM.LayerPixelWidth = _layerLeftVirtualWidth;
+                }
+            }
+            e.Handled = true;
+        }
+
+        private void LayerLeftHandle_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            if (this.DataContext is TrackViewModel trackVM)
+            {
+                double exactLeftTick = trackVM._timeline.PixelToTick(trackVM.LayerPixelXOffset);
+                int finalLeftTick = (int)Math.Round(exactLeftTick, MidpointRounding.AwayFromZero);
+
+                int rightTick = trackVM.LayerStartTick + trackVM.LayerDurationTicks;
+
+                // 🌟 修剪边缘不属于“全员搬家”，只更新图层的壳子即可！
+                trackVM.LayerStartTick = finalLeftTick;
+                trackVM.LayerDurationTicks = Math.Max(1, rightTick - finalLeftTick);
+
+                trackVM.LayerPixelXOffset = trackVM._timeline.TickToPixel(trackVM.LayerStartTick);
+                trackVM.LayerPixelWidth = trackVM._timeline.TickToPixel(trackVM.LayerDurationTicks);
+            }
+            e.Handled = true;
+        }
+
+        // ================= 图层块右边缘修剪逻辑 =================
+        private Point _layerRightLastMousePos;
+        private double _layerRightVirtualWidth;
+
+        private void LayerRightHandle_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            _layerRightLastMousePos = Mouse.GetPosition(this);
+            if (this.DataContext is TrackViewModel trackVM)
+            {
+                _layerRightVirtualWidth = trackVM.LayerPixelWidth;
+            }
+            e.Handled = true;
+        }
+
+        private void LayerRightHandle_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            Point currentPos = Mouse.GetPosition(this);
+            double stableDeltaX = currentPos.X - _layerRightLastMousePos.X;
+            _layerRightLastMousePos = currentPos;
+
+            if (this.DataContext is TrackViewModel trackVM)
+            {
+                _layerRightVirtualWidth += stableDeltaX;
+
+                // 🌟 视觉防撞墙：最小像素宽度为 1 Tick
+                double minWidthPixel = trackVM._timeline.TickToPixel(1);
+                if (_layerRightVirtualWidth < minWidthPixel)
+                    _layerRightVirtualWidth = minWidthPixel;
+
+                double exactRightTick = trackVM.LayerStartTick + trackVM._timeline.PixelToTick(_layerRightVirtualWidth);
+                int snappedRightTick = trackVM._timeline.SnapToClosest(exactRightTick, isPlayhead: false);
+
+                int newDurationTicks = snappedRightTick - trackVM.LayerStartTick;
+
+                // 🌟 逻辑防撞墙：最小允许 1 Tick 长度
+                if (newDurationTicks < 1)
+                    newDurationTicks = 1;
+
+
+                if (newDurationTicks < 1) newDurationTicks = 1; // 最小允许 1 tick 长度
+
+                if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
+                    trackVM.LayerPixelWidth = trackVM._timeline.TickToPixel(newDurationTicks);
+                else
+                    trackVM.LayerPixelWidth = _layerRightVirtualWidth;
+            }
+            e.Handled = true;
+        }
+
+        private void LayerRightHandle_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            if (this.DataContext is TrackViewModel trackVM)
+            {
+                double exactRightTick = trackVM.LayerStartTick + trackVM._timeline.PixelToTick(trackVM.LayerPixelWidth);
+                int finalRightTick = (int)Math.Round(exactRightTick, MidpointRounding.AwayFromZero);
+
+                trackVM.LayerDurationTicks = Math.Max(1, finalRightTick - trackVM.LayerStartTick);
+                
+                trackVM.LayerPixelWidth = trackVM._timeline.TickToPixel(trackVM.LayerDurationTicks);
+            }
+            e.Handled = true;
+        }
     }
 }

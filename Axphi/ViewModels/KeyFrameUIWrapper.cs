@@ -207,5 +207,15 @@ namespace Axphi.ViewModels
             WeakReferenceMessenger.Default.Send(new KeyframesNeedSortMessage());
         }
 
+
+
+
+        // 极简平移 API
+        public void ShiftBy(int deltaTick)
+        {
+            Model.Time += deltaTick;
+            // if (Model.Time < 0) Model.Time = 0; // 物理防撞墙：绝不能退到 0 以前
+            UpdatePosition(); // 调用你原本就有的方法，重新算像素！
+        }
     }
 }

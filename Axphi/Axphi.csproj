@@ -12,6 +12,7 @@
   <ItemGroup>
     <None Remove="Resources\Notes\drag.png" />
     <None Remove="Resources\Notes\flick.png" />
+    <None Remove="Resources\Notes\hit_fx.png" />
     <None Remove="Resources\Notes\hold.png" />
     <None Remove="Resources\Sounds\drag.ogg" />
     <None Remove="Resources\Sounds\drag.wav" />
@@ -43,6 +44,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Resources\Notes\hit_fx.png" />
     <Resource Include="Resources\Notes\tap.png" />
     <Resource Include="Resources\Notes\drag.png" />
     <Resource Include="Resources\Notes\flick.png" />

@@ -26,7 +26,7 @@ namespace Axphi.Components
         private static SolidColorBrush _noteDrag = new SolidColorBrush(Color.FromRgb(255, 222, 145));
         private static SolidColorBrush _noteHold = new SolidColorBrush(Color.FromRgb(81, 180, 255));
 
-        
+
 
         // 🌟 1. 静态缓存音符图片 (路径里的 pack://application:,,,/ 是 WPF 的标准资源路径写法)
         // 请把 Resources/Notes/... 换成你实际的文件夹和文件名！
@@ -34,6 +34,14 @@ namespace Axphi.Components
         private static readonly BitmapImage _imgDrag = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/drag.png"));
         private static readonly BitmapImage _imgHoldHead = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/hold.png"));
         private static readonly BitmapImage _imgFlick = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/flick.png"));
+
+
+        // 在其他静态画刷声明的地方（例如 _brushHoldHead 下方）添加：
+        private static readonly ImageSource[] _hitFxFrames = new ImageSource[30];
+        // ================= 新增：Perfect 击打特效专属颜色 =================
+        // 贴图颜色：rgba(255,236,160,0.8823529)，Alpha 0.88 * 255 ≈ 225
+        private static readonly SolidColorBrush _perfectFxBrush = new SolidColorBrush(Color.FromArgb(225, 255, 236, 160));
+        // =================================================================
 
         // 2. 声明 Hold 专属的三段画刷
         private static readonly ImageBrush _brushHoldTail;
@@ -59,6 +67,32 @@ namespace Axphi.Components
             _brushHoldTail.Freeze();
             _brushHoldBody.Freeze();
             _brushHoldHead.Freeze();
+
+
+            _perfectFxBrush.Freeze();
+
+            // ================= 新增：初始化并切割击打特效 =================
+            try
+            {
+                var hitFxSheet = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/hit_fx.png", UriKind.Absolute));
+
+                // 6行5列，共30帧，单帧尺寸 256x256
+                for (int i = 0; i < 30; i++)
+                {
+                    int row = i / 5;
+                    int col = i % 5;
+                    var rect = new Int32Rect(col * 256, row * 256, 256, 256);
+                    var cropped = new CroppedBitmap(hitFxSheet, rect);
+
+                    // 冻结画刷以获得极限渲染性能
+                    cropped.Freeze();
+                    _hitFxFrames[i] = cropped;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("图片没找到: " + ex.Message);
+            }
         }
         public TimeSpan Time
         {
@@ -160,7 +194,7 @@ namespace Axphi.Components
             // 2. 将现实时间转换为底层逻辑运算用的 Tick (int)
             int currentTick = CalculateCurrentTick(realTime, chart);
 
-            
+
 
             //if (time > chart.Duration)
             //{
@@ -195,6 +229,13 @@ namespace Axphi.Components
                 RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick);
             }
 
+
+            // ================= 新增：2. 最后在最上层画独立的击打特效 =================
+            double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, chart.InitialBpm);
+            RenderHitEffects(drawingContext, renderInfo, chart, currentTick, currentSeconds);
+            // =====================================================================
+
+
             drawingContext.Pop();
         }
 
@@ -204,7 +245,7 @@ namespace Axphi.Components
         private static int CalculateCurrentTick(TimeSpan realTime, Chart chart)
         {
             // 积分计算
-            double exactTick = TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, chart.InitialBpm); 
+            double exactTick = TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, chart.InitialBpm);
             double absoluteTick = exactTick + chart.Offset;
 
             // 保持全宇宙统一的四舍五入！
@@ -217,7 +258,7 @@ namespace Axphi.Components
             double headWidth = renderInfo.CanvasHeight / 360;               // 3 / 1080
             double progressPixel = renderInfo.CanvasWidth * progress;
             double progressPixelForHead = progressPixel * (1923.0 / 1920.0);
-            
+
             drawingContext.DrawRectangle(_progressWhite, null, new Rect(0, 0, progressPixel, height));
             drawingContext.DrawRectangle(_progressHeadWhite, null, new Rect(progressPixelForHead - headWidth, 0, headWidth, height));
         }
@@ -301,7 +342,7 @@ namespace Axphi.Components
 
             double lineLength = renderInfo.CanvasHeight * 5.76;
             double thickness = renderInfo.CanvasHeight * 0.0075;
-            
+
             drawingContext.DrawRectangle(_lineYellow, null, new Rect(-lineLength / 2, -thickness / 2, lineLength, thickness));
             drawingContext.Pop(); // note 不继承 line 的 opacity
             if (line.Notes is { } notes)
@@ -316,7 +357,7 @@ namespace Axphi.Components
                 }
             }
 
-            
+
             drawingContext.Pop();
         }
 
@@ -453,6 +494,8 @@ namespace Axphi.Components
                 drawingContext.DrawImage(imgSrc, new Rect(-notePixelWidth / 2, -notePixelHeight / 2, notePixelWidth, notePixelHeight));
             }
 
+
+
             drawingContext.Pop(); // opacity
             drawingContext.Pop(); // transform
 
@@ -461,6 +504,163 @@ namespace Axphi.Components
             {
                 // 有借有还，如果是 Hold，必须把刚才 Push 进去的 Clip 给 Pop 出来
                 drawingContext.Pop();
+            }
+        }
+
+        private static void RenderHitEffects(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, int currentTick, double currentSeconds)
+        {
+            if (chart.JudgementLines == null) return;
+
+            double noteScaleRatio = renderInfo.ClientWidth / 8080.0;
+            bool enableParticleRotation = false; // 粒子自转开关
+
+            foreach (var line in chart.JudgementLines)
+            {
+                if (line.Notes == null) continue;
+
+                foreach (var note in line.Notes)
+                {
+                    // 提取音符类型和基础时间
+                    var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, note.HitTime, note.InitialKind);
+                    double hitTimeSeconds = TimeTickConverter.TickToTime(note.HitTime, chart.BpmKeyFrames, chart.InitialBpm);
+                    double fxDurationSeconds = 0.5; // 特效持续 500ms
+
+                    // 🌟 1. 计算虚拟打击时间点列表
+                    List<double> virtualHitTimes = new List<double>();
+
+                    if (currentKind == NoteKind.Hold)
+                    {
+                        // 如果是 Hold，计算尾部的时间
+                        double endTimeSeconds = TimeTickConverter.TickToTime(note.HitTime + note.HoldDuration, chart.BpmKeyFrames, chart.InitialBpm);
+
+                        // 套用文档里的公式计算间隔： 30000ms / (BPM * speed) -> 换算成秒就是 30.0 / (BPM * speed)
+                        double bpm = chart.InitialBpm <= 0 ? 120.0 : chart.InitialBpm;
+                        double speed = Math.Abs(line.InitialSpeed);
+                        if (speed < 0.1) speed = 0.1; // 防止除以 0
+
+                        double intervalSeconds = 30.0 / (bpm * speed);
+                        if (intervalSeconds < 0.03) intervalSeconds = 0.03; // 性能保护限制：最高 33fps 的爆炸频率
+
+                        // 从头到尾，按照间隔生成连续的打击点
+                        for (double t = hitTimeSeconds; t <= endTimeSeconds; t += intervalSeconds)
+                        {
+                            // 性能优化：只有在距离当前时间 0.5 秒内的特效才需要被渲染！
+                            if (currentSeconds - t >= 0 && currentSeconds - t <= fxDurationSeconds)
+                            {
+                                virtualHitTimes.Add(t);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 如果是普通音符，只有一个打击点
+                        if (currentSeconds - hitTimeSeconds >= 0 && currentSeconds - hitTimeSeconds <= fxDurationSeconds)
+                        {
+                            virtualHitTimes.Add(hitTimeSeconds);
+                        }
+                    }
+
+                    // 🌟 2. 遍历所有激活的打击点并渲染
+                    foreach (var vTime in virtualHitTimes)
+                    {
+                        double elapsedSeconds = currentSeconds - vTime;
+
+                        // 将这个虚拟秒数反推回当时的 Tick，用来查询过去那一瞬间的坐标！
+                        int vTick = (int)Math.Round(TimeTickConverter.TimeToTick(vTime, chart.BpmKeyFrames, chart.InitialBpm));
+
+                        // 获取判定线在【这一个虚拟打击瞬间】的历史位置和旋转
+                        EasingUtils.CalculateObjectTransform(
+                            vTick, chart.KeyFrameEasingDirection,
+                            line.AnimatableProperties,
+                            out var lineOffset, out var lineScale, out var lineRotationAngle, out _);
+
+                        var linePixelOffset = new Vector(
+                            renderInfo.ChartUnitToPixel(lineOffset.X),
+                            renderInfo.ChartUnitToPixel(lineOffset.Y));
+
+                        var lineTransform = new TransformGroup()
+                        {
+                            Children = {
+                        new ScaleTransform(lineScale.X, lineScale.Y),
+                        new RotateTransform(-lineRotationAngle),
+                        new TranslateTransform(linePixelOffset.X, -linePixelOffset.Y),
+                    }
+                        };
+
+                        // 获取音符在【这一个虚拟打击瞬间】相对判定线的历史偏移
+                        EasingUtils.CalculateObjectTransform(
+                            vTick, chart.KeyFrameEasingDirection,
+                            note.AnimatableProperties,
+                            out var noteOffset, out var noteScale, out var noteRotationAngle, out _);
+
+                        var notePixelOffset = new Vector(
+                            renderInfo.ChartUnitToPixel(noteOffset.X),
+                            renderInfo.ChartUnitToPixel(noteOffset.Y));
+
+                        var noteTransform = new TransformGroup()
+                        {
+                            Children = {
+                        new ScaleTransform(noteScale.X, noteScale.Y),
+                        new RotateTransform(noteRotationAngle),
+                        new TranslateTransform(notePixelOffset.X, notePixelOffset.Y),
+                    }
+                        };
+
+                        // ================= 开始绘制 =================
+                        drawingContext.PushTransform(lineTransform);
+                        drawingContext.PushTransform(noteTransform);
+
+                        double tick = elapsedSeconds / fxDurationSeconds;
+
+                        // === 画主命中特效 ===
+                        int frameIndex = (int)Math.Floor(tick * 30);
+                        if (frameIndex >= 30) frameIndex = 29;
+
+                        var frame = _hitFxFrames[frameIndex];
+                        if (frame != null)
+                        {
+                            double fxSize = 256.0 * 1.0 * noteScaleRatio * 6.0;
+                            drawingContext.PushOpacityMask(new ImageBrush(frame));
+                            drawingContext.DrawRectangle(_perfectFxBrush, null, new Rect(-fxSize / 2, -fxSize / 2, fxSize, fxSize));
+                            drawingContext.Pop();
+                        }
+
+                        // === 画粒子小方块炸开特效 ===
+                        // 巧妙的随机种子：用 Note ID 加上当前虚拟时间算 Hash，
+                        // 这样既能保证每一次"哒哒哒"爆出来的粒子轨迹不一样，又能保证拖拽进度条时画面不闪烁！
+                        Random rand = new Random((note.ID + vTime.ToString("F3")).GetHashCode());
+
+                        for (int p = 0; p < 4; p++)
+                        {
+                            double j0 = rand.NextDouble() * (265 - 185) + 185;
+                            double angle = rand.NextDouble() * Math.PI * 2;
+                            double pRot = enableParticleRotation ? rand.NextDouble() * 90 : 0;
+
+                            double ds = j0 * (9 * tick) / (8 * tick + 1);
+                            double r3 = 30 * (((0.2078 * tick - 1.6524) * tick + 1.6399) * tick + 0.4988);
+
+                            double particleSize = r3 * noteScaleRatio * 6.0;
+                            double particleAlpha = 1.0 - tick;
+
+                            double px = Math.Cos(angle) * ds * noteScaleRatio * 6.0;
+                            double py = Math.Sin(angle) * ds * noteScaleRatio * 6.0;
+
+                            byte alphaByte = (byte)Math.Clamp(particleAlpha * 255, 0, 255);
+                            var particleBrush = new SolidColorBrush(Color.FromArgb(alphaByte, 255, 236, 160));
+
+                            drawingContext.PushTransform(new TranslateTransform(px, py));
+                            drawingContext.PushTransform(new RotateTransform(pRot));
+
+                            drawingContext.DrawRectangle(particleBrush, null, new Rect(-particleSize / 2, -particleSize / 2, particleSize, particleSize));
+
+                            drawingContext.Pop();
+                            drawingContext.Pop();
+                        }
+
+                        drawingContext.Pop(); // noteTransform
+                        drawingContext.Pop(); // lineTransform
+                    }
+                }
             }
         }
     }

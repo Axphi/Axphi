@@ -37,9 +37,7 @@ public partial class MainWindow : Window
 
 
 
-    // 声明两个全局变量
-    private Point _playheadLastMousePos;
-    private double _playheadVirtualPixelX;
+    
 
     public MainWindow(
         MainViewModel mainViewModel)
@@ -226,24 +224,56 @@ public partial class MainWindow : Window
         }
     }
 
-
-
-
+    // 记住拖拽游标前，音乐是否正在播放
+    private bool _wasPlayingBeforeDrag = false;
+    // 刚捏住游标的一瞬间
     // ================= 游标拖拽逻辑 (Scrubbing) =================
 
-    // 拖拽进行中：实时更新画面，丝滑预览
-    private void Playhead_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
-    {
-        Point currentPos = Mouse.GetPosition(TimelineMainGrid);
-        double stableDeltaX = currentPos.X - _playheadLastMousePos.X; // 自己算稳定位移！
-        _playheadLastMousePos = currentPos;
+    // 记录鼠标刚捏住游标时，鼠标物理位置和游标物理位置的“初始偏差”
+    private double _playheadDragMouseOffset;
 
+    private void Playhead_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+    {
+        Point mousePos = Mouse.GetPosition(TimelineMainGrid);
         if (this.DataContext is MainViewModel vm)
         {
-            _playheadVirtualPixelX += stableDeltaX;
-            if (_playheadVirtualPixelX < 0) _playheadVirtualPixelX = 0;
+            // 算出鼠标中心和红色游标中心的绝对偏移量
+            _playheadDragMouseOffset = vm.Timeline.PlayheadPositionX - (mousePos.X + GlobalHorizontalScroll.Value);
+        }
+        WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+    }
 
-            double exactTick = vm.Timeline.PixelToTick(_playheadVirtualPixelX);
+    private void Playhead_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        if (this.DataContext is MainViewModel vm)
+        {
+            Point currentPos = Mouse.GetPosition(TimelineMainGrid);
+
+            // 1. 🌟 边缘自动滚动 (非墙壁情况下的跟随)
+            // 距离左右边缘 20 像素以内时，推着滚动条走！
+            double edgeMargin = 20.0;
+            double scrollDelta = 0;
+            if (currentPos.X > TimelineMainGrid.ActualWidth - edgeMargin)
+                scrollDelta = currentPos.X - (TimelineMainGrid.ActualWidth - edgeMargin);
+            else if (currentPos.X < edgeMargin)
+                scrollDelta = currentPos.X - edgeMargin;
+
+            if (scrollDelta != 0)
+            {
+                // 强行推动滚动条，它会自动被 Maximum/Minimum 限制
+                GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, GlobalHorizontalScroll.Value + scrollDelta);
+            }
+
+            // 2. 🌟 幽灵鼠标追踪：直接计算游标“应该在的”物理绝对坐标！
+            // 哪怕鼠标跑到负数，或者超出了最大 Tick，这个数值也会如实记录，完美解决错位！
+            double targetAbsolutePixel = currentPos.X + GlobalHorizontalScroll.Value + _playheadDragMouseOffset;
+
+            // 3. 🌟 物理撞墙限制 (最大/最小 Tick 锁死)
+            if (targetAbsolutePixel < 0) targetAbsolutePixel = 0;
+            if (targetAbsolutePixel > vm.Timeline.TotalPixelWidth) targetAbsolutePixel = vm.Timeline.TotalPixelWidth;
+
+            // 4. 将合法的像素转换为 Tick 并结算
+            double exactTick = vm.Timeline.PixelToTick(targetAbsolutePixel);
             int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: true);
 
             double newSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(
@@ -253,11 +283,7 @@ public partial class MainWindow : Window
 
             vm.Timeline.CurrentPlayTimeSeconds = newSeconds;
 
-            // ================= 🌟 补上这两句发消息！ =================
-            // 1. 告诉播放引擎强制跳转到这个时间（防止拖拽时和播放器打架）
             CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new ForceSeekMessage(newSeconds));
-
-            // 2. 告诉右侧的渲染器立刻重绘画面！
             CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
     }
@@ -285,20 +311,7 @@ public partial class MainWindow : Window
     }
 
 
-    // 记住拖拽游标前，音乐是否正在播放
-    private bool _wasPlayingBeforeDrag = false;
-    // 刚捏住游标的一瞬间
-    private void Playhead_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
-    {
-        // TimelineMainGrid 也是绝对静止的！
-        _playheadLastMousePos = Mouse.GetPosition(TimelineMainGrid);
-        if (this.DataContext is MainViewModel vm)
-        {
-            _playheadVirtualPixelX = vm.Timeline.PlayheadPositionX;
-        }
-
-        WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-    }
+    
 
 
 
@@ -530,39 +543,52 @@ public partial class MainWindow : Window
     }
 
     // ================= 工作区拖拽逻辑 =================
-    private Point _workspaceLastMousePos;
-    private double _workspaceVirtualPixelX;
+
+
+    // === 左手柄 ===
+    private double _workspaceLeftDragOffset;
+    private double _workspaceRightDragOffset;
 
     // === 左手柄 ===
     private void WorkspaceLeft_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
     {
-        _workspaceLastMousePos = Mouse.GetPosition(TimelineMainGrid);
+        Point mousePos = Mouse.GetPosition(TimelineMainGrid);
         if (this.DataContext is MainViewModel vm)
-            _workspaceVirtualPixelX = vm.Timeline.WorkspaceStartX;
+            _workspaceLeftDragOffset = vm.Timeline.WorkspaceStartX - (mousePos.X + GlobalHorizontalScroll.Value);
     }
 
     private void WorkspaceLeft_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
     {
-        Point currentPos = Mouse.GetPosition(TimelineMainGrid);
-        double stableDeltaX = currentPos.X - _workspaceLastMousePos.X;
-        _workspaceLastMousePos = currentPos;
-
         if (this.DataContext is MainViewModel vm)
         {
-            _workspaceVirtualPixelX += stableDeltaX;
-            if (_workspaceVirtualPixelX < 0) _workspaceVirtualPixelX = 0;
+            Point currentPos = Mouse.GetPosition(TimelineMainGrid);
 
-            // 🌟 1. 算出当前缩放比例下，1 个 Tick 在屏幕上占多少像素
+            // 1. 边缘自动推移
+            double edgeMargin = 20.0;
+            double scrollDelta = 0;
+            if (currentPos.X > TimelineMainGrid.ActualWidth - edgeMargin)
+                scrollDelta = currentPos.X - (TimelineMainGrid.ActualWidth - edgeMargin);
+            else if (currentPos.X < edgeMargin)
+                scrollDelta = currentPos.X - edgeMargin;
+
+            if (scrollDelta != 0)
+                GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, GlobalHorizontalScroll.Value + scrollDelta);
+
+            // 2. 幽灵鼠标追踪
+            double targetAbsolutePixel = currentPos.X + GlobalHorizontalScroll.Value + _workspaceLeftDragOffset;
+
+            // 3. 撞总墙限制
+            if (targetAbsolutePixel < 0) targetAbsolutePixel = 0;
+            if (targetAbsolutePixel > vm.Timeline.TotalPixelWidth) targetAbsolutePixel = vm.Timeline.TotalPixelWidth;
+
+            // 4. 左手柄物理防撞右手柄
             double minDistancePixels = vm.Timeline.TickToPixel(1);
+            if (targetAbsolutePixel > vm.Timeline.WorkspaceEndX - minDistancePixels)
+                targetAbsolutePixel = vm.Timeline.WorkspaceEndX - minDistancePixels;
 
-            // 🌟 2. 物理防撞墙：左手柄不能越过右手柄，最少保持 1 个 Tick 的像素距离
-            if (_workspaceVirtualPixelX > vm.Timeline.WorkspaceEndX - minDistancePixels)
-                _workspaceVirtualPixelX = vm.Timeline.WorkspaceEndX - minDistancePixels;
-
-            double exactTick = vm.Timeline.PixelToTick(_workspaceVirtualPixelX);
+            double exactTick = vm.Timeline.PixelToTick(targetAbsolutePixel);
             int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: false);
 
-            // 🌟 3. 逻辑防撞墙：防止因为四舍五入或吸附导致的 Tick 重叠或越界
             if (snappedTick >= vm.Timeline.WorkspaceEndTick)
                 snappedTick = vm.Timeline.WorkspaceEndTick - 1;
 
@@ -571,34 +597,46 @@ public partial class MainWindow : Window
     }
 
     // === 右手柄 ===
+    
     private void WorkspaceRight_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
     {
-        _workspaceLastMousePos = Mouse.GetPosition(TimelineMainGrid);
+        Point mousePos = Mouse.GetPosition(TimelineMainGrid);
         if (this.DataContext is MainViewModel vm)
-            _workspaceVirtualPixelX = vm.Timeline.WorkspaceEndX;
+            _workspaceRightDragOffset = vm.Timeline.WorkspaceEndX - (mousePos.X + GlobalHorizontalScroll.Value);
     }
 
     private void WorkspaceRight_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
     {
-        Point currentPos = Mouse.GetPosition(TimelineMainGrid);
-        double stableDeltaX = currentPos.X - _workspaceLastMousePos.X;
-        _workspaceLastMousePos = currentPos;
-
         if (this.DataContext is MainViewModel vm)
         {
-            _workspaceVirtualPixelX += stableDeltaX;
+            Point currentPos = Mouse.GetPosition(TimelineMainGrid);
 
-            // 🌟 1. 算出当前缩放比例下，1 个 Tick 在屏幕上占多少像素
+            // 1. 边缘自动推移
+            double edgeMargin = 20.0;
+            double scrollDelta = 0;
+            if (currentPos.X > TimelineMainGrid.ActualWidth - edgeMargin)
+                scrollDelta = currentPos.X - (TimelineMainGrid.ActualWidth - edgeMargin);
+            else if (currentPos.X < edgeMargin)
+                scrollDelta = currentPos.X - edgeMargin;
+
+            if (scrollDelta != 0)
+                GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, GlobalHorizontalScroll.Value + scrollDelta);
+
+            // 2. 幽灵鼠标追踪
+            double targetAbsolutePixel = currentPos.X + GlobalHorizontalScroll.Value + _workspaceRightDragOffset;
+
+            // 3. 撞总墙限制
+            if (targetAbsolutePixel < 0) targetAbsolutePixel = 0;
+            if (targetAbsolutePixel > vm.Timeline.TotalPixelWidth) targetAbsolutePixel = vm.Timeline.TotalPixelWidth;
+
+            // 4. 右手柄物理防撞左手柄
             double minDistancePixels = vm.Timeline.TickToPixel(1);
+            if (targetAbsolutePixel < vm.Timeline.WorkspaceStartX + minDistancePixels)
+                targetAbsolutePixel = vm.Timeline.WorkspaceStartX + minDistancePixels;
 
-            // 🌟 2. 物理防撞墙：右手柄不能越过左手柄，最少保持 1 个 Tick 的像素距离
-            if (_workspaceVirtualPixelX < vm.Timeline.WorkspaceStartX + minDistancePixels)
-                _workspaceVirtualPixelX = vm.Timeline.WorkspaceStartX + minDistancePixels;
-
-            double exactTick = vm.Timeline.PixelToTick(_workspaceVirtualPixelX);
+            double exactTick = vm.Timeline.PixelToTick(targetAbsolutePixel);
             int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: false);
 
-            // 🌟 3. 逻辑防撞墙：防止因为四舍五入或吸附导致的 Tick 重叠或越界
             if (snappedTick <= vm.Timeline.WorkspaceStartTick)
                 snappedTick = vm.Timeline.WorkspaceStartTick + 1;
 

@@ -22,7 +22,7 @@ namespace Axphi.Components
         private static readonly Brush LabelBrush = new SolidColorBrush(Color.FromArgb(236, 240, 245, 255));
         private static readonly Brush LabelBackgroundBrush = new SolidColorBrush(Color.FromArgb(158, 8, 16, 28));
         private static readonly Brush WaveBrush = new SolidColorBrush(Color.FromArgb(70, 64, 214, 255));
-        private static readonly Brush PreviewOverlayBrush = new SolidColorBrush(Color.FromArgb(110, 255, 255, 255));
+        private static readonly Brush PreviewOverlayBrush = new SolidColorBrush(Color.FromArgb(160, 255, 255, 255));
         private static readonly Brush HoldTailHandleBrush = new SolidColorBrush(Color.FromArgb(220, 244, 246, 255));
         private static readonly Pen CenterPen = new Pen(CenterLineBrush, 2.0);
         private static readonly Pen MajorGridPen = new Pen(MajorGridBrush, 1.4);
@@ -388,7 +388,7 @@ namespace Axphi.Components
                     return;
                 }
 
-                DrawPreviewHold(dc, metrics.NotePixelWidth, previewX, previewY, holdLength, 0.42, true);
+                DrawPreviewHold(dc, metrics.NotePixelWidth, previewX, previewY, holdLength, 0.58, true);
                 double holdSelectionSize = metrics.NotePixelWidth + 6;
                 dc.DrawRectangle(null, HoverPreviewPen, new Rect(previewX - holdSelectionSize / 2, previewY - holdSelectionSize / 2, holdSelectionSize, holdSelectionSize));
                 return;
@@ -402,7 +402,7 @@ namespace Axphi.Components
                 return;
             }
 
-            DrawPreviewNote(dc, kind, metrics.NotePixelWidth, x, y, 0.4);
+            DrawPreviewNote(dc, kind, metrics.NotePixelWidth, x, y, 0.58);
             double selectionSize = metrics.NotePixelWidth + 6;
             dc.DrawRectangle(null, HoverPreviewPen, new Rect(x - selectionSize / 2, y - selectionSize / 2, selectionSize, selectionSize));
         }

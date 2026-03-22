@@ -20,7 +20,7 @@ namespace Axphi.ViewModels
         public Chart Chart { get; }
 
         [ObservableProperty]
-        private bool _isExpanded = true;
+        private bool _isExpanded = false;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(AudioDurationTicks))]

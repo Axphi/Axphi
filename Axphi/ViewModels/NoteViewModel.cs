@@ -83,6 +83,12 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private NoteKind _currentNoteKind;
 
+        [ObservableProperty]
+        private bool _hasCustomSpeed;
+
+        [ObservableProperty]
+        private double _currentCustomSpeed = 1.0;
+
 
         // 构造函数
         public NoteViewModel(Note model, TimelineViewModel timeline)
@@ -91,6 +97,8 @@ namespace Axphi.ViewModels
             _timeline = timeline;
             UpdatePosition();
             HoldDuration = Model.HoldDuration;
+            HasCustomSpeed = Model.CustomSpeed.HasValue;
+            CurrentCustomSpeed = Model.CustomSpeed ?? 1.0;
 
 
             // === 把底层已有的数据全部包上保镖 ===
@@ -233,6 +241,33 @@ namespace Axphi.ViewModels
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             }
             else AddOpacityKeyframe();
+        }
+
+        partial void OnHasCustomSpeedChanged(bool value)
+        {
+            if (_isSyncing) return;
+
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+
+            if (value)
+            {
+                Model.CustomSpeed = CurrentCustomSpeed;
+            }
+            else
+            {
+                Model.CustomSpeed = null;
+            }
+
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        partial void OnCurrentCustomSpeedChanged(double value)
+        {
+            if (_isSyncing || !HasCustomSpeed) return;
+
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            Model.CustomSpeed = value;
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
 

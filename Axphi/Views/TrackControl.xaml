@@ -310,6 +310,29 @@
 
                                 </StackPanel>
                             </Grid>
+
+                            <Grid Height="20">
+                                <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Custom Speed" />
+                                <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding HasCustomSpeed, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <comp:DraggableValueBox Margin="6,0,0,0"
+                                                            Width="56"
+                                                            DragSpeed="0.1"
+                                                            NumberFormat="0.00"
+                                                            Value="{Binding CurrentCustomSpeed, Mode=TwoWay}">
+                                        <comp:DraggableValueBox.Style>
+                                            <Style TargetType="comp:DraggableValueBox">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasCustomSpeed}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </comp:DraggableValueBox.Style>
+                                    </comp:DraggableValueBox>
+                                </StackPanel>
+                            </Grid>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>

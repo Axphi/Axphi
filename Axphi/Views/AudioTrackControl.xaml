@@ -59,6 +59,11 @@
                             </Style.Triggers>
                         </Style>
                     </Grid.Style>
+
+                    <StackPanel Orientation="Horizontal" Margin="25,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Foreground="#888" Text="Volume: " VerticalAlignment="Center" Margin="0,0,5,0" />
+                        <comp:DraggableValueBox Value="{Binding AudioVolume}" DragSpeed="1" NumberFormat="0'%'" Width="50" />
+                    </StackPanel>
                 </Grid>
             </StackPanel>
         </Border>
@@ -107,7 +112,7 @@
                                             </Style>
                                         </Border.Style>
 
-                                        <comp:WaveformRenderer Peaks="{Binding WaveformPeaks}" Margin="0,2" />
+                                        <comp:WaveformRenderer Peaks="{Binding WaveformPeaks}" Volume="{Binding AudioVolume}" Margin="0,2" />
 
 
                                     </Border>

@@ -145,5 +145,22 @@ namespace Axphi.ViewModels
             }
             return peakList.ToArray();
         }
+
+
+        
+
+        // ================= 🌟 新增：供前端绑定的音量属性 =================
+        public double AudioVolume
+        {
+            get => Chart.AudioVolume;
+            set
+            {
+                if (Chart.AudioVolume != value)
+                {
+                    Chart.AudioVolume = value;
+                    OnPropertyChanged(); // 通知 UI 音量变了！
+                }
+            }
+        }
     }
 }

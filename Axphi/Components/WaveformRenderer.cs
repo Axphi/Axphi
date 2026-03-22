@@ -51,25 +51,42 @@ namespace Axphi.Components
             {
                 double stepX = width / peaksArray.Length;
 
+                // 🌟 算出一个缩放倍数 (100 = 1.0倍, 50 = 0.5倍)
+                double volumeScale = Math.Max(0, Volume / 100.0);
+
                 ctx.BeginFigure(new Point(0, midY), true, true);
 
                 for (int i = 0; i < peaksArray.Length; i++)
                 {
                     double x = i * stepX;
-                    double y = midY - (peaksArray[i] * midY);
+                    // 🌟 高度乘以 volumeScale！
+                    double y = midY - (peaksArray[i] * midY * volumeScale);
                     ctx.LineTo(new Point(x, y), true, false);
                 }
 
                 for (int i = peaksArray.Length - 1; i >= 0; i--)
                 {
                     double x = i * stepX;
-                    double y = midY + (peaksArray[i] * midY);
+                    // 🌟 高度乘以 volumeScale！
+                    double y = midY + (peaksArray[i] * midY * volumeScale);
                     ctx.LineTo(new Point(x, y), true, false);
                 }
             }
             geometry.Freeze();
 
             drawingContext.DrawGeometry(WaveColor, null, geometry);
+        }
+
+
+        // ================= 🌟 新增：接收前端传来的音量大小 =================
+        public static readonly DependencyProperty VolumeProperty =
+            DependencyProperty.Register("Volume", typeof(double), typeof(WaveformRenderer),
+                new FrameworkPropertyMetadata(100.0, FrameworkPropertyMetadataOptions.AffectsRender)); // AffectsRender 意味着拖拽时会自动重绘波形！
+
+        public double Volume
+        {
+            get { return (double)GetValue(VolumeProperty); }
+            set { SetValue(VolumeProperty, value); }
         }
     }
 }

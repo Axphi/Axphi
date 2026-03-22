@@ -80,5 +80,13 @@ namespace Axphi.Data
         /// 插值方向
         /// </summary>
         public KeyFrameEasingDirection KeyFrameEasingDirection { get; set; } = KeyFrameEasingDirection.ToNext;
+
+
+
+        
+        /// <summary>
+        /// 背景音乐音量百分比 (100 = 原始音量)
+        /// </summary>
+        public double AudioVolume { get; set; } = 100.0;
     }
 }

@@ -17,7 +17,8 @@ namespace Axphi.Views
     public partial class ChartDisplay : UserControl
     {
         // 私有变量搬过来
-        private MediaFoundationReader? _musicReader;
+        // 把 private MediaFoundationReader? _musicReader; 替换为：
+        private AudioFileReader? _musicReader;
         private WasapiOut? _wasapiOut;
         private DispatcherTimer? _dispatcherTimer;
         private Stopwatch? _renderStopwatch;
@@ -120,7 +121,8 @@ namespace Axphi.Views
 
             try
             {
-                _musicReader = new MediaFoundationReader(fileName);
+                // 把 new MediaFoundationReader 替换为 new AudioFileReader！
+                _musicReader = new AudioFileReader(fileName);
                 _wasapiOut = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 50);
                 _wasapiOut.Init(_musicReader);
             }
@@ -238,8 +240,8 @@ namespace Axphi.Views
                     // 只有处于播放状态，且开关开启时才判定
                     if (vm.Timeline.IsMetronomeEnabled && currSeconds > prevSeconds)
                     {
-                        // 假设你的引擎里 1 拍 (Quarter Note) 是 480 Tick。
-                        // ⚠️ 如果你的 Tick 分辨率是 1920 或者 120，请修改这个值！
+                        // 假设你的引擎里 1 拍 (Quarter Note) 是 32 Tick。
+                        
                         double ticksPerBeat = 32.0;
 
                         // 计算上一帧和当前帧，分别身处全局的第几个“拍子”区间里
@@ -266,6 +268,14 @@ namespace Axphi.Views
 
                 if (_wasapiOut != null && _musicReader != null)
                 {
+
+
+                    // ================= 🌟 实时同步真实音量！ =================
+                    // AudioFileReader 的 Volume 是个 0~1 的浮点数，我们把百分比除以 100 喂给它
+                    _musicReader.Volume = (float)Math.Max(0, chart.AudioVolume / 100.0);
+
+
+
                     // 🌟 核心修复：划定严格的“音频存活区间”
                     // 必须大于 0，且必须小于音频的总时长！
                     bool isInsideAudio = targetAudioSeconds >= 0 && targetAudioSeconds < _musicReader.TotalTime.TotalSeconds;

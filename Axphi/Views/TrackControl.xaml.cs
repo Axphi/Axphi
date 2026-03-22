@@ -204,11 +204,27 @@ namespace Axphi.Views
             }
         }
 
+        private void LayerHeader_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is TrackViewModel trackVM)
+            {
+                trackVM.HandleLayerPointerUp();
+            }
+        }
+
         private void LayerThumb_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (DataContext is TrackViewModel trackVM)
             {
                 trackVM.HandleLayerPointerDown();
+            }
+        }
+
+        private void LayerThumb_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is TrackViewModel trackVM)
+            {
+                trackVM.HandleLayerPointerUp();
             }
         }
 

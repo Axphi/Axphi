@@ -106,11 +106,7 @@ namespace Axphi.ViewModels
 
             // 如果没被选中，按下的瞬间立刻点亮它！
             // 如果按下的是一个【尚未选中】的关键帧
-            if (!IsSelected)
-            {
-                // 走标准的多选/单选逻辑
-                SelectionHelper.HandleSelection("Keyframes", this, IsSelected, val => IsSelected = val);
-            }
+            _wasSelectedBeforeDrag = SelectionHelper.BeginSelectionGesture("Keyframes", this, IsSelected, val => IsSelected = val);
 
             // 如果此时我是亮着的（选中状态），大喊一声：兄弟们，准备发车！
             if (IsSelected)
@@ -150,7 +146,6 @@ namespace Axphi.ViewModels
         {
             _virtualPixelX = PixelX;
             _dragAccumulated = 0;
-            _wasSelectedBeforeDrag = IsSelected;
         }
 
         private void ReceiveDragDelta(double horizontalChange)
@@ -190,22 +185,7 @@ namespace Axphi.ViewModels
             // 只有被鼠标直接捏住的那个“带头大哥”，才有资格处理单击取消选中的判定
             if (isInitiator && _wasSelectedBeforeDrag && _dragAccumulated < 2.0)
             {
-                bool isCtrlDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
-                bool isShiftDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
-
-                if (isCtrlDown)
-                    IsSelected = false; // Ctrl+单击：取消选中自己
-                else if (isShiftDown)
-                    IsSelected = true;  // Shift+单击：保持不变
-                else
-                {
-                    // 普通单击：排他选中自己
-                    WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", this));
-
-                    // 2. 🌟 新增：清空所有音符（取消选中音符本体）
-                    WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
-                    IsSelected = true;
-                }
+                SelectionHelper.CompleteSelectionGesture("Keyframes", this, _wasSelectedBeforeDrag, _dragAccumulated, val => IsSelected = val, "Notes");
             }
 
             UpdatePosition();

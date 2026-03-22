@@ -766,31 +766,21 @@ namespace Axphi.ViewModels
 
         private double _layerVirtualPixelX;
         private int _lastAppliedTick;
+        private bool _wasSelectedBeforeLayerGesture;
+        private double _layerGestureDistance;
 
         public void HandleLayerPointerDown()
         {
             WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
             WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
             SelectedNote = null;
+            _layerGestureDistance = 0;
+            _wasSelectedBeforeLayerGesture = SelectionHelper.BeginSelectionGesture("Layers", this, IsLayerSelected, value => IsLayerSelected = value);
+        }
 
-            bool isShiftDown = System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift);
-            bool isCtrlDown = System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control);
-
-            if (IsLayerSelected)
-            {
-                if (isCtrlDown)
-                {
-                    IsLayerSelected = false;
-                }
-                else if (isShiftDown)
-                {
-                    IsLayerSelected = true;
-                }
-
-                return;
-            }
-
-            SelectionHelper.HandleSelection("Layers", this, IsLayerSelected, value => IsLayerSelected = value);
+        public void HandleLayerPointerUp()
+        {
+            SelectionHelper.CompleteSelectionGesture("Layers", this, _wasSelectedBeforeLayerGesture, _layerGestureDistance, value => IsLayerSelected = value);
         }
 
         public void OnLayerDragStarted()
@@ -842,6 +832,7 @@ namespace Axphi.ViewModels
 
         private void ReceiveLayerDragDelta(double horizontalChange, int deltaTick)
         {
+            _layerGestureDistance += Math.Abs(horizontalChange);
             _layerVirtualPixelX += horizontalChange;
 
             if (deltaTick != 0)

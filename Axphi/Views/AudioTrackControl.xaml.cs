@@ -86,11 +86,27 @@ namespace Axphi.Views
             }
         }
 
+        private void AudioHeader_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is AudioTrackViewModel vm)
+            {
+                vm.HandleLayerPointerUp();
+            }
+        }
+
         private void AudioThumb_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (DataContext is AudioTrackViewModel vm)
             {
                 vm.HandleLayerPointerDown();
+            }
+        }
+
+        private void AudioThumb_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is AudioTrackViewModel vm)
+            {
+                vm.HandleLayerPointerUp();
             }
         }
     }

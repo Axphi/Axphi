@@ -40,5 +40,49 @@ namespace Axphi.Utilities
                 setIsSelected(true);
             }
         }
+
+        public static bool BeginSelectionGesture(string groupName, object sender, bool isCurrentlySelected, Action<bool> setIsSelected)
+        {
+            bool wasSelectedBeforeGesture = isCurrentlySelected;
+
+            if (!wasSelectedBeforeGesture)
+            {
+                HandleSelection(groupName, sender, isCurrentlySelected, setIsSelected);
+            }
+
+            return wasSelectedBeforeGesture;
+        }
+
+        public static void CompleteSelectionGesture(string groupName, object sender, bool wasSelectedBeforeGesture, double interactionDistance, Action<bool> setIsSelected, params string[] extraGroupsToClear)
+        {
+            if (!wasSelectedBeforeGesture || interactionDistance >= 2.0)
+            {
+                return;
+            }
+
+            bool isShiftDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+            bool isCtrlDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+
+            if (isCtrlDown)
+            {
+                setIsSelected(false);
+                return;
+            }
+
+            if (isShiftDown)
+            {
+                setIsSelected(true);
+                return;
+            }
+
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage(groupName, sender));
+
+            foreach (var extraGroup in extraGroupsToClear)
+            {
+                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage(extraGroup, null));
+            }
+
+            setIsSelected(true);
+        }
     }
 }

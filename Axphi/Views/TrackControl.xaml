@@ -313,9 +313,54 @@
 
                             <Grid Height="20">
                                 <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Custom Speed" />
-                                <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <CheckBox IsChecked="{Binding HasCustomSpeed, Mode=TwoWay}" VerticalAlignment="Center" />
-                                    <comp:DraggableValueBox Margin="6,0,0,0"
+                                <Grid Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="18" />
+                                        <ColumnDefinition Width="62" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0" IsChecked="{Binding HasCustomSpeed, Mode=TwoWay}" VerticalAlignment="Center" HorizontalAlignment="Left" Cursor="Hand">
+                                        <CheckBox.Template>
+                                            <ControlTemplate TargetType="CheckBox">
+                                                <Grid Width="14" Height="14" Background="Transparent">
+                                                    <Border x:Name="CheckBoxBorder"
+                                                            Background="#252525"
+                                                            BorderBrush="#5A5A5A"
+                                                            BorderThickness="1"
+                                                            CornerRadius="2" />
+                                                    <Path x:Name="CheckMark"
+                                                          Width="8"
+                                                          Height="6"
+                                                          Data="M 0,3 L 2.5,5.5 L 8,0"
+                                                          Stretch="Fill"
+                                                          Stroke="#FFFFFF"
+                                                          StrokeThickness="1.6"
+                                                          StrokeStartLineCap="Round"
+                                                          StrokeEndLineCap="Round"
+                                                          StrokeLineJoin="Round"
+                                                          Visibility="Collapsed"
+                                                          HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                          Margin="0,1,0,0" />
+                                                </Grid>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="CheckBoxBorder" Property="Background" Value="#29476D" />
+                                                        <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#5285F3" />
+                                                        <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#8AAEFF" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsEnabled" Value="False">
+                                                        <Setter TargetName="CheckBoxBorder" Property="Opacity" Value="0.45" />
+                                                        <Setter TargetName="CheckMark" Property="Opacity" Value="0.45" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </CheckBox.Template>
+                                    </CheckBox>
+                                    <comp:DraggableValueBox Grid.Column="1"
+                                                            Margin="6,0,0,0"
                                                             Width="56"
                                                             DragSpeed="0.1"
                                                             NumberFormat="0.00"
@@ -331,7 +376,7 @@
                                             </Style>
                                         </comp:DraggableValueBox.Style>
                                     </comp:DraggableValueBox>
-                                </StackPanel>
+                                </Grid>
                             </Grid>
                         </StackPanel>
                     </StackPanel>

@@ -654,6 +654,13 @@ namespace Axphi.ViewModels
             OnPropertyChanged(nameof(MinimapViewportX));
             OnPropertyChanged(nameof(MinimapViewportWidth));
         }
+
+
+
+
+        // 🌟 新增：节拍器开关状态
+        [ObservableProperty]
+        private bool _isMetronomeEnabled = false;
     }
 
 

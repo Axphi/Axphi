@@ -101,11 +101,16 @@ namespace Axphi.Services
                 _outputDevice.Init(_mixer);
                 _outputDevice.Play();
 
+                InitMetronome(); // 初始化节拍器专属音频缓存
+
+
                 LoadSoundIntoCache(NoteKind.Tap, @"Resources\Sounds\tap.wav");
                 LoadSoundIntoCache(NoteKind.Drag, @"Resources\Sounds\drag.wav");
                 LoadSoundIntoCache(NoteKind.Flick, @"Resources\Sounds\flick.wav");
 
                 _isInitialized = true;
+
+                
             }
             catch (Exception ex)
             {
@@ -174,6 +179,53 @@ namespace Axphi.Services
             if (!_soundCache.ContainsKey(kind)) kind = NoteKind.Tap;
             if (!_isInitialized || !_soundCache.TryGetValue(kind, out var cachedSound)) return;
             _mixer!.AddMixerInput(new CachedSoundSampleProvider(cachedSound));
+        }
+
+
+        // ================= 🌟 1. 节拍器专属音频缓存 =================
+        private static CachedSound? _metronomeHigh;
+        private static CachedSound? _metronomeLow;
+
+        // 🌟 2. 将这个方法放到你现有的 Init() 方法里面调用！
+        public static void InitMetronome()
+        {
+            // 生成重拍（高音 1500Hz）和轻拍（低音 1000Hz），长度 0.05 秒
+            _metronomeHigh = GenerateSineBlip(1500, 0.05f);
+            _metronomeLow = GenerateSineBlip(1000, 0.05f);
+        }
+
+        // 🌟 3. 用纯数学生成带打击感的短促正弦波
+        private static CachedSound GenerateSineBlip(double frequency, float durationSeconds)
+        {
+            int sampleRate = 44100;
+            var format = WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, 2);
+            int samples = (int)(sampleRate * durationSeconds);
+            float[] data = new float[samples * 2]; // 双声道
+
+            for (int i = 0; i < samples; i++)
+            {
+                double t = (double)i / sampleRate;
+                // 核心：指数衰减包络线！让它听起来像“哒”的敲击声，而不是平淡的“滴——”
+                float envelope = (float)Math.Exp(-i * 40.0 / sampleRate);
+
+                float sample = (float)(0.4 * Math.Sin(2 * Math.PI * frequency * t)) * envelope;
+
+                data[i * 2] = sample;     // 左声道
+                data[i * 2 + 1] = sample; // 右声道
+            }
+            return new CachedSound(data, format);
+        }
+
+        // 🌟 4. 暴露给外部调用的播放接口
+        public static void PlayMetronome(bool isDownbeat)
+        {
+            if (!_isInitialized) return;
+            var sound = isDownbeat ? _metronomeHigh : _metronomeLow;
+            if (sound != null)
+            {
+                // 用你现有的 _mixer 播放
+                _mixer!.AddMixerInput(new CachedSoundSampleProvider(sound));
+            }
         }
     }
 

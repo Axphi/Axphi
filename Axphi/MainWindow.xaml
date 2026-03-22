@@ -355,6 +355,10 @@
                     <StackPanel Margin="10">
                         <StackPanel Orientation="Horizontal">
                             <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import Music" Padding="15,5" />
+                            <ToggleButton IsChecked="{Binding Timeline.IsMetronomeEnabled}" 
+                                          Content="Metronome (节拍器)" 
+                                          Margin="10,0,0,0" Padding="15,5" 
+                                          Background="#333" Foreground="#d6d6d6" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Margin="0,20,0,0">

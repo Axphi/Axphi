@@ -232,6 +232,30 @@ namespace Axphi.Views
                             }
                         }
                     }
+
+
+                    // ================= 🌟 新增：节拍器判定引擎 =================
+                    // 只有处于播放状态，且开关开启时才判定
+                    if (vm.Timeline.IsMetronomeEnabled && currSeconds > prevSeconds)
+                    {
+                        // 假设你的引擎里 1 拍 (Quarter Note) 是 480 Tick。
+                        // ⚠️ 如果你的 Tick 分辨率是 1920 或者 120，请修改这个值！
+                        double ticksPerBeat = 32.0;
+
+                        // 计算上一帧和当前帧，分别身处全局的第几个“拍子”区间里
+                        int prevBeat = (int)Math.Floor(prevTick / ticksPerBeat);
+                        int currBeat = (int)Math.Floor(currTick / ticksPerBeat);
+
+                        // 只要当前帧跨越了节拍线，且时间大于等于 0
+                        if (currBeat > prevBeat && currBeat >= 0)
+                        {
+                            // 默认为 4/4 拍，每逢 4 的倍数就是重拍 (Downbeat)
+                            bool isDownbeat = (currBeat % 4 == 0);
+
+                            // 呼叫后台发声！（记得替换成你实际包含该方法的类名，比如 HitSoundManager）
+                            HitSoundManager.PlayMetronome(isDownbeat);
+                        }
+                    }
                 }
                 // ===================================================
                 // ================= 🌟 新增：智能音频启停控制器 =================
@@ -272,7 +296,13 @@ namespace Axphi.Views
                 // ================= 🌟 2. 加上这一句！召唤拦截探测器！ =================
                 vm.Timeline.CheckWorkspaceLoop(prevSeconds, currentTime.TotalSeconds);
                 // ===================================================================
+
+
+
             }
+
+
+
         }
 
         private void PlayHitSound(Axphi.Data.NoteKind kind)

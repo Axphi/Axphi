@@ -27,6 +27,67 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Themes/Generic.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <GridLength x:Key="TimelineLeftPanelWidth">180</GridLength>
+            <SolidColorBrush x:Key="SplitterLineBrush" Color="#5A6C82" />
+            <SolidColorBrush x:Key="SplitterLineHoverBrush" Color="#7F9FC2" />
+            <SolidColorBrush x:Key="SplitterLineDragBrush" Color="#A9D0FF" />
+
+            <Style x:Key="ThinVerticalSplitterStyle" TargetType="GridSplitter">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="SnapsToDevicePixels" Value="True" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GridSplitter">
+                            <Grid Background="Transparent">
+                                <Rectangle x:Name="Line"
+                                           Width="1"
+                                           HorizontalAlignment="Center"
+                                           Fill="{StaticResource SplitterLineBrush}" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineHoverBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineHoverBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsDragging" Value="True">
+                                    <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineDragBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ThinHorizontalSplitterStyle" TargetType="GridSplitter">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="SnapsToDevicePixels" Value="True" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GridSplitter">
+                            <Grid Background="Transparent">
+                                <Rectangle x:Name="Line"
+                                           Height="1"
+                                           VerticalAlignment="Center"
+                                           Margin="10,0"
+                                           Fill="{StaticResource SplitterLineBrush}" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineHoverBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineHoverBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsDragging" Value="True">
+                                    <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineDragBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -42,13 +103,16 @@
             <!--  核心区域  -->
             <Grid Margin="2">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="1.618*" />
-                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1.618*" MinHeight="180" />
+                    <RowDefinition Height="10" />
+                    <RowDefinition Height="1*" MinHeight="180" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1*" />
-                    <ColumnDefinition Width="2.8*" />
-                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="1*" MinWidth="220" />
+                    <ColumnDefinition Width="6" />
+                    <ColumnDefinition Width="2.8*" MinWidth="360" />
+                    <ColumnDefinition Width="6" />
+                    <ColumnDefinition Width="1*" MinWidth="220" />
                 </Grid.ColumnDefinitions>
 
                 <!--  贝塞尔工具  -->
@@ -102,20 +166,20 @@
 
 
                 <!--  时间线区  -->
-                <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,0"
+                                        <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0"
                       x:Name="TimelineMainGrid"
                       PreviewMouseLeftButtonDown="TimelineMainGrid_PreviewMouseLeftButtonDown"
                       PreviewMouseMove="TimelineMainGrid_PreviewMouseMove"
                       PreviewMouseLeftButtonUp="TimelineMainGrid_PreviewMouseLeftButtonUp"
                       
                       PreviewMouseDown="TimelineMainGrid_PreviewMouseDown"
-                      PreviewMouseUp="TimelineMainGrid_PreviewMouseUp"
-                      
+                                            PreviewMouseUp="TimelineMainGrid_PreviewMouseUp"
+                                            LayoutUpdated="TimelineMainGrid_LayoutUpdated"
                       SizeChanged="TimelineMainGrid_SizeChanged">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1*" />
-
-                        <ColumnDefinition Width="2.8*" />
+                                                                                                <ColumnDefinition x:Name="TimelineLeftColumnDefinition" Width="1*" MinWidth="180" />
+                                                <ColumnDefinition Width="6" />
+                                                <ColumnDefinition Width="2.8*" MinWidth="320" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
@@ -127,7 +191,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="1" Grid.Column="1" Background="#252525" ClipToBounds="True">
+                    <Border Grid.Row="1" Grid.Column="2" Background="#252525" ClipToBounds="True">
 
                         <Canvas x:Name="MinimapCanvas" SizeChanged="MinimapCanvas_SizeChanged"
                                 Margin="8,0,4,0">
@@ -189,7 +253,7 @@
                         </comp:TabPane.Header>
                     </comp:TabPane>
 
-                    <comp:TabPane Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Header="Timeline" />
+                    <comp:TabPane Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Header="Timeline" />
 
 
 
@@ -197,7 +261,7 @@
 
                     <!--  时间标尺  -->
 
-                    <Border Grid.Row="2" Grid.Column="1" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True" Margin="8,0,0,0">
+                    <Border Grid.Row="2" Grid.Column="2" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True" Margin="8,0,0,0">
                         <comp:TimelineRuler
                                     x:Name="MainTimelineRuler"
                                     VirtualTotalWidth="{Binding Timeline.TotalPixelWidth}"
@@ -218,7 +282,7 @@
 
 
                     <!--  图层区  -->
-                    <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
+                    <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
                         <StackPanel>
                             <v:BpmTrackControl DataContext="{Binding Timeline.BpmTrack}" Margin="0,0,0,5" />
                             <v:AudioTrackControl DataContext="{Binding Timeline.AudioTrack}">
@@ -246,7 +310,7 @@
 
 
                     <!--  游标  -->
-                    <Grid Grid.Row="2" Grid.RowSpan="2" Grid.Column="1" ClipToBounds="True">
+                    <Grid Grid.Row="2" Grid.RowSpan="2" Grid.Column="2" ClipToBounds="True">
 
                         <Canvas x:Name="OverlayCanvas" Margin="8,0,0,0">
                             <Rectangle x:Name="MarqueeRect"
@@ -337,7 +401,7 @@
 
                     <!--  图层全局水平滚动条  -->
                     <ScrollBar x:Name="GlobalHorizontalScroll"
-                               Grid.Row="4" Grid.Column="1" Height="12" Margin="0,0,0,0"
+                               Grid.Row="4" Grid.Column="2" Height="12" Margin="0,0,0,0"
                                Orientation="Horizontal" VerticalAlignment="Bottom"
                                Minimum="0" Maximum="{Binding Timeline.MaxScrollOffset}"
                                ViewportSize="{Binding Timeline.ViewportActualWidth}"
@@ -345,16 +409,28 @@
 
                     <!--  图层全局垂直滚动条  -->
                     <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"
-                               Grid.Row="2" Grid.Column="2" Width="12" Margin="0,0,0,0"
+                                         Grid.Row="2" Grid.Column="3" Width="12" Margin="0,0,0,0"
                                Orientation="Vertical" HorizontalAlignment="Right"
                                Minimum="0"
                                ValueChanged="GlobalVerticalScrollBar_ValueChanged" />
+
+                    <GridSplitter Grid.Row="0"
+                                  Grid.RowSpan="5"
+                                             Grid.Column="1"
+                                             HorizontalAlignment="Stretch"
+                                             Width="6"
+                                  ResizeDirection="Columns"
+                                  ResizeBehavior="PreviousAndNext"
+                                  ShowsPreview="False"
+                                  Style="{StaticResource ThinVerticalSplitterStyle}"
+                                  Cursor="SizeWE"
+                                  Panel.ZIndex="2000" />
                 </Grid>
 
                 <!--  右下角  -->
                 <comp:TabPane
-                    Grid.Row="1"
-                    Grid.Column="2"
+                    Grid.Row="2"
+                    Grid.Column="4"
                     Header="Project">
                     <StackPanel Margin="10">
                         <StackPanel Orientation="Horizontal">
@@ -377,7 +453,7 @@
                 </comp:TabPane>
 
                 <!--  渲染窗口  -->
-                <Grid Grid.Row="0" Grid.Column="1">
+                <Grid Grid.Row="0" Grid.Column="2">
                     <v:ChartDisplay x:Name="MainChartDisplay" />
 
                     <Grid IsHitTestVisible="True" ClipToBounds="True">
@@ -397,6 +473,42 @@
                         <v:JudgementLineEditorView DataContext="{Binding Timeline.JudgementLineEditor}" />
                     </Grid>
                 </Grid>
+
+                <GridSplitter Grid.Row="0"
+                              Grid.RowSpan="1"
+                              Grid.Column="1"
+                              HorizontalAlignment="Stretch"
+                              Width="6"
+                              ResizeDirection="Columns"
+                              ResizeBehavior="PreviousAndNext"
+                              ShowsPreview="False"
+                              Style="{StaticResource ThinVerticalSplitterStyle}"
+                              Cursor="SizeWE"
+                              Panel.ZIndex="3000" />
+
+                <GridSplitter Grid.Row="0"
+                              Grid.RowSpan="3"
+                              Grid.Column="3"
+                              HorizontalAlignment="Stretch"
+                              Width="6"
+                              ResizeDirection="Columns"
+                              ResizeBehavior="PreviousAndNext"
+                              ShowsPreview="False"
+                              Style="{StaticResource ThinVerticalSplitterStyle}"
+                              Cursor="SizeWE"
+                              Panel.ZIndex="3000" />
+
+                <GridSplitter Grid.Row="1"
+                              Grid.Column="0"
+                              Grid.ColumnSpan="5"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              ResizeDirection="Rows"
+                              ResizeBehavior="PreviousAndNext"
+                              ShowsPreview="False"
+                              Style="{StaticResource ThinHorizontalSplitterStyle}"
+                              Cursor="SizeNS"
+                              Panel.ZIndex="3000" />
             </Grid>
         </DockPanel>
     </ws:WindowContentAdapter>

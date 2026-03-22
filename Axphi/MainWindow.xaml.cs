@@ -39,6 +39,7 @@ public partial class MainWindow : Window
     // 在类成员区域添加
     private readonly DispatcherTimer _dragTimer = new DispatcherTimer();
     private Action? _currentDragAction = null; // 记录当前正在拖拽谁
+    private double _lastTimelineLeftPanelWidth = -1;
 
 
     public MainWindow(
@@ -66,6 +67,8 @@ public partial class MainWindow : Window
         {
             MainChartDisplay.LoadAudio(_mainViewModel.ProjectManager.EditingProject.EncodedAudio);
         });
+
+        Loaded += (_, _) => SyncTimelinePanelWidths();
 
         
     }
@@ -846,7 +849,30 @@ public partial class MainWindow : Window
     // 窗口或布局大小改变时，更新视野
     private void TimelineMainGrid_SizeChanged(object sender, SizeChangedEventArgs e)
     {
+        SyncTimelinePanelWidths();
         UpdateMinimapViewport();
+    }
+
+    private void TimelineMainGrid_LayoutUpdated(object? sender, EventArgs e)
+    {
+        SyncTimelinePanelWidths();
+    }
+
+    private void SyncTimelinePanelWidths()
+    {
+        if (TimelineLeftColumnDefinition == null)
+        {
+            return;
+        }
+
+        double width = TimelineLeftColumnDefinition.ActualWidth;
+        if (width <= 0 || Math.Abs(width - _lastTimelineLeftPanelWidth) < 0.5)
+        {
+            return;
+        }
+
+        Resources["TimelineLeftPanelWidth"] = new GridLength(width);
+        _lastTimelineLeftPanelWidth = width;
     }
 
 

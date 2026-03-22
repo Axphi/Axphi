@@ -10,7 +10,8 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="{DynamicResource TimelineLeftPanelWidth}" MinWidth="180" />
+            <ColumnDefinition Width="6" />
             <ColumnDefinition Width="2.8*" />
         </Grid.ColumnDefinitions>
 
@@ -33,7 +34,7 @@
             </Grid>
         </Border>
 
-        <ScrollViewer x:Name="BpmTrackScrollViewer" Grid.Column="1" HorizontalScrollBarVisibility="Hidden"
+        <ScrollViewer x:Name="BpmTrackScrollViewer" Grid.Column="2" HorizontalScrollBarVisibility="Hidden"
                       VerticalScrollBarVisibility="Disabled"
                       PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">

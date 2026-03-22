@@ -15,16 +15,19 @@ namespace Axphi.Components
     public class JudgementLineEditorCanvas : FrameworkElement
     {
         private static readonly Brush CenterLineBrush = new SolidColorBrush(Color.FromRgb(255, 244, 163));
-        private static readonly Brush MajorGridBrush = new SolidColorBrush(Color.FromArgb(70, 126, 167, 255));
-        private static readonly Brush MinorGridBrush = new SolidColorBrush(Color.FromArgb(28, 126, 167, 255));
-        private static readonly Brush VerticalGridBrush = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
-        private static readonly Brush LabelBrush = new SolidColorBrush(Color.FromArgb(170, 210, 220, 235));
+        private static readonly Brush MajorGridBrush = new SolidColorBrush(Color.FromArgb(132, 122, 186, 255));
+        private static readonly Brush MinorGridBrush = new SolidColorBrush(Color.FromArgb(62, 112, 146, 214));
+        private static readonly Brush VerticalMajorGridBrush = new SolidColorBrush(Color.FromArgb(110, 226, 236, 255));
+        private static readonly Brush VerticalGridBrush = new SolidColorBrush(Color.FromArgb(76, 198, 210, 228));
+        private static readonly Brush LabelBrush = new SolidColorBrush(Color.FromArgb(236, 240, 245, 255));
+        private static readonly Brush LabelBackgroundBrush = new SolidColorBrush(Color.FromArgb(158, 8, 16, 28));
         private static readonly Brush WaveBrush = new SolidColorBrush(Color.FromArgb(70, 64, 214, 255));
         private static readonly Brush PreviewOverlayBrush = new SolidColorBrush(Color.FromArgb(110, 255, 255, 255));
         private static readonly Brush HoldTailHandleBrush = new SolidColorBrush(Color.FromArgb(220, 244, 246, 255));
         private static readonly Pen CenterPen = new Pen(CenterLineBrush, 2.0);
-        private static readonly Pen MajorGridPen = new Pen(MajorGridBrush, 1.0);
+        private static readonly Pen MajorGridPen = new Pen(MajorGridBrush, 1.4);
         private static readonly Pen MinorGridPen = new Pen(MinorGridBrush, 1.0);
+        private static readonly Pen VerticalMajorGridPen = new Pen(VerticalMajorGridBrush, 1.2);
         private static readonly Pen VerticalGridPen = new Pen(VerticalGridBrush, 1.0);
         private static readonly Pen SelectedNotePen = new Pen(Brushes.White, 1.4);
         private static readonly Pen HoverPreviewPen = new Pen(PreviewOverlayBrush, 1.0);
@@ -55,14 +58,17 @@ namespace Axphi.Components
             if (CenterLineBrush.CanFreeze) CenterLineBrush.Freeze();
             if (MajorGridBrush.CanFreeze) MajorGridBrush.Freeze();
             if (MinorGridBrush.CanFreeze) MinorGridBrush.Freeze();
+            if (VerticalMajorGridBrush.CanFreeze) VerticalMajorGridBrush.Freeze();
             if (VerticalGridBrush.CanFreeze) VerticalGridBrush.Freeze();
             if (LabelBrush.CanFreeze) LabelBrush.Freeze();
+            if (LabelBackgroundBrush.CanFreeze) LabelBackgroundBrush.Freeze();
             if (WaveBrush.CanFreeze) WaveBrush.Freeze();
             if (PreviewOverlayBrush.CanFreeze) PreviewOverlayBrush.Freeze();
             if (HoldTailHandleBrush.CanFreeze) HoldTailHandleBrush.Freeze();
             if (CenterPen.CanFreeze) CenterPen.Freeze();
             if (MajorGridPen.CanFreeze) MajorGridPen.Freeze();
             if (MinorGridPen.CanFreeze) MinorGridPen.Freeze();
+            if (VerticalMajorGridPen.CanFreeze) VerticalMajorGridPen.Freeze();
             if (VerticalGridPen.CanFreeze) VerticalGridPen.Freeze();
             if (SelectedNotePen.CanFreeze) SelectedNotePen.Freeze();
             if (HoverPreviewPen.CanFreeze) HoverPreviewPen.Freeze();
@@ -198,7 +204,10 @@ namespace Axphi.Components
                 || e.PropertyName == nameof(JudgementLineEditorViewModel.ViewZoom)
                 || e.PropertyName == nameof(JudgementLineEditorViewModel.PanX)
                 || e.PropertyName == nameof(JudgementLineEditorViewModel.PanY)
-                || e.PropertyName == nameof(JudgementLineEditorViewModel.CurrentNoteKind))
+                || e.PropertyName == nameof(JudgementLineEditorViewModel.CurrentNoteKind)
+                || e.PropertyName == nameof(JudgementLineEditorViewModel.HasPendingHoldPlacement)
+                || e.PropertyName == nameof(JudgementLineEditorViewModel.PendingHoldChartX)
+                || e.PropertyName == nameof(JudgementLineEditorViewModel.PendingHoldStartTick))
             {
                 InvalidateVisual();
             }
@@ -232,24 +241,27 @@ namespace Axphi.Components
 
         private static void DrawVerticalGrid(DrawingContext dc, JudgementLineEditorViewModel editor, double width, double height, double centerX, double centerY, double pixelsPerChartUnit)
         {
-            double divisionWidth = 16.0 / editor.HorizontalDivisions;
-            int halfCount = editor.HorizontalDivisions / 2;
+            int divisions = Math.Max(1, editor.HorizontalDivisions);
+            double divisionWidth = 16.0 / divisions;
+            int majorStride = Math.Max(1, divisions / 4);
 
-            for (int index = -halfCount; index <= halfCount; index++)
+            for (int index = 0; index <= divisions; index++)
             {
-                double chartX = index * divisionWidth;
+                double chartX = -8.0 + index * divisionWidth;
                 double pixelX = centerX + chartX * pixelsPerChartUnit;
                 if (pixelX < -1 || pixelX > width + 1)
                 {
                     continue;
                 }
 
-                dc.DrawLine(VerticalGridPen, new Point(pixelX, 0), new Point(pixelX, height));
+                bool isMajor = index == 0 || index == divisions || index % majorStride == 0;
+                dc.DrawLine(isMajor ? VerticalMajorGridPen : VerticalGridPen, new Point(pixelX, 0), new Point(pixelX, height));
 
-                if (editor.HorizontalDivisions <= 16 || index % 2 == 0)
+                if (divisions <= 16 || index % 2 == 0 || index == 0 || index == divisions)
                 {
                     var text = CreateLabel(chartX.ToString("0.##", CultureInfo.InvariantCulture), 11);
-                    dc.DrawText(text, new Point(pixelX + 4, centerY + 8));
+                    Point textOrigin = new Point(pixelX + 4, centerY + 8);
+                    DrawLabelBadge(dc, text, textOrigin);
                 }
             }
         }
@@ -281,7 +293,7 @@ namespace Axphi.Components
                 {
                     int measureIndex = absoluteTick / majorStep;
                     var label = CreateLabel(measureIndex.ToString(CultureInfo.InvariantCulture), 10);
-                    dc.DrawText(label, new Point(centerX + 12, y - 8));
+                    DrawLabelBadge(dc, label, new Point(centerX + 12, y - 8));
                 }
             }
         }
@@ -361,6 +373,24 @@ namespace Axphi.Components
         {
             if (!editor.HasHoverPreview || !Enum.TryParse<NoteKind>(editor.CurrentNoteKind, out var kind))
             {
+                return;
+            }
+
+            if (kind == NoteKind.Hold && editor.HasPendingHoldPlacement)
+            {
+                double previewX = centerX + editor.PendingHoldChartX * metrics.PixelsPerChartUnit;
+                double previewY = JudgementLineEditorRenderMath.CalculateHoverY(editor.Timeline, track, currentTick, editor.PendingHoldStartTick, viewportSize, editor.ViewZoom, centerY);
+                int holdDuration = Math.Max(1, editor.HoverHitTick - editor.PendingHoldStartTick);
+                double holdLength = CalculatePreviewHoldLength(editor, track, viewportSize, centerY, holdDuration);
+                double holdPreviewBounds = Math.Max(metrics.NotePixelWidth + 12, holdLength + metrics.NotePixelWidth);
+                if (previewX < -holdPreviewBounds || previewX > width + holdPreviewBounds || previewY < -holdPreviewBounds || previewY > height + holdPreviewBounds)
+                {
+                    return;
+                }
+
+                DrawPreviewHold(dc, metrics.NotePixelWidth, previewX, previewY, holdLength, 0.42, true);
+                double holdSelectionSize = metrics.NotePixelWidth + 6;
+                dc.DrawRectangle(null, HoverPreviewPen, new Rect(previewX - holdSelectionSize / 2, previewY - holdSelectionSize / 2, holdSelectionSize, holdSelectionSize));
                 return;
             }
 
@@ -448,6 +478,40 @@ namespace Axphi.Components
         {
             dc.PushTransform(new TranslateTransform(centerX, centerY));
             DrawNoteImage(dc, kind, width, opacity);
+            dc.Pop();
+        }
+
+        private static void DrawPreviewHold(DrawingContext dc, double notePixelWidth, double centerX, double centerY, double holdPixelLength, double opacity, bool isForwardFlow)
+        {
+            dc.PushTransform(new TranslateTransform(centerX, centerY));
+            dc.PushOpacity(opacity);
+
+            double partHeight = notePixelWidth * (50.0 / 989.0);
+            if (holdPixelLength < partHeight)
+            {
+                holdPixelLength = partHeight;
+            }
+
+            double bodyHeight = Math.Max(0, holdPixelLength - partHeight);
+            Rect headRect = new Rect(-notePixelWidth / 2, -partHeight / 2, notePixelWidth, partHeight);
+            Rect tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength - partHeight / 2, notePixelWidth, partHeight);
+            Rect bodyRect = new Rect(-notePixelWidth / 2, -holdPixelLength + partHeight / 2 - 1.0, notePixelWidth, bodyHeight + 2.0);
+
+            if (!isForwardFlow)
+            {
+                dc.PushTransform(new ScaleTransform(1, -1));
+            }
+
+            dc.DrawRectangle(HoldBodyBrush, null, bodyRect);
+            dc.DrawRectangle(HoldTailBrush, null, tailRect);
+            dc.DrawRectangle(HoldHeadBrush, null, headRect);
+
+            if (!isForwardFlow)
+            {
+                dc.Pop();
+            }
+
+            dc.Pop();
             dc.Pop();
         }
 
@@ -546,6 +610,33 @@ namespace Axphi.Components
                 fontSize,
                 LabelBrush,
                 1.25);
+        }
+
+        private static double CalculatePreviewHoldLength(JudgementLineEditorViewModel editor, TrackViewModel track, Size viewportSize, double centerY, int holdDuration)
+        {
+            if (holdDuration <= 0)
+            {
+                return 0;
+            }
+
+            int currentTick = editor.Timeline.GetCurrentTick();
+            double startY = JudgementLineEditorRenderMath.CalculateHoverY(editor.Timeline, track, currentTick, editor.PendingHoldStartTick, viewportSize, editor.ViewZoom, centerY);
+            double endY = JudgementLineEditorRenderMath.CalculateHoverY(editor.Timeline, track, currentTick, editor.PendingHoldStartTick + holdDuration, viewportSize, editor.ViewZoom, centerY);
+            return Math.Abs(startY - endY);
+        }
+
+        private static void DrawLabelBadge(DrawingContext dc, FormattedText text, Point origin)
+        {
+            const double horizontalPadding = 5.0;
+            const double verticalPadding = 2.0;
+            Rect backgroundRect = new Rect(
+                origin.X - horizontalPadding,
+                origin.Y - verticalPadding,
+                text.Width + horizontalPadding * 2.0,
+                text.Height + verticalPadding * 2.0);
+
+            dc.DrawRoundedRectangle(LabelBackgroundBrush, null, backgroundRect, 3.0, 3.0);
+            dc.DrawText(text, origin);
         }
     }
 }

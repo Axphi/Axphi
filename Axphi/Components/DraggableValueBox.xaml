@@ -26,6 +26,8 @@
                 Padding="2,1">
             <Grid>
                 <TextBlock Text="{Binding DisplayText, ElementName=Root}"
+                           HorizontalAlignment="Stretch"
+                           TextAlignment="Center"
                            Foreground="#007ACC"
                            FontWeight="Bold"
                            Visibility="{Binding IsEditable, ElementName=Root, Converter={StaticResource InvertBooleanToVisibilityConverter}}" />

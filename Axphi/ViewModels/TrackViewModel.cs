@@ -633,7 +633,7 @@ namespace Axphi.ViewModels
             CreateNoteAt(kind, _timeline.GetCurrentTick(), 0);
         }
 
-        public NoteViewModel CreateNoteAt(NoteKind kind, int hitTick, double offsetX)
+        public NoteViewModel CreateNoteAt(NoteKind kind, int hitTick, double offsetX, int? holdDuration = null)
         {
             int currentTick = _timeline.GetCurrentTick();
 
@@ -641,6 +641,10 @@ namespace Axphi.ViewModels
             var newNote = new Note(kind, currentTick);
             newNote.HitTime = hitTick;
             newNote.AnimatableProperties.Offset.InitialValue = new Vector(offsetX, 0);
+            if (kind == NoteKind.Hold && holdDuration.HasValue)
+            {
+                newNote.HoldDuration = Math.Max(1, holdDuration.Value);
+            }
             if (Data.Notes == null) Data.Notes = new List<Note>();
             Data.Notes.Add(newNote);
 

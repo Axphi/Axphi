@@ -59,6 +59,11 @@ namespace Axphi.Utilities
 
         public static int ResolveHitTickFromY(TimelineViewModel timeline, TrackViewModel track, double viewportY, Size viewportSize, double viewZoom, double panY)
         {
+            return (int)Math.Round(ResolveExactTickFromY(timeline, track, viewportY, viewportSize, viewZoom, panY), MidpointRounding.AwayFromZero);
+        }
+
+        public static double ResolveExactTickFromY(TimelineViewModel timeline, TrackViewModel track, double viewportY, Size viewportSize, double viewZoom, double panY)
+        {
             double centerY = viewportSize.Height / 2.0 + panY;
             double targetOffset = viewportY - centerY;
             int currentTick = timeline.GetCurrentTick();
@@ -103,7 +108,15 @@ namespace Axphi.Utilities
 
             double lowOffset = CalculateTravelDistance(timeline.CurrentChart, track.Data, currentTick, low, 1.0, metrics);
             double highOffset = CalculateTravelDistance(timeline.CurrentChart, track.Data, currentTick, high, 1.0, metrics);
-            return Math.Abs(lowOffset - targetOffset) <= Math.Abs(highOffset - targetOffset) ? low : high;
+            double offsetSpan = highOffset - lowOffset;
+            if (Math.Abs(offsetSpan) < double.Epsilon)
+            {
+                return Math.Abs(lowOffset - targetOffset) <= Math.Abs(highOffset - targetOffset) ? low : high;
+            }
+
+            double interpolation = (targetOffset - lowOffset) / offsetSpan;
+            interpolation = Math.Clamp(interpolation, 0.0, 1.0);
+            return low + ((high - low) * interpolation);
         }
 
         private static double CalculateTravelDistance(Chart chart, JudgementLine line, int startTick, int endTick, double noteSpeedMultiplier, ViewMetrics metrics)

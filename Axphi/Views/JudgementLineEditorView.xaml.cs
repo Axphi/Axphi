@@ -3,6 +3,7 @@ using Axphi.Utilities;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using System.Windows.Input;
 
 namespace Axphi.Views
@@ -25,43 +26,20 @@ namespace Axphi.Views
         public JudgementLineEditorView()
         {
             InitializeComponent();
+            IsVisibleChanged += JudgementLineEditorView_IsVisibleChanged;
+        }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            FocusEditorCanvas();
         }
 
         private void EditorCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (DataContext is not JudgementLineEditorViewModel vm)
-            {
-                return;
-            }
-
-            if (e.OriginalSource is DependencyObject dependencyObject && FindVisualParent<ComboBox>(dependencyObject) != null)
-            {
-                return;
-            }
-
-            Point point = e.GetPosition(EditorCanvas);
-            if (EditorCanvas.TryHitTest(point, out var hitNote, out var targetKind, out var anchorPoint) && hitNote != null)
-            {
-                BeginNoteInteraction(vm, hitNote, targetKind, point, anchorPoint);
-                e.Handled = true;
-                return;
-            }
-
-            vm.TryAddNoteAtPoint(point, EditorCanvas.RenderSize);
-            EditorCanvas.InvalidateVisual();
-            EditorCanvas.Focus();
-            e.Handled = true;
         }
 
         private void EditorCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (_dragMode == EditorDragMode.None)
-            {
-                return;
-            }
-
-            EndNoteInteraction();
-            e.Handled = true;
         }
 
         private void EditorCanvas_MouseMove(object sender, MouseEventArgs e)
@@ -81,15 +59,29 @@ namespace Axphi.Views
             }
 
             UpdateCanvasCursor(point);
-
-            if (vm.UpdateHoverPreview(point, EditorCanvas.RenderSize))
-            {
-                EditorCanvas.InvalidateVisual();
-            }
         }
 
         private void EditorRoot_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                if (DataContext is not JudgementLineEditorViewModel vm)
+                {
+                    return;
+                }
+
+                if (IsMouseOnHud(e.OriginalSource as DependencyObject)
+                    || e.OriginalSource is DependencyObject dependencyObject && FindVisualParent<ComboBox>(dependencyObject) != null
+                    || e.OriginalSource is DependencyObject buttonObject && FindVisualParent<Button>(buttonObject) != null)
+                {
+                    return;
+                }
+
+                HandleCanvasLeftButtonDown(vm, e.GetPosition(EditorCanvas));
+                e.Handled = true;
+                return;
+            }
+
             if (e.ChangedButton != MouseButton.Middle)
             {
                 return;
@@ -103,8 +95,18 @@ namespace Axphi.Views
 
         private void EditorRoot_PreviewMouseMove(object sender, MouseEventArgs e)
         {
-            if (!_isPanning || DataContext is not JudgementLineEditorViewModel vm)
+            if (DataContext is not JudgementLineEditorViewModel vm)
             {
+                return;
+            }
+
+            if (!_isPanning)
+            {
+                if (_dragMode == EditorDragMode.None)
+                {
+                    UpdateHoverPreviewFromRoot(e, vm);
+                }
+
                 return;
             }
 
@@ -115,24 +117,19 @@ namespace Axphi.Views
             e.Handled = true;
         }
 
-        private void EditorCanvas_MouseLeave(object sender, MouseEventArgs e)
-        {
-            if (_dragMode == EditorDragMode.None)
-            {
-                EditorCanvas.Cursor = Cursors.Arrow;
-            }
-
-            if (DataContext is JudgementLineEditorViewModel vm)
-            {
-                if (vm.ClearHoverPreview())
-                {
-                    EditorCanvas.InvalidateVisual();
-                }
-            }
-        }
-
         private void EditorRoot_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                if (_dragMode != EditorDragMode.None)
+                {
+                    EndNoteInteraction();
+                    e.Handled = true;
+                }
+
+                return;
+            }
+
             if (e.ChangedButton != MouseButton.Middle)
             {
                 return;
@@ -176,6 +173,71 @@ namespace Axphi.Views
             e.Handled = true;
         }
 
+        private void EditorRoot_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (DataContext is not JudgementLineEditorViewModel vm)
+            {
+                return;
+            }
+
+            if (e.OriginalSource is DependencyObject dependencyObject && FindVisualParent<ComboBox>(dependencyObject) != null)
+            {
+                return;
+            }
+
+            if (Keyboard.Modifiers != ModifierKeys.None)
+            {
+                return;
+            }
+
+            if (e.Key == Key.Escape && vm.CancelPendingHoldPlacement())
+            {
+                vm.ClearHoverPreview();
+                EditorCanvas.InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
+
+            string? nextKind = e.Key switch
+            {
+                Key.Q => nameof(Axphi.Data.NoteKind.Tap),
+                Key.W => nameof(Axphi.Data.NoteKind.Hold),
+                Key.E => nameof(Axphi.Data.NoteKind.Drag),
+                Key.R => nameof(Axphi.Data.NoteKind.Flick),
+                _ => null,
+            };
+
+            if (nextKind == null || vm.CurrentNoteKind == nextKind)
+            {
+                return;
+            }
+
+            vm.CurrentNoteKind = nextKind;
+            EditorCanvas.InvalidateVisual();
+            e.Handled = true;
+        }
+
+        private void JudgementLineEditorView_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is true)
+            {
+                FocusEditorCanvas();
+            }
+        }
+
+        private void EditorRoot_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (_dragMode == EditorDragMode.None)
+            {
+                EditorCanvas.Cursor = Cursors.Arrow;
+            }
+
+            if (DataContext is JudgementLineEditorViewModel vm && vm.ClearHoverPreview())
+            {
+                EditorCanvas.InvalidateVisual();
+            }
+        }
+
         private static T? FindVisualParent<T>(DependencyObject? child) where T : DependencyObject
         {
             while (child != null)
@@ -189,6 +251,66 @@ namespace Axphi.Views
             }
 
             return null;
+        }
+
+        private void UpdateHoverPreviewFromRoot(MouseEventArgs e, JudgementLineEditorViewModel vm)
+        {
+            if (IsMouseOnHud(e.OriginalSource as DependencyObject))
+            {
+                return;
+            }
+
+            Point point = e.GetPosition(EditorCanvas);
+            if (vm.UpdateHoverPreview(point, EditorCanvas.RenderSize))
+            {
+                EditorCanvas.InvalidateVisual();
+            }
+        }
+
+        private void HandleCanvasLeftButtonDown(JudgementLineEditorViewModel vm, Point point)
+        {
+            if (vm.HasPendingHoldPlacement)
+            {
+                vm.TryAddNoteAtPoint(point, EditorCanvas.RenderSize);
+                EditorCanvas.InvalidateVisual();
+                EditorCanvas.Focus();
+                return;
+            }
+
+            if (EditorCanvas.TryHitTest(point, out var hitNote, out var targetKind, out var anchorPoint) && hitNote != null)
+            {
+                BeginNoteInteraction(vm, hitNote, targetKind, point, anchorPoint);
+                return;
+            }
+
+            vm.TryAddNoteAtPoint(point, EditorCanvas.RenderSize);
+            EditorCanvas.InvalidateVisual();
+            EditorCanvas.Focus();
+        }
+
+        private bool IsMouseOnHud(DependencyObject? dependencyObject)
+        {
+            while (dependencyObject != null)
+            {
+                if (ReferenceEquals(dependencyObject, EditorHud))
+                {
+                    return true;
+                }
+
+                dependencyObject = System.Windows.Media.VisualTreeHelper.GetParent(dependencyObject);
+            }
+
+            return false;
+        }
+
+        private void FocusEditorCanvas()
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                EditorRoot.Focus();
+                EditorCanvas.Focus();
+                Keyboard.Focus(EditorCanvas);
+            }, DispatcherPriority.Input);
         }
 
         private void BeginNoteInteraction(JudgementLineEditorViewModel vm, NoteViewModel note, Axphi.Components.JudgementLineEditorCanvas.HitTargetKind targetKind, Point pointerPoint, Point anchorPoint)
@@ -225,11 +347,7 @@ namespace Axphi.Views
             {
                 double newOffsetX = Math.Clamp((desiredAnchorX - centerX) / metrics.PixelsPerChartUnit, -8.0, 8.0);
                 double tickResolveY = desiredAnchorY - (_dragNote.CurrentOffsetY * metrics.PixelsPerChartUnit);
-                int hitTick = JudgementLineEditorRenderMath.ResolveHitTickFromY(vm.Timeline, _dragNote.ParentTrack, tickResolveY, EditorCanvas.RenderSize, vm.ViewZoom, vm.PanY);
-                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
-                {
-                    hitTick = vm.Timeline.SnapToClosest(hitTick, isPlayhead: false);
-                }
+                int hitTick = vm.ResolveEditorTick(tickResolveY, EditorCanvas.RenderSize, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
 
                 _dragNote.ApplyPositionAbsolute(newOffsetX, _dragNote.CurrentOffsetY);
                 _dragNote.HitTime = hitTick;
@@ -240,11 +358,7 @@ namespace Axphi.Views
             if (_dragMode == EditorDragMode.ResizeHoldTail)
             {
                 double tickResolveY = desiredAnchorY - (_dragNote.CurrentOffsetY * metrics.PixelsPerChartUnit);
-                int endTick = JudgementLineEditorRenderMath.ResolveHitTickFromY(vm.Timeline, _dragNote.ParentTrack, tickResolveY, EditorCanvas.RenderSize, vm.ViewZoom, vm.PanY);
-                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
-                {
-                    endTick = vm.Timeline.SnapToClosest(endTick, isPlayhead: false);
-                }
+                int endTick = vm.ResolveEditorTick(tickResolveY, EditorCanvas.RenderSize, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
 
                 _dragNote.HoldDuration = Math.Max(1, endTick - _dragNote.HitTime);
             }

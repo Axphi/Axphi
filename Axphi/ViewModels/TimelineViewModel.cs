@@ -11,6 +11,13 @@ using System.Linq;
 
 namespace Axphi.ViewModels
 {
+    public enum TimelineSelectionContext
+    {
+        None,
+        Layers,
+        SubItems,
+    }
+
     // 必须继承 ObservableObject 才能使用 MVVM 魔法
     public partial class TimelineViewModel : ObservableObject
     {
@@ -157,6 +164,9 @@ namespace Axphi.ViewModels
 
         // ================= 新增：专供 UI 绑定的轨道视图模型集合 =================
         public ObservableCollection<TrackViewModel> Tracks { get; } = new ObservableCollection<TrackViewModel>();
+
+        [ObservableProperty]
+        private TimelineSelectionContext _activeSelectionContext = TimelineSelectionContext.None;
         
 
 
@@ -192,6 +202,54 @@ namespace Axphi.ViewModels
             });
 
 
+        }
+
+        public void ClearKeyframeSelection(object? senderToIgnore = null)
+        {
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", senderToIgnore));
+            RefreshLayerSelectionVisuals();
+        }
+
+        public void ClearLayerSelection(object? senderToIgnore = null)
+        {
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Layers", senderToIgnore));
+            RefreshLayerSelectionVisuals();
+        }
+
+        public void ClearNoteSelection(object? senderToIgnore = null)
+        {
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", senderToIgnore));
+
+            foreach (var track in Tracks)
+            {
+                if (!ReferenceEquals(track.SelectedNote, senderToIgnore))
+                {
+                    track.SelectedNote = null;
+                }
+            }
+
+            RefreshLayerSelectionVisuals();
+        }
+
+        public void ClearAllSelections()
+        {
+            ClearKeyframeSelection();
+            ClearNoteSelection();
+            ClearLayerSelection();
+            ActiveSelectionContext = TimelineSelectionContext.None;
+        }
+
+        public void EnterLayerSelectionContext(object? senderToIgnore = null)
+        {
+            ClearKeyframeSelection();
+            ClearNoteSelection();
+            ActiveSelectionContext = TimelineSelectionContext.Layers;
+        }
+
+        public void EnterSubItemSelectionContext(object? senderToIgnore = null)
+        {
+            ClearLayerSelection();
+            ActiveSelectionContext = TimelineSelectionContext.SubItems;
         }
 
         // 核心命令：点击“+添加判定线”时触发
@@ -421,6 +479,8 @@ namespace Axphi.ViewModels
                     track.IsLayerSelected = true;
                 }
 
+                ActiveSelectionContext = TimelineSelectionContext.Layers;
+
                 FinalizeDeleteChanges();
                 return;
             }
@@ -443,6 +503,7 @@ namespace Axphi.ViewModels
 
             if (hasDeletedLayers)
             {
+                ActiveSelectionContext = TimelineSelectionContext.None;
                 ReindexTrackNames();
                 FinalizeDeleteChanges();
             }

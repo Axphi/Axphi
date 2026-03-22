@@ -102,6 +102,8 @@ namespace Axphi.ViewModels
             // 自己也得做好准备
             ReceiveDragStarted();
 
+            _timeline.EnterSubItemSelectionContext(this);
+
             
 
             // 如果没被选中，按下的瞬间立刻点亮它！
@@ -185,7 +187,7 @@ namespace Axphi.ViewModels
             // 只有被鼠标直接捏住的那个“带头大哥”，才有资格处理单击取消选中的判定
             if (isInitiator && _wasSelectedBeforeDrag && _dragAccumulated < 2.0)
             {
-                SelectionHelper.CompleteSelectionGesture("Keyframes", this, _wasSelectedBeforeDrag, _dragAccumulated, val => IsSelected = val, "Notes");
+                SelectionHelper.CompleteSelectionGesture("Keyframes", this, _wasSelectedBeforeDrag, _dragAccumulated, val => IsSelected = val, () => _timeline.ClearNoteSelection());
             }
 
             UpdatePosition();

@@ -122,8 +122,7 @@ namespace Axphi.ViewModels
 
         public void HandleLayerPointerDown()
         {
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
+            _timeline.EnterLayerSelectionContext(this);
             _layerGestureDistance = 0;
             _wasSelectedBeforeLayerGesture = SelectionHelper.BeginSelectionGesture("Layers", this, IsLayerSelected, value => IsLayerSelected = value);
         }

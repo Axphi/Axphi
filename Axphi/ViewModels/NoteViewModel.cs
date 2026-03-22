@@ -457,6 +457,8 @@ namespace Axphi.ViewModels
             // 自己做好准备
             ReceiveDragStarted();
 
+            _timeline.EnterSubItemSelectionContext(this);
+
             // 如果按下的是一个【尚未选中】的音符
             _wasSelectedBeforeDrag = SelectionHelper.BeginSelectionGesture("Notes", this, IsSelected, val => IsSelected = val);
 
@@ -543,7 +545,7 @@ namespace Axphi.ViewModels
             // 只有被鼠标直接捏住的那个“带头大哥”，才有资格处理单击取消选中的判定
             if (isInitiator && _wasSelectedBeforeDrag && _dragAccumulated < 2.0)
             {
-                SelectionHelper.CompleteSelectionGesture("Notes", this, _wasSelectedBeforeDrag, _dragAccumulated, val => IsSelected = val);
+                SelectionHelper.CompleteSelectionGesture("Notes", this, _wasSelectedBeforeDrag, _dragAccumulated, val => IsSelected = val, () => _timeline.ClearKeyframeSelection());
             }
 
             // 拖拽松手后，强制吸附对齐到准确的 Tick 像素位置

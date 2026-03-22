@@ -53,7 +53,7 @@ namespace Axphi.Utilities
             return wasSelectedBeforeGesture;
         }
 
-        public static void CompleteSelectionGesture(string groupName, object sender, bool wasSelectedBeforeGesture, double interactionDistance, Action<bool> setIsSelected, params string[] extraGroupsToClear)
+        public static void CompleteSelectionGesture(string groupName, object sender, bool wasSelectedBeforeGesture, double interactionDistance, Action<bool> setIsSelected, params Action[] extraClearActions)
         {
             if (!wasSelectedBeforeGesture || interactionDistance >= 2.0)
             {
@@ -77,9 +77,9 @@ namespace Axphi.Utilities
 
             WeakReferenceMessenger.Default.Send(new ClearSelectionMessage(groupName, sender));
 
-            foreach (var extraGroup in extraGroupsToClear)
+            foreach (var clearAction in extraClearActions)
             {
-                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage(extraGroup, null));
+                clearAction();
             }
 
             setIsSelected(true);

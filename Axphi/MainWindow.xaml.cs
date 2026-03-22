@@ -458,12 +458,10 @@ public partial class MainWindow : Window
         {
             if (_marqueeModifiers == ModifierKeys.None)
             {
-                // 发大喇叭：让全场所有关键帧都暗下去！(传 null 代表没人有免死金牌)
-                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
-
-                // 2. 🌟 新增：清空所有音符（取消选中音符本体）
-                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
-                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Layers", null));
+                if (DataContext is MainViewModel vm)
+                {
+                    vm.Timeline.ClearAllSelections();
+                }
             }
             return;
         }
@@ -473,10 +471,10 @@ public partial class MainWindow : Window
         // 1. 如果什么修饰键都没按（排他框选）：先发广播，清空全场所有选中状态！
         if (_marqueeModifiers == ModifierKeys.None)
         {
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
-            // 2. 🌟 新增：清空所有音符（取消选中音符本体）
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Layers", null));
+            if (DataContext is MainViewModel vm)
+            {
+                vm.Timeline.ClearAllSelections();
+            }
         }
 
         GeneralTransform marqueeTransform = MarqueeRect.TransformToAncestor(TimelineMainGrid);

@@ -640,7 +640,8 @@ namespace Axphi.ViewModels
 
             // ================= 极致的用户体验优化 =================
             // 刚添加完一个音符，立刻让它变成“选中”状态，方便用户接着改它的属性
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null)); // 先清空别人
+            _timeline.EnterSubItemSelectionContext(newNoteVM);
+            _timeline.ClearNoteSelection();
             newNoteVM.IsSelected = true;
             SelectedNote = newNoteVM; // 左侧面板瞬间切给它！
             IsNoteExpanded = true;    // 确保 Note 的属性面板是展开的
@@ -771,9 +772,7 @@ namespace Axphi.ViewModels
 
         public void HandleLayerPointerDown()
         {
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
-            SelectedNote = null;
+            _timeline.EnterLayerSelectionContext(this);
             _layerGestureDistance = 0;
             _wasSelectedBeforeLayerGesture = SelectionHelper.BeginSelectionGesture("Layers", this, IsLayerSelected, value => IsLayerSelected = value);
         }

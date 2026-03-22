@@ -120,7 +120,7 @@ namespace Axphi.ViewModels
             {
                 foreach (var note in Data.Notes)
                 {
-                    UINotes.Add(new NoteViewModel(note, _timeline));
+                    UINotes.Add(new NoteViewModel(note, _timeline, this));
                 }
             }
 
@@ -614,6 +614,9 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private NoteViewModel? _selectedNote;
 
+        [ObservableProperty]
+        private bool _isNotePanelOwner;
+
         // ================= 添加新音符 =================
         [RelayCommand]
         private void AddNote(string kindStr)
@@ -630,7 +633,7 @@ namespace Axphi.ViewModels
             Data.Notes.Add(newNote);
 
             // 4. 给它套上 UI 保镖装甲！
-            var newNoteVM = new NoteViewModel(newNote, _timeline);
+            var newNoteVM = new NoteViewModel(newNote, _timeline, this);
 
             // 🌟 核心防 Bug：出生即同步！强制喂给它当前时间的数据，防止带着默认值出生
             newNoteVM.SyncValuesToTime(currentTick, _timeline.CurrentChart.KeyFrameEasingDirection);
@@ -643,8 +646,8 @@ namespace Axphi.ViewModels
             _timeline.EnterSubItemSelectionContext(newNoteVM);
             _timeline.ClearNoteSelection();
             newNoteVM.IsSelected = true;
-            SelectedNote = newNoteVM; // 左侧面板瞬间切给它！
             IsNoteExpanded = true;    // 确保 Note 的属性面板是展开的
+            _timeline.RefreshNoteSelectionState(this, newNoteVM);
 
             // 6. 大喊一声：有人空降了！大家重新排个序，顺便刷新一下右侧画面！
             WeakReferenceMessenger.Default.Send(new NotesNeedSortMessage());

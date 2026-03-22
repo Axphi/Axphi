@@ -103,10 +103,10 @@ namespace Axphi.Views
             {
                 if (this.DataContext is TrackViewModel trackVM)
                 {
-                    trackVM.SelectedNote = noteVM;
                     trackVM.IsNoteExpanded = true;
                 }
                 noteVM.OnDragStarted();
+                noteVM.ParentTrack.Timeline.RefreshNoteSelectionState(noteVM.ParentTrack, noteVM);
             }
         }
 

@@ -165,6 +165,11 @@ namespace Axphi.ViewModels
         // ================= 新增：专供 UI 绑定的轨道视图模型集合 =================
         public ObservableCollection<TrackViewModel> Tracks { get; } = new ObservableCollection<TrackViewModel>();
 
+        public NoteSelectionPanelViewModel NoteSelectionPanel { get; }
+
+        [ObservableProperty]
+        private TrackViewModel? _activeNotePanelOwner;
+
         [ObservableProperty]
         private TimelineSelectionContext _activeSelectionContext = TimelineSelectionContext.None;
         
@@ -175,6 +180,7 @@ namespace Axphi.ViewModels
         {
 
             _projectManager = projectManager; // 存进私有变量
+            NoteSelectionPanel = new NoteSelectionPanelViewModel(this);
 
 
             // 🌟 必须加上这行！让它一出生就计算宽度！
@@ -222,12 +228,10 @@ namespace Axphi.ViewModels
 
             foreach (var track in Tracks)
             {
-                if (!ReferenceEquals(track.SelectedNote, senderToIgnore))
-                {
-                    track.SelectedNote = null;
-                }
+                track.SelectedNote = null;
             }
 
+            RefreshNoteSelectionState();
             RefreshLayerSelectionVisuals();
         }
 
@@ -250,6 +254,65 @@ namespace Axphi.ViewModels
         {
             ClearLayerSelection();
             ActiveSelectionContext = TimelineSelectionContext.SubItems;
+        }
+
+        public void RefreshNoteSelectionState(TrackViewModel? preferredOwner = null, NoteViewModel? preferredSingle = null)
+        {
+            var selectedEntries = Tracks
+                .SelectMany(track => track.UINotes.Where(note => note.IsSelected).Select(note => (track, note)))
+                .ToList();
+
+            foreach (var track in Tracks)
+            {
+                track.SelectedNote = null;
+                track.IsNotePanelOwner = false;
+            }
+
+            if (selectedEntries.Count == 0)
+            {
+                if (preferredOwner != null)
+                {
+                    ActiveNotePanelOwner = preferredOwner;
+                }
+
+                if (ActiveNotePanelOwner != null)
+                {
+                    ActiveNotePanelOwner.IsNotePanelOwner = true;
+                }
+
+                NoteSelectionPanel.SyncSelection(Array.Empty<NoteViewModel>());
+                return;
+            }
+
+            TrackViewModel ownerTrack;
+            if (preferredOwner != null && selectedEntries.Any(entry => ReferenceEquals(entry.track, preferredOwner)))
+            {
+                ownerTrack = preferredOwner;
+            }
+            else if (ActiveNotePanelOwner != null && selectedEntries.Any(entry => ReferenceEquals(entry.track, ActiveNotePanelOwner)))
+            {
+                ownerTrack = ActiveNotePanelOwner;
+            }
+            else
+            {
+                ownerTrack = selectedEntries[0].track;
+            }
+
+            ActiveNotePanelOwner = ownerTrack;
+            ownerTrack.IsNotePanelOwner = true;
+
+            if (selectedEntries.Count == 1)
+            {
+                var selectedNote = preferredSingle != null && selectedEntries.Any(entry => ReferenceEquals(entry.note, preferredSingle))
+                    ? preferredSingle
+                    : selectedEntries[0].note;
+                ownerTrack = selectedEntries.First(entry => ReferenceEquals(entry.note, selectedNote)).track;
+                ActiveNotePanelOwner = ownerTrack;
+                ownerTrack.IsNotePanelOwner = true;
+                ownerTrack.SelectedNote = selectedNote;
+            }
+
+            NoteSelectionPanel.SyncSelection(selectedEntries.Select(entry => entry.note).ToList());
         }
 
         // 核心命令：点击“+添加判定线”时触发
@@ -293,6 +356,8 @@ namespace Axphi.ViewModels
 
             // 2. 砸碎旧舞台：清空前端的 Track UI 集合 (这一步让旧 UI 被 GC 回收)
             Tracks.Clear();
+            ActiveNotePanelOwner = null;
+            NoteSelectionPanel.SyncSelection(Array.Empty<NoteViewModel>());
 
             // 3. 请上新演员：遍历新谱面里的判定线，挨个给它们创建前端代理人
             if (CurrentChart.JudgementLines != null)

@@ -217,108 +217,222 @@
 
                     <!--  note 属性  -->
                     <StackPanel Margin="24,0,0,0" Background="#252525" Visibility="{Binding IsNoteExpanded, Converter={StaticResource BoolToVis}}">
-                        <StackPanel DataContext="{Binding SelectedNote}">
+                        <StackPanel DataContext="{Binding Timeline.NoteSelectionPanel}">
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Visible" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding HasSelection}" Value="True" />
+                                                <Condition Binding="{Binding DataContext.IsNotePanelOwner, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
+                                            </MultiDataTrigger.Conditions>
                                             <Setter Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
+                                        </MultiDataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </StackPanel.Style>
 
-                            <Grid Height="20">
-                                <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Kind" />
-                                <Button Command="{Binding AddNoteKindKeyframeCommand}"
-                                        Width="12" Height="12"
-                                        Background="Transparent" BorderThickness="0"
-                                        Cursor="Hand" ToolTip="添加/更新关键帧">
-                                    <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
-                                          Fill="#888" Stretch="Fill" />
-                                </Button>
-                                <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <comp:DraggableOptionBox Value="{Binding CurrentNoteKind, Mode=TwoWay}">
-                                        <comp:DraggableOptionBox.Options>
-                                            <comp:StringList>
-                                                <sys:String>Tap</sys:String>
-                                                <sys:String>Drag</sys:String>
-                                                <sys:String>Hold</sys:String>
-                                                <sys:String>Flick</sys:String>
-                                            </comp:StringList>
-                                        </comp:DraggableOptionBox.Options>
-                                    </comp:DraggableOptionBox>
-                                </StackPanel>
-                            </Grid>
+                            <Grid Height="140">
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Setter Property="MinHeight" Value="140" />
+                                    </Style>
+                                </Grid.Style>
 
-                            <Grid Height="20">
-                                <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Position" />
-                                <Button Command="{Binding AddPositionKeyframeCommand}"
-                                        Width="12" Height="12"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Cursor="Hand" ToolTip="添加/更新关键帧">
-                                    <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
-                                </Button>
-                                <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
-                                    <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
-                                    <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
-                                </StackPanel>
-                            </Grid>
+                                <Grid>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasSelection}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontSize="11"
+                                               Foreground="#7E7E7E"
+                                               Text="请选择一个音符" />
+                                </Grid>
 
-                            <Grid Height="20">
-                                <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Scale" />
-                                <Button Command="{Binding AddScaleKeyframeCommand}"
-                                        Width="12" Height="12"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Cursor="Hand" ToolTip="添加/更新关键帧">
-                                    <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
-                                </Button>
-                                <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleX, Mode=TwoWay}" />
-                                    <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
-                                    <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleY, Mode=TwoWay}" />
-                                </StackPanel>
-                            </Grid>
-                            <Grid Height="20">
-                                <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Rotation" />
-                                <Button Command="{Binding AddRotationKeyframeCommand}"
-                                        Width="12" Height="12"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Cursor="Hand" ToolTip="添加/更新关键帧">
-                                    <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
-                                </Button>
-                                <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentRotation, Mode=TwoWay}" />
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasSelection}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
 
-                                </StackPanel>
-                            </Grid>
-                            <Grid Height="20">
-                                <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Opacity" />
-                                <Button Command="{Binding AddOpacityKeyframeCommand}"
-                                        Width="12" Height="12"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Cursor="Hand" ToolTip="添加/更新关键帧">
-                                    <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
-                                </Button>
-                                <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <comp:DraggableValueBox DragSpeed="1" Maximum="100" Minimum="0" NumberFormat="0.00" Value="{Binding CurrentOpacity, Mode=TwoWay}" />
-
-                                </StackPanel>
-                            </Grid>
-
-                            <Grid Height="20">
-                                <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Custom Speed" />
-                                <Grid Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Grid Height="20">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="18" />
-                                        <ColumnDefinition Width="62" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <CheckBox Grid.Column="0" IsChecked="{Binding HasCustomSpeed, Mode=TwoWay}" VerticalAlignment="Center" HorizontalAlignment="Left" Cursor="Hand">
+                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#d6d6d6" Text="{Binding SelectionTitle}" />
+                                    <Border Grid.Column="1" Margin="0,2,10,2" Padding="6,0" Background="#2F4A73" CornerRadius="9">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectionModeHint}" Value="">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock VerticalAlignment="Center" FontSize="10" Foreground="#D7E6FF" Text="{Binding SelectionModeHint}" />
+                                    </Border>
+                                </Grid>
+
+                                    <Grid Height="20">
+                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Kind" />
+                                    <Button Command="{Binding AddNoteKindKeyframeCommand}"
+                                            Width="12" Height="12"
+                                            Background="Transparent" BorderThickness="0"
+                                            Cursor="Hand" ToolTip="添加/更新关键帧">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
+                                              Fill="#888" Stretch="Fill" />
+                                    </Button>
+                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                        <comp:DraggableOptionBox Value="{Binding CurrentNoteKind, Mode=TwoWay}">
+                                            <comp:DraggableOptionBox.Options>
+                                                <comp:StringList>
+                                                    <sys:String>Mixed</sys:String>
+                                                    <sys:String>Tap</sys:String>
+                                                    <sys:String>Drag</sys:String>
+                                                    <sys:String>Hold</sys:String>
+                                                    <sys:String>Flick</sys:String>
+                                                </comp:StringList>
+                                            </comp:DraggableOptionBox.Options>
+                                        </comp:DraggableOptionBox>
+                                    </StackPanel>
+                                </Grid>
+
+                                    <Grid Height="20">
+                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Position" />
+                                    <Button Command="{Binding AddPositionKeyframeCommand}"
+                                            Width="12" Height="12"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Cursor="Hand" ToolTip="添加/更新关键帧">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
+                                    </Button>
+                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                        <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
+                                        <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
+                                        <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
+                                    </StackPanel>
+                                </Grid>
+
+                                    <Grid Height="20">
+                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Scale" />
+                                    <Button Command="{Binding AddScaleKeyframeCommand}"
+                                            Width="12" Height="12"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Cursor="Hand" ToolTip="添加/更新关键帧">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
+                                    </Button>
+                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                        <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleX, Mode=TwoWay}" />
+                                        <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
+                                        <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleY, Mode=TwoWay}" />
+                                    </StackPanel>
+                                </Grid>
+                                    <Grid Height="20">
+                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Rotation" />
+                                    <Button Command="{Binding AddRotationKeyframeCommand}"
+                                            Width="12" Height="12"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Cursor="Hand" ToolTip="添加/更新关键帧">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
+                                    </Button>
+                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                        <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentRotation, Mode=TwoWay}" />
+
+                                    </StackPanel>
+                                </Grid>
+                                    <Grid Height="20">
+                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Opacity" />
+                                    <Button Command="{Binding AddOpacityKeyframeCommand}"
+                                            Width="12" Height="12"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Cursor="Hand" ToolTip="添加/更新关键帧">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
+                                    </Button>
+                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                        <comp:DraggableValueBox DragSpeed="1" Maximum="100" Minimum="0" NumberFormat="0.00" Value="{Binding CurrentOpacity, Mode=TwoWay}" />
+
+                                    </StackPanel>
+                                </Grid>
+
+                                    <Grid Height="20">
+                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Custom Speed" />
+                                    <Grid Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="18" />
+                                            <ColumnDefinition Width="62" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0" IsChecked="{Binding HasCustomSpeed, Mode=TwoWay}" IsThreeState="True" VerticalAlignment="Center" HorizontalAlignment="Left" Cursor="Hand">
                                         <CheckBox.Template>
                                             <ControlTemplate TargetType="CheckBox">
                                                 <Grid Width="14" Height="14" Background="Transparent">
@@ -348,6 +462,10 @@
                                                         <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#5285F3" />
                                                         <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
                                                     </Trigger>
+                                                    <Trigger Property="IsChecked" Value="{x:Null}">
+                                                        <Setter TargetName="CheckBoxBorder" Property="Background" Value="#3B3B3B" />
+                                                        <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#9B9B9B" />
+                                                    </Trigger>
                                                     <Trigger Property="IsMouseOver" Value="True">
                                                         <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#8AAEFF" />
                                                     </Trigger>
@@ -359,24 +477,26 @@
                                             </ControlTemplate>
                                         </CheckBox.Template>
                                     </CheckBox>
-                                    <comp:DraggableValueBox Grid.Column="1"
-                                                            Margin="6,0,0,0"
-                                                            Width="56"
-                                                            DragSpeed="0.1"
-                                                            NumberFormat="0.00"
-                                                            Value="{Binding CurrentCustomSpeed, Mode=TwoWay}">
-                                        <comp:DraggableValueBox.Style>
-                                            <Style TargetType="comp:DraggableValueBox">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding HasCustomSpeed}" Value="False">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </comp:DraggableValueBox.Style>
-                                    </comp:DraggableValueBox>
-                                </Grid>
+                                        <comp:DraggableValueBox Grid.Column="1"
+                                                                Margin="6,0,0,0"
+                                                                Width="56"
+                                                                DragSpeed="0.1"
+                                                                NumberFormat="0.00"
+                                                                Value="{Binding CurrentCustomSpeed, Mode=TwoWay}">
+                                            <comp:DraggableValueBox.Style>
+                                                <Style TargetType="comp:DraggableValueBox">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasResolvedCustomSpeed}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </comp:DraggableValueBox.Style>
+                                        </comp:DraggableValueBox>
+                                    </Grid>
+                                    </Grid>
+                                </StackPanel>
                             </Grid>
                         </StackPanel>
                     </StackPanel>

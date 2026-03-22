@@ -16,6 +16,7 @@ namespace Axphi.ViewModels
     {
         public Note Model { get; }
         private readonly TimelineViewModel _timeline;
+        public TrackViewModel ParentTrack { get; }
 
         private bool _isSyncing = false; // 免死金牌
 
@@ -47,6 +48,7 @@ namespace Axphi.ViewModels
 
         partial void OnIsSelectedChanged(bool value)
         {
+            _timeline.RefreshNoteSelectionState(ParentTrack, value ? this : null);
             _timeline.RefreshLayerSelectionVisuals();
         }
 
@@ -91,10 +93,11 @@ namespace Axphi.ViewModels
 
 
         // 构造函数
-        public NoteViewModel(Note model, TimelineViewModel timeline)
+        public NoteViewModel(Note model, TimelineViewModel timeline, TrackViewModel parentTrack)
         {
             Model = model;
             _timeline = timeline;
+            ParentTrack = parentTrack;
             UpdatePosition();
             HoldDuration = Model.HoldDuration;
             HasCustomSpeed = Model.CustomSpeed.HasValue;
@@ -171,76 +174,302 @@ namespace Axphi.ViewModels
             UIHoldPixelWidth = _timeline.TickToPixel(Model.HoldDuration);
         }
 
+        private void UpdateDisplayedValues(Action updateAction)
+        {
+            _isSyncing = true;
+            updateAction();
+            _isSyncing = false;
+        }
+
+        private void UpsertPositionKeyframe(double x, double y)
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var offsetKeyframesData = Model.AnimatableProperties.Offset.KeyFrames;
+            var existingWrapper = UIOffsetKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = new Vector(x, y);
+            }
+            else
+            {
+                var newFrame = new OffsetKeyFrame() { Time = currentTick, Value = new Vector(x, y) };
+                offsetKeyframesData.Add(newFrame);
+                offsetKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
+            }
+        }
+
+        private void UpsertScaleKeyframe(double x, double y)
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var scaleKeyframesData = Model.AnimatableProperties.Scale.KeyFrames;
+            var existingWrapper = UIScaleKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = new Vector(x, y);
+            }
+            else
+            {
+                var newFrame = new ScaleKeyFrame() { Time = currentTick, Value = new Vector(x, y) };
+                scaleKeyframesData.Add(newFrame);
+                scaleKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
+            }
+        }
+
+        private void UpsertRotationKeyframe(double value)
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var rotationKeyframesData = Model.AnimatableProperties.Rotation.KeyFrames;
+            var existingWrapper = UIRotationKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = value;
+            }
+            else
+            {
+                var newFrame = new RotationKeyFrame() { Time = currentTick, Value = value };
+                rotationKeyframesData.Add(newFrame);
+                rotationKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
+            }
+        }
+
+        private void UpsertOpacityKeyframe(double value)
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var opacityKeyframesData = Model.AnimatableProperties.Opacity.KeyFrames;
+            var existingWrapper = UIOpacityKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = value;
+            }
+            else
+            {
+                var newFrame = new OpacityKeyFrame() { Time = currentTick, Value = value };
+                opacityKeyframesData.Add(newFrame);
+                opacityKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
+            }
+        }
+
+        private void UpsertNoteKindKeyframe(NoteKind value)
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var existingWrapper = UINoteKindKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = value;
+            }
+            else
+            {
+                var newFrame = new NoteKindKeyFrame() { Time = currentTick, Value = value };
+                Model.KindKeyFrames.Add(newFrame);
+                Model.KindKeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UINoteKindKeyframes.Add(new KeyFrameUIWrapper<NoteKind>(newFrame, _timeline));
+            }
+        }
+
+        private void ApplyPositionChangeInternal(double x, double y)
+        {
+            if (Model.AnimatableProperties.Offset.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Offset.InitialValue = new Vector(x, y);
+            }
+            else
+            {
+                UpsertPositionKeyframe(x, y);
+            }
+
+            UpdateDisplayedValues(() =>
+            {
+                CurrentOffsetX = x;
+                CurrentOffsetY = y;
+            });
+        }
+
+        public void ApplyPositionAbsolute(double x, double y)
+        {
+            ApplyPositionChangeInternal(x, y);
+        }
+
+        public void ApplyPositionDelta(double deltaX, double deltaY)
+        {
+            ApplyPositionChangeInternal(CurrentOffsetX + deltaX, CurrentOffsetY + deltaY);
+        }
+
+        private void ApplyScaleChangeInternal(double x, double y)
+        {
+            if (Model.AnimatableProperties.Scale.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Scale.InitialValue = new Vector(x, y);
+            }
+            else
+            {
+                UpsertScaleKeyframe(x, y);
+            }
+
+            UpdateDisplayedValues(() =>
+            {
+                CurrentScaleX = x;
+                CurrentScaleY = y;
+            });
+        }
+
+        public void ApplyScaleAbsolute(double x, double y)
+        {
+            ApplyScaleChangeInternal(x, y);
+        }
+
+        public void ApplyScaleDelta(double deltaX, double deltaY)
+        {
+            ApplyScaleChangeInternal(CurrentScaleX + deltaX, CurrentScaleY + deltaY);
+        }
+
+        private void ApplyRotationChangeInternal(double value)
+        {
+            if (Model.AnimatableProperties.Rotation.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Rotation.InitialValue = value;
+            }
+            else
+            {
+                UpsertRotationKeyframe(value);
+            }
+
+            UpdateDisplayedValues(() => CurrentRotation = value);
+        }
+
+        public void ApplyRotationAbsolute(double value)
+        {
+            ApplyRotationChangeInternal(value);
+        }
+
+        public void ApplyRotationDelta(double delta)
+        {
+            ApplyRotationChangeInternal(CurrentRotation + delta);
+        }
+
+        private void ApplyOpacityChangeInternal(double value)
+        {
+            if (Model.AnimatableProperties.Opacity.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Opacity.InitialValue = value;
+            }
+            else
+            {
+                UpsertOpacityKeyframe(value);
+            }
+
+            UpdateDisplayedValues(() => CurrentOpacity = value);
+        }
+
+        public void ApplyOpacityAbsolute(double value)
+        {
+            ApplyOpacityChangeInternal(value);
+        }
+
+        public void ApplyOpacityDelta(double delta)
+        {
+            ApplyOpacityChangeInternal(Math.Clamp(CurrentOpacity + delta, 0.0, 100.0));
+        }
+
+        private void ApplyCustomSpeedChangeInternal(bool hasCustomSpeed, double customSpeed)
+        {
+            Model.CustomSpeed = hasCustomSpeed ? customSpeed : null;
+
+            UpdateDisplayedValues(() =>
+            {
+                HasCustomSpeed = hasCustomSpeed;
+                CurrentCustomSpeed = customSpeed;
+            });
+        }
+
+        public void ApplyHasCustomSpeed(bool hasCustomSpeed, double customSpeed)
+        {
+            ApplyCustomSpeedChangeInternal(hasCustomSpeed, customSpeed);
+        }
+
+        public void ApplyCustomSpeedAbsolute(double value)
+        {
+            ApplyCustomSpeedChangeInternal(true, value);
+        }
+
+        public void ApplyCustomSpeedDelta(double delta)
+        {
+            ApplyCustomSpeedChangeInternal(true, CurrentCustomSpeed + delta);
+        }
+
+        private void ApplyNoteKindChangeInternal(NoteKind value)
+        {
+            if (Model.KindKeyFrames == null || Model.KindKeyFrames.Count == 0)
+            {
+                Model.InitialKind = value;
+            }
+            else
+            {
+                UpsertNoteKindKeyframe(value);
+            }
+
+            UpdateDisplayedValues(() => CurrentNoteKind = value);
+        }
+
+        public void ApplyNoteKindAbsolute(NoteKind value)
+        {
+            ApplyNoteKindChangeInternal(value);
+        }
+
         // ================= 5. 核心拦截器 (当你在面板上拖拽音符的属性时触发) =================
         partial void OnCurrentOffsetXChanged(double value)
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            if (Model.AnimatableProperties.Offset.KeyFrames.Count == 0)
-            {
-                Model.AnimatableProperties.Offset.InitialValue = new Vector(CurrentOffsetX, CurrentOffsetY);
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
-            }
-            else AddPositionKeyframe();
+            ApplyPositionChangeInternal(CurrentOffsetX, CurrentOffsetY);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentOffsetYChanged(double value)
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            if (Model.AnimatableProperties.Offset.KeyFrames.Count == 0)
-            {
-                Model.AnimatableProperties.Offset.InitialValue = new Vector(CurrentOffsetX, CurrentOffsetY);
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
-            }
-            else AddPositionKeyframe();
+            ApplyPositionChangeInternal(CurrentOffsetX, CurrentOffsetY);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentScaleXChanged(double value)
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            if (Model.AnimatableProperties.Scale.KeyFrames.Count == 0)
-            {
-                Model.AnimatableProperties.Scale.InitialValue = new Vector(CurrentScaleX, CurrentScaleY);
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
-            }
-            else AddScaleKeyframe();
+            ApplyScaleChangeInternal(CurrentScaleX, CurrentScaleY);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentScaleYChanged(double value)
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            if (Model.AnimatableProperties.Scale.KeyFrames.Count == 0)
-            {
-                Model.AnimatableProperties.Scale.InitialValue = new Vector(CurrentScaleX, CurrentScaleY);
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
-            }
-            else AddScaleKeyframe();
+            ApplyScaleChangeInternal(CurrentScaleX, CurrentScaleY);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentRotationChanged(double value)
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            if (Model.AnimatableProperties.Rotation.KeyFrames.Count == 0)
-            {
-                Model.AnimatableProperties.Rotation.InitialValue = CurrentRotation;
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
-            }
-            else AddRotationKeyframe();
+            ApplyRotationChangeInternal(CurrentRotation);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
         partial void OnCurrentOpacityChanged(double value)
         {
             if (_isSyncing) return;
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            if (Model.AnimatableProperties.Opacity.KeyFrames.Count == 0)
-            {
-                Model.AnimatableProperties.Opacity.InitialValue = CurrentOpacity;
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
-            }
-            else AddOpacityKeyframe();
+            ApplyOpacityChangeInternal(CurrentOpacity);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnHasCustomSpeedChanged(bool value)
@@ -248,16 +477,7 @@ namespace Axphi.ViewModels
             if (_isSyncing) return;
 
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-
-            if (value)
-            {
-                Model.CustomSpeed = CurrentCustomSpeed;
-            }
-            else
-            {
-                Model.CustomSpeed = null;
-            }
-
+            ApplyCustomSpeedChangeInternal(value, CurrentCustomSpeed);
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
@@ -266,7 +486,7 @@ namespace Axphi.ViewModels
             if (_isSyncing || !HasCustomSpeed) return;
 
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            Model.CustomSpeed = value;
+            ApplyCustomSpeedChangeInternal(true, value);
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
@@ -305,35 +525,14 @@ namespace Axphi.ViewModels
 
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
 
-            if (Model.KindKeyFrames == null || Model.KindKeyFrames.Count == 0)
-            {
-                Model.InitialKind = value; // 修改基础值
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
-            }
-            else
-            {
-                AddNoteKindKeyframe();
-            }
+            ApplyNoteKindChangeInternal(value);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
         [RelayCommand]
         private void AddNoteKindKeyframe()
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var list = Model.KindKeyFrames;
-            var existingWrapper = UINoteKindKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = CurrentNoteKind;
-            }
-            else
-            {
-                var newFrame = new NoteKindKeyFrame() { Time = currentTick, Value = CurrentNoteKind };
-                list.Add(newFrame);
-                list.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UINoteKindKeyframes.Add(new KeyFrameUIWrapper<NoteKind>(newFrame, _timeline));
-            }
+            UpsertNoteKindKeyframe(CurrentNoteKind);
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
@@ -355,80 +554,26 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void AddPositionKeyframe()
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var offsetKeyframesData = Model.AnimatableProperties.Offset.KeyFrames;
-            var existingWrapper = UIOffsetKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = new Vector(CurrentOffsetX, CurrentOffsetY);
-            }
-            else
-            {
-                var newFrame = new OffsetKeyFrame() { Time = currentTick, Value = new Vector(CurrentOffsetX, CurrentOffsetY) };
-                offsetKeyframesData.Add(newFrame);
-                offsetKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
-            }
+            UpsertPositionKeyframe(CurrentOffsetX, CurrentOffsetY);
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
         [RelayCommand]
         private void AddScaleKeyframe()
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var scaleKeyframesData = Model.AnimatableProperties.Scale.KeyFrames;
-            var existingWrapper = UIScaleKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = new Vector(CurrentScaleX, CurrentScaleY);
-            }
-            else
-            {
-                var newFrame = new ScaleKeyFrame() { Time = currentTick, Value = new Vector(CurrentScaleX, CurrentScaleY) };
-                scaleKeyframesData.Add(newFrame);
-                scaleKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
-            }
+            UpsertScaleKeyframe(CurrentScaleX, CurrentScaleY);
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
         [RelayCommand]
         private void AddRotationKeyframe()
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var rotationKeyframesData = Model.AnimatableProperties.Rotation.KeyFrames;
-            var existingWrapper = UIRotationKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = CurrentRotation;
-            }
-            else
-            {
-                var newFrame = new RotationKeyFrame() { Time = currentTick, Value = CurrentRotation };
-                rotationKeyframesData.Add(newFrame);
-                rotationKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
-            }
+            UpsertRotationKeyframe(CurrentRotation);
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
         [RelayCommand]
         private void AddOpacityKeyframe()
             {
-            int currentTick = _timeline.GetCurrentTick();
-            var opacityKeyframesData = Model.AnimatableProperties.Opacity.KeyFrames;
-            var existingWrapper = UIOpacityKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = CurrentOpacity;
-            }
-            else
-            {
-                var newFrame = new OpacityKeyFrame() { Time = currentTick, Value = CurrentOpacity };
-                opacityKeyframesData.Add(newFrame);
-                opacityKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
-            }
+            UpsertOpacityKeyframe(CurrentOpacity);
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 

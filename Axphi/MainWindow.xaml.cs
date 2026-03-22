@@ -397,12 +397,33 @@ public partial class MainWindow : Window
         e.Handled = true; // 拦截事件，专心画框
     }
 
-    // ================= 【框选逻辑 2：拖动鼠标】 =================
+    // ================= 【拖动鼠标 (整合了左键框选和中键平移)】 =================
     private void TimelineMainGrid_PreviewMouseMove(object sender, MouseEventArgs e)
     {
+        // ================= 🌟 1. 中键拖拽平移 (Pan) =================
+        if (_isMiddlePanning && e.MiddleButton == MouseButtonState.Pressed)
+        {
+            Point currentMousePos = e.GetPosition(this);
+
+            // 鼠标向左拖 (delta为负数)，代表用户的眼睛想往右看，此时滚动条的值应该变大
+            double deltaX = currentMousePos.X - _middlePanStartMousePos.X;
+            double newScrollValue = _middlePanStartScrollValue - deltaX;
+
+            // 物理防撞墙
+            if (newScrollValue < 0) newScrollValue = 0;
+            if (newScrollValue > GlobalHorizontalScroll.Maximum) newScrollValue = GlobalHorizontalScroll.Maximum;
+
+            // 🌟 魔法核心：直接强行修改底部大滚动条的值，大管家会自动联动所有的轨道和小地图！
+            GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newScrollValue);
+
+            e.Handled = true;
+            return;
+        }
+
+        // ================= 🌟 2. 原有的左键框选逻辑 =================
         if (!_isMarqueeSelecting) return;
 
-        // 获取当前鼠标位置
+        // 获取当前鼠标位置 (这里用内部坐标没关系，因为画框本身就是跟随内部坐标系)
         Point currentPoint = e.GetPosition(OverlayCanvas);
 
         // 永远取起点和当前点之间最小的作为左上角坐标（完美支持向四个方向拖拽）
@@ -977,5 +998,51 @@ public partial class MainWindow : Window
         UpdateMinimapViewport();
     }
 
+
+    // ================= 中键拖拽平移状态 =================
+    private bool _isMiddlePanning = false;
+    private Point _middlePanStartMousePos;
+    private double _middlePanStartScrollValue;
+
+    // ================= 【中键拖拽逻辑 1：按下中键】 =================
+    private void TimelineMainGrid_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.MiddleButton == MouseButtonState.Pressed)
+        {
+            _isMiddlePanning = true;
+
+            // 🌟 极其重要的防抖细节：取相对于 Window 纯物理屏幕的绝对坐标！
+            // 如果取 Canvas 内部的相对坐标，拖拽时画面移动会导致坐标自身发生突变，画面会疯狂鬼畜！
+            _middlePanStartMousePos = e.GetPosition(this);
+            _middlePanStartScrollValue = GlobalHorizontalScroll.Value;
+
+            TimelineMainGrid.CaptureMouse();
+
+            // 🌟 新增：将鼠标变成左右拖拽的箭头图标！
+            // 如果你喜欢四向箭头，可以改成 Cursors.SizeAll
+            // 如果你喜欢小手，可以改成 Cursors.Hand
+            TimelineMainGrid.Cursor = Cursors.SizeWE;
+
+
+            e.Handled = true;
+        }
+    }
+
+    // ================= 【中键拖拽逻辑 2：松开中键】 =================
+    private void TimelineMainGrid_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.MiddleButton == MouseButtonState.Released && _isMiddlePanning)
+        {
+            _isMiddlePanning = false;
+            TimelineMainGrid.ReleaseMouseCapture();
+
+            // 🌟 新增：恢复默认鼠标指针！
+            TimelineMainGrid.Cursor = null;
+
+            e.Handled = true;
+        }
+    }
+
+    
 
 }

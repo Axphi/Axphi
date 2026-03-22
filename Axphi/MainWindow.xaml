@@ -107,6 +107,10 @@
                       PreviewMouseLeftButtonDown="TimelineMainGrid_PreviewMouseLeftButtonDown"
                       PreviewMouseMove="TimelineMainGrid_PreviewMouseMove"
                       PreviewMouseLeftButtonUp="TimelineMainGrid_PreviewMouseLeftButtonUp"
+                      
+                      PreviewMouseDown="TimelineMainGrid_PreviewMouseDown"
+                      PreviewMouseUp="TimelineMainGrid_PreviewMouseUp"
+                      
                       SizeChanged="TimelineMainGrid_SizeChanged">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*" />

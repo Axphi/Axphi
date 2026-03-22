@@ -12,8 +12,6 @@ namespace Axphi.Views
     {
         // ================= 拖拽核心状态变量 =================
         private Point _layerLastMousePos;
-        private double _layerVirtualPixelX;
-        private int _lastAppliedTick; // 记录上一帧的 Tick，用来算增量
 
         public AudioTrackControl()
         {
@@ -50,16 +48,10 @@ namespace Axphi.Views
         // ================= 音频块完美拖拽 & 吸附 =================
         private void AudioThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            // 🌟 取相对于外层绝对静止画板的位置，防抖！
-            _layerLastMousePos = Mouse.GetPosition(this);
-
             if (this.DataContext is AudioTrackViewModel vm)
             {
-                _layerVirtualPixelX = vm.LayerPixelXOffset;
-
-                // 记录起步时的准确 Tick
-                double exactTick = vm.Timeline.PixelToTick(_layerVirtualPixelX);
-                _lastAppliedTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
+                _layerLastMousePos = Mouse.GetPosition(this);
+                vm.OnLayerDragStarted();
             }
             e.Handled = true;
         }
@@ -72,30 +64,7 @@ namespace Axphi.Views
 
             if (this.DataContext is AudioTrackViewModel vm)
             {
-                _layerVirtualPixelX += stableDeltaX;
-
-                double exactTick = vm.Timeline.PixelToTick(_layerVirtualPixelX);
-                int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: false);
-
-                int stepDelta = snappedTick - _lastAppliedTick;
-
-                if (stepDelta != 0)
-                {
-                    _lastAppliedTick = snappedTick;
-                    vm.Chart.Offset = _lastAppliedTick;
-
-                    // ================= 🌟 核心修复 =================
-                    // 只要 Offset 发生了哪怕 1 个 Tick 的变化，
-                    // 立刻调用积分器重新计算一次当前的物理宽度，并同步给 UI！
-                    vm.LayerPixelWidth = Math.Max(10, vm.Timeline.TickToPixel(vm.AudioDurationTicks));
-                    // ===============================================
-                }
-
-                // 视觉块的平滑渲染 vs 磁吸渲染
-                if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
-                    vm.LayerPixelXOffset = vm.Timeline.TickToPixel(snappedTick);
-                else
-                    vm.LayerPixelXOffset = _layerVirtualPixelX;
+                vm.OnLayerDragDelta(stableDeltaX);
             }
             e.Handled = true;
         }
@@ -104,13 +73,25 @@ namespace Axphi.Views
         {
             if (this.DataContext is AudioTrackViewModel vm)
             {
-                // 彻底收尾：确保底层和 UI 的 X 坐标和 Width 完美对齐到物理像素上
-                vm.Chart.Offset = _lastAppliedTick;
-
-                // 🌟 直接调用 ViewModel 里的统一刷新方法，确保松手时绝对精准！
-                vm.UpdatePixels();
+                vm.OnLayerDragCompleted();
             }
             e.Handled = true;
+        }
+
+        private void AudioHeader_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is AudioTrackViewModel vm)
+            {
+                vm.HandleLayerPointerDown();
+            }
+        }
+
+        private void AudioThumb_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is AudioTrackViewModel vm)
+            {
+                vm.HandleLayerPointerDown();
+            }
         }
     }
 }

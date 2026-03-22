@@ -45,6 +45,11 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private bool _isSelected;
 
+        partial void OnIsSelectedChanged(bool value)
+        {
+            _timeline.RefreshLayerSelectionVisuals();
+        }
+
         [ObservableProperty]
         private bool _isExpanded; // 音符的属性面板是否展开
 

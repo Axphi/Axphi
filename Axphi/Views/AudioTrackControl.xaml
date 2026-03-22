@@ -16,7 +16,7 @@
 
         <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1" VerticalAlignment="Top">
             <StackPanel>
-                <Grid Height="20" Background="Transparent">
+                <Grid Height="20" Background="Transparent" PreviewMouseLeftButtonDown="AudioHeader_PreviewMouseLeftButtonDown">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="4" />
                         <ColumnDefinition Width="20" />
@@ -46,6 +46,16 @@
                         <TextBlock Foreground="#d6d6d6" Text="Audio (BGM)" FontWeight="Bold" />
                         <TextBlock Foreground="#888" Text="{Binding AudioDurationSeconds, StringFormat=' ({0:F1}s)'}" Margin="5,0,0,0" />
                     </StackPanel>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLayerSelected}" Value="True">
+                                    <Setter Property="Background" Value="#1E4A2A" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
                 </Grid>
 
                 <Grid Height="60">
@@ -86,7 +96,8 @@
                         </Style>
                     </Canvas.Style>
 
-                    <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
+                          <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
+                              PreviewMouseLeftButtonDown="AudioThumb_PreviewMouseLeftButtonDown"
                            DragStarted="AudioThumb_DragStarted"
                            DragDelta="AudioThumb_DragDelta"
                            DragCompleted="AudioThumb_DragCompleted">
@@ -119,6 +130,11 @@
                                 </Grid>
 
                                 <ControlTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsLayerSelected}" Value="True">
+                                        <Setter TargetName="LayerRect" Property="Opacity" Value="0.95" />
+                                        <Setter TargetName="LayerRect" Property="Stroke" Value="#FFFFFF" />
+                                        <Setter TargetName="LayerRect" Property="StrokeThickness" Value="1.5" />
+                                    </DataTrigger>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter TargetName="LayerRect" Property="Opacity" Value="0.8" />
                                     </Trigger>

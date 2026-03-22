@@ -166,20 +166,13 @@ namespace Axphi.Views
 
         // ================= 图层块 (LayerRect) 实时拖拽逻辑 =================
         private Point _layerLastMousePos;
-        private double _layerVirtualPixelX;
-        private int _lastAppliedTick; // 🌟 新增：记录上一帧所在的 Tick，用来算增量！
 
         private void LayerThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            _layerLastMousePos = Mouse.GetPosition(this);
-
             if (this.DataContext is TrackViewModel trackVM)
             {
-                _layerVirtualPixelX = trackVM.LayerPixelXOffset;
-
-                // 🌟 记录起步时的准确 Tick
-                double exactTick = trackVM._timeline.PixelToTick(_layerVirtualPixelX);
-                _lastAppliedTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
+                _layerLastMousePos = Mouse.GetPosition(this);
+                trackVM.OnLayerDragStarted();
             }
         }
 
@@ -191,43 +184,7 @@ namespace Axphi.Views
 
             if (this.DataContext is TrackViewModel trackVM)
             {
-                _layerVirtualPixelX += stableDeltaX;
-
-                double exactTick = trackVM._timeline.PixelToTick(_layerVirtualPixelX);
-                int snappedTick = trackVM._timeline.SnapToClosest(exactTick, isPlayhead: false);
-
-                // ================= 🌟 核心：实时增量平移 =================
-                // 算出当前帧和上一帧之间的 Tick 差值
-                int stepDelta = snappedTick - _lastAppliedTick;
-
-                // 只要发生了实质性的 Tick 移动，立刻发号施令！
-                if (stepDelta != 0)
-                {
-                    // 1. 让所有音符和关键帧实时跟着走！
-                    trackVM.BatchShiftAllItems(stepDelta);
-
-                    // 2. 更新记忆
-                    _lastAppliedTick = snappedTick;
-
-                    // ================= 🌟 补上这句！ =================
-                    // 实时同步给底层数据，防止图层在移动时被渲染器“越界误杀”！
-                    trackVM.Data.StartTick = _lastAppliedTick;
-                    // =================================================
-
-
-                    // 3. 极其关键：实时发信给渲染器，让右侧画面也能实时跟着鼠标动！
-                    CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
-                }
-                // ==========================================================
-
-                // 视觉块的平滑渲染
-                if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
-                    trackVM.LayerPixelXOffset = trackVM._timeline.TickToPixel(snappedTick);
-                else
-                    trackVM.LayerPixelXOffset = _layerVirtualPixelX;
-
-
-                
+                trackVM.OnLayerDragDelta(stableDeltaX);
             }
         }
 
@@ -235,12 +192,23 @@ namespace Axphi.Views
         {
             if (this.DataContext is TrackViewModel trackVM)
             {
-                // 🌟 彻底收尾：把最终停留的真实 Tick 存进大管家，用来抵抗未来的 Alt 缩放！
-                trackVM.LayerStartTick = _lastAppliedTick;
-                trackVM.Data.StartTick = trackVM.LayerStartTick;
-                // 确保松手时，图层块完美对齐到物理像素上
-                trackVM.LayerPixelXOffset = trackVM._timeline.TickToPixel(_lastAppliedTick);
-                
+                trackVM.OnLayerDragCompleted();
+            }
+        }
+
+        private void LayerHeader_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is TrackViewModel trackVM)
+            {
+                trackVM.HandleLayerPointerDown();
+            }
+        }
+
+        private void LayerThumb_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is TrackViewModel trackVM)
+            {
+                trackVM.HandleLayerPointerDown();
             }
         }
 

@@ -22,7 +22,7 @@
         <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1">
             <StackPanel x:Name="JudgementLineLayer">
                 <!--  图层条  -->
-                <Grid Height="20" Background="Transparent">
+                <Grid Height="20" Background="Transparent" PreviewMouseLeftButtonDown="LayerHeader_PreviewMouseLeftButtonDown">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="4" />
                         <ColumnDefinition Width="20" />
@@ -45,6 +45,19 @@
                         </ToggleButton.Template>
                     </ToggleButton>
                     <TextBlock Grid.Column="2" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="#d6d6d6" Text="{Binding TrackName}" />
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSelectedChildren}" Value="True">
+                                    <Setter Property="Background" Value="#243754" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsLayerSelected}" Value="True">
+                                    <Setter Property="Background" Value="#2D4F84" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
                 </Grid>
                 <!--  四个属性和 note  -->
                 <StackPanel Margin="24,0,0,0" Background="#252525" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
@@ -315,7 +328,8 @@
                     <!--  图层  -->
                     <Canvas Margin="8,0,0,0" Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left">
 
-                        <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
+                           <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
+                               PreviewMouseLeftButtonDown="LayerThumb_PreviewMouseLeftButtonDown"
                                DragStarted="LayerThumb_DragStarted"
                                DragDelta="LayerThumb_DragDelta"
                                DragCompleted="LayerThumb_DragCompleted">
@@ -350,7 +364,12 @@
                                     </Grid>
 
                                     <ControlTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                        <DataTrigger Binding="{Binding HasSelectedChildren}" Value="True">
+                                            <Setter TargetName="LayerRect" Property="Fill" Value="#426CA8" />
+                                            <Setter TargetName="LayerRect" Property="Stroke" Value="#B9D2FF" />
+                                            <Setter TargetName="LayerRect" Property="StrokeThickness" Value="1" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsLayerSelected}" Value="True">
                                             <Setter TargetName="LayerRect" Property="Fill" Value="#5285F3" />
                                             <Setter TargetName="LayerRect" Property="Stroke" Value="#FFF" />
                                             <Setter TargetName="LayerRect" Property="StrokeThickness" Value="1.5" />

@@ -463,6 +463,7 @@ public partial class MainWindow : Window
 
                 // 2. 🌟 新增：清空所有音符（取消选中音符本体）
                 WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
+                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Layers", null));
             }
             return;
         }
@@ -475,6 +476,7 @@ public partial class MainWindow : Window
             WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
             // 2. 🌟 新增：清空所有音符（取消选中音符本体）
             WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Layers", null));
         }
 
         GeneralTransform marqueeTransform = MarqueeRect.TransformToAncestor(TimelineMainGrid);

@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Messaging; // 用来发重绘消息
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using Axphi.Utilities; // 引入 EasingUtils 所在的命名空间
@@ -206,6 +207,38 @@ namespace Axphi.ViewModels
 
                 // 通知右侧重绘
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            });
+
+            WeakReferenceMessenger.Default.Register<TrackViewModel, ClearSelectionMessage>(this, (r, m) =>
+            {
+                if (m.GroupName == "Layers" && !ReferenceEquals(r, m.SenderToIgnore))
+                {
+                    r.IsLayerSelected = false;
+                }
+            });
+
+            WeakReferenceMessenger.Default.Register<TrackViewModel, LayersDragStartedMessage>(this, (r, m) =>
+            {
+                if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
+                {
+                    r.ReceiveLayerDragStarted();
+                }
+            });
+
+            WeakReferenceMessenger.Default.Register<TrackViewModel, LayersDragDeltaMessage>(this, (r, m) =>
+            {
+                if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
+                {
+                    r.ReceiveLayerDragDelta(m.HorizontalChange, m.DeltaTick);
+                }
+            });
+
+            WeakReferenceMessenger.Default.Register<TrackViewModel, LayersDragCompletedMessage>(this, (r, m) =>
+            {
+                if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
+                {
+                    r.ReceiveLayerDragCompleted();
+                }
             });
 
             RecalculateLanes();
@@ -714,7 +747,14 @@ namespace Axphi.ViewModels
 
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsLayerHighlighted))]
         private bool _isLayerSelected;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsLayerHighlighted))]
+        private bool _hasSelectedChildren;
+
+        public bool IsLayerHighlighted => IsLayerSelected || HasSelectedChildren;
 
 
         [ObservableProperty]
@@ -723,6 +763,111 @@ namespace Axphi.ViewModels
         // 专门用来抵抗 Alt 缩放的绝对物理时间
         [ObservableProperty]
         private int _layerStartTick = 0;
+
+        private double _layerVirtualPixelX;
+        private int _lastAppliedTick;
+
+        public void HandleLayerPointerDown()
+        {
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
+            SelectedNote = null;
+
+            bool isShiftDown = System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift);
+            bool isCtrlDown = System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control);
+
+            if (IsLayerSelected)
+            {
+                if (isCtrlDown)
+                {
+                    IsLayerSelected = false;
+                }
+                else if (isShiftDown)
+                {
+                    IsLayerSelected = true;
+                }
+
+                return;
+            }
+
+            SelectionHelper.HandleSelection("Layers", this, IsLayerSelected, value => IsLayerSelected = value);
+        }
+
+        public void OnLayerDragStarted()
+        {
+            if (!IsLayerSelected)
+            {
+                HandleLayerPointerDown();
+            }
+
+            ReceiveLayerDragStarted();
+
+            if (IsLayerSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new LayersDragStartedMessage(this));
+            }
+        }
+
+        public void OnLayerDragDelta(double horizontalChange)
+        {
+            double nextVirtualPixelX = _layerVirtualPixelX + horizontalChange;
+
+            double exactTick = _timeline.PixelToTick(nextVirtualPixelX);
+            int snappedTick = _timeline.SnapToClosest(exactTick, isPlayhead: false);
+            int deltaTick = snappedTick - _lastAppliedTick;
+
+            if (IsLayerSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new LayersDragDeltaMessage(horizontalChange, deltaTick, this));
+            }
+
+            ReceiveLayerDragDelta(horizontalChange, deltaTick);
+        }
+
+        public void OnLayerDragCompleted()
+        {
+            if (IsLayerSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new LayersDragCompletedMessage(this));
+            }
+
+            ReceiveLayerDragCompleted();
+        }
+
+        private void ReceiveLayerDragStarted()
+        {
+            _layerVirtualPixelX = LayerPixelXOffset;
+            _lastAppliedTick = LayerStartTick;
+        }
+
+        private void ReceiveLayerDragDelta(double horizontalChange, int deltaTick)
+        {
+            _layerVirtualPixelX += horizontalChange;
+
+            if (deltaTick != 0)
+            {
+                BatchShiftAllItems(deltaTick);
+                _lastAppliedTick += deltaTick;
+                Data.StartTick = _lastAppliedTick;
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+
+            if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
+            {
+                LayerPixelXOffset = _timeline.TickToPixel(_lastAppliedTick);
+            }
+            else
+            {
+                LayerPixelXOffset = _layerVirtualPixelX;
+            }
+        }
+
+        private void ReceiveLayerDragCompleted()
+        {
+            LayerStartTick = _lastAppliedTick;
+            Data.StartTick = LayerStartTick;
+            LayerPixelXOffset = _timeline.TickToPixel(_lastAppliedTick);
+        }
 
         public void BatchShiftAllItems(int deltaTick)
         {

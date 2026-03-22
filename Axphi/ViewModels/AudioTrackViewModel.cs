@@ -49,6 +49,15 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private double _layerPixelWidth;
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsLayerHighlighted))]
+        private bool _isLayerSelected;
+
+        public bool IsLayerHighlighted => IsLayerSelected;
+
+        private double _layerVirtualPixelX;
+        private int _lastAppliedTick;
+
 
         public AudioTrackViewModel(Chart chart, TimelineViewModel timeline, ProjectManager projectManager)
         {
@@ -60,6 +69,34 @@ namespace Axphi.ViewModels
 
             WeakReferenceMessenger.Default.Register<AudioTrackViewModel, ZoomScaleChangedMessage>(this, (r, m) => r.UpdatePixels());
             WeakReferenceMessenger.Default.Register<AudioTrackViewModel, KeyframesNeedSortMessage>(this, (r, m) => r.UpdatePixels());
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, ClearSelectionMessage>(this, (r, m) =>
+            {
+                if (m.GroupName == "Layers" && !ReferenceEquals(r, m.SenderToIgnore))
+                {
+                    r.IsLayerSelected = false;
+                }
+            });
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, LayersDragStartedMessage>(this, (r, m) =>
+            {
+                if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
+                {
+                    r.ReceiveLayerDragStarted();
+                }
+            });
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, LayersDragDeltaMessage>(this, (r, m) =>
+            {
+                if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
+                {
+                    r.ReceiveLayerDragDelta(m.HorizontalChange, m.DeltaTick);
+                }
+            });
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, LayersDragCompletedMessage>(this, (r, m) =>
+            {
+                if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
+                {
+                    r.ReceiveLayerDragCompleted();
+                }
+            });
 
             // 订阅音频导入事件
             WeakReferenceMessenger.Default.Register<AudioTrackViewModel, AudioLoadedMessage>(this, (r, m) =>
@@ -79,6 +116,119 @@ namespace Axphi.ViewModels
         {
             LayerPixelXOffset = _timeline.TickToPixel(Chart.Offset);
             LayerPixelWidth = Math.Max(10, _timeline.TickToPixel(AudioDurationTicks));
+        }
+
+        public void HandleLayerPointerDown()
+        {
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", null));
+            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", null));
+
+            bool isShiftDown = System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift);
+            bool isCtrlDown = System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control);
+
+            if (IsLayerSelected)
+            {
+                if (isCtrlDown)
+                {
+                    IsLayerSelected = false;
+                }
+                else if (isShiftDown)
+                {
+                    IsLayerSelected = true;
+                }
+
+                return;
+            }
+
+            SelectionHelper.HandleSelection("Layers", this, IsLayerSelected, value => IsLayerSelected = value);
+        }
+
+        public void OnLayerDragStarted()
+        {
+            if (!IsLayerSelected)
+            {
+                HandleLayerPointerDown();
+            }
+
+            ReceiveLayerDragStarted();
+
+            if (IsLayerSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new LayersDragStartedMessage(this));
+            }
+        }
+
+        public void OnLayerDragDelta(double horizontalChange)
+        {
+            double nextVirtualPixelX = _layerVirtualPixelX + horizontalChange;
+
+            double exactTick = _timeline.PixelToTick(nextVirtualPixelX);
+            int snappedTick = _timeline.SnapToClosest(exactTick, isPlayhead: false);
+            int deltaTick = snappedTick - _lastAppliedTick;
+
+            if (IsLayerSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new LayersDragDeltaMessage(horizontalChange, deltaTick, this));
+            }
+
+            ReceiveLayerDragDelta(horizontalChange, deltaTick);
+        }
+
+        public void OnLayerDragCompleted()
+        {
+            if (IsLayerSelected)
+            {
+                WeakReferenceMessenger.Default.Send(new LayersDragCompletedMessage(this));
+            }
+
+            ReceiveLayerDragCompleted();
+        }
+
+        private void ReceiveLayerDragStarted()
+        {
+            _layerVirtualPixelX = LayerPixelXOffset;
+            _lastAppliedTick = Chart.Offset;
+        }
+
+        private void ReceiveLayerDragDelta(double horizontalChange, int deltaTick)
+        {
+            _layerVirtualPixelX += horizontalChange;
+
+            if (deltaTick != 0)
+            {
+                _lastAppliedTick += deltaTick;
+                Chart.Offset = _lastAppliedTick;
+                LayerPixelWidth = Math.Max(10, _timeline.TickToPixel(AudioDurationTicks));
+            }
+
+            if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
+            {
+                LayerPixelXOffset = _timeline.TickToPixel(_lastAppliedTick);
+            }
+            else
+            {
+                LayerPixelXOffset = _layerVirtualPixelX;
+            }
+        }
+
+        private void ReceiveLayerDragCompleted()
+        {
+            Chart.Offset = _lastAppliedTick;
+            UpdatePixels();
+        }
+
+        public void DeleteAudio()
+        {
+            if (_projectManager.EditingProject != null)
+            {
+                _projectManager.EditingProject.EncodedAudio = null;
+            }
+
+            Chart.Offset = 0;
+            AudioDurationSeconds = 0;
+            WaveformPeaks = null;
+            IsLayerSelected = false;
+            UpdatePixels();
         }
 
         // ================= 🌟 异步解析音频时长与波形 =================

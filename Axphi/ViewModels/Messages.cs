@@ -54,6 +54,13 @@ namespace Axphi.ViewModels
     // 告诉所有轨道：有人挪动了音符，请重新把底层 List 按时间排序！(Note)
     public record class NotesNeedSortMessage();
 
+    // 图层拖拽协同消息
+    public record class LayersDragStartedMessage(object SenderToIgnore);
+
+    public record class LayersDragDeltaMessage(double HorizontalChange, int DeltaTick, object SenderToIgnore);
+
+    public record class LayersDragCompletedMessage(object SenderToIgnore);
+
 
     public record class UpdateRendererMessage();
 

@@ -5,6 +5,7 @@ using Axphi.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
@@ -294,8 +295,8 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void DeleteSelectedKeyframes()
         {
-            
-            bool hasDeleted = false;
+            var layersToSelectAfterDelete = new HashSet<TrackViewModel>();
+            bool hasDeletedChildren = false;
 
             // 1. 扫荡全局 BPM 轨道
             if (BpmTrack != null)
@@ -307,7 +308,7 @@ namespace Axphi.ViewModels
                     // 把底层数据和 UI 保镖一起做掉
                     CurrentChart.BpmKeyFrames.Remove(wrapper.Model);
                     BpmTrack.UIBpmKeyframes.Remove(wrapper);
-                    hasDeleted = true;
+                    hasDeletedChildren = true;
                 }
             }
 
@@ -321,7 +322,8 @@ namespace Axphi.ViewModels
                 {
                     track.Data.AnimatableProperties.Offset.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model);
                     track.UIOffsetKeyframes.Remove(wrapper);
-                    hasDeleted = true;
+                    hasDeletedChildren = true;
+                    layersToSelectAfterDelete.Add(track);
                 }
                 // Scale
                 var scaleToDelete = track.UIScaleKeyframes.Where(k => k.IsSelected).ToList();
@@ -329,7 +331,8 @@ namespace Axphi.ViewModels
                 {
                     track.Data.AnimatableProperties.Scale.KeyFrames.Remove((ScaleKeyFrame)wrapper.Model);
                     track.UIScaleKeyframes.Remove(wrapper);
-                    hasDeleted = true;
+                    hasDeletedChildren = true;
+                    layersToSelectAfterDelete.Add(track);
                 }
                 // Rotation
                 var rotationToDelete = track.UIRotationKeyframes.Where(k => k.IsSelected).ToList();
@@ -337,7 +340,8 @@ namespace Axphi.ViewModels
                 {
                     track.Data.AnimatableProperties.Rotation.KeyFrames.Remove((RotationKeyFrame)wrapper.Model);
                     track.UIRotationKeyframes.Remove(wrapper);
-                    hasDeleted = true;
+                    hasDeletedChildren = true;
+                    layersToSelectAfterDelete.Add(track);
                 }
                 // Opacity
                 var opacityToDelete = track.UIOpacityKeyframes.Where(k => k.IsSelected).ToList();
@@ -345,7 +349,17 @@ namespace Axphi.ViewModels
                 {
                     track.Data.AnimatableProperties.Opacity.KeyFrames.Remove((OpacityKeyFrame)wrapper.Model);
                     track.UIOpacityKeyframes.Remove(wrapper);
-                    hasDeleted = true;
+                    hasDeletedChildren = true;
+                    layersToSelectAfterDelete.Add(track);
+                }
+
+                var speedToDelete = track.UISpeedKeyframes.Where(k => k.IsSelected).ToList();
+                foreach (var wrapper in speedToDelete)
+                {
+                    track.Data.SpeedKeyFrames.Remove(wrapper.Model);
+                    track.UISpeedKeyframes.Remove(wrapper);
+                    hasDeletedChildren = true;
+                    layersToSelectAfterDelete.Add(track);
                 }
 
                 // ================= B. 删音符自己的关键帧 =================
@@ -353,19 +367,19 @@ namespace Axphi.ViewModels
                 {
                     // Note Offset
                     var noteOffsetDel = note.UIOffsetKeyframes.Where(k => k.IsSelected).ToList();
-                    foreach (var wrapper in noteOffsetDel) { note.Model.AnimatableProperties.Offset.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model); note.UIOffsetKeyframes.Remove(wrapper); hasDeleted = true; }
+                    foreach (var wrapper in noteOffsetDel) { note.Model.AnimatableProperties.Offset.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model); note.UIOffsetKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
 
                     // Note Scale
                     var noteScaleDel = note.UIScaleKeyframes.Where(k => k.IsSelected).ToList();
-                    foreach (var wrapper in noteScaleDel) { note.Model.AnimatableProperties.Scale.KeyFrames.Remove((ScaleKeyFrame)wrapper.Model); note.UIScaleKeyframes.Remove(wrapper); hasDeleted = true; }
+                    foreach (var wrapper in noteScaleDel) { note.Model.AnimatableProperties.Scale.KeyFrames.Remove((ScaleKeyFrame)wrapper.Model); note.UIScaleKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
 
                     // Note Rotation
                     var noteRotDel = note.UIRotationKeyframes.Where(k => k.IsSelected).ToList();
-                    foreach (var wrapper in noteRotDel) { note.Model.AnimatableProperties.Rotation.KeyFrames.Remove((RotationKeyFrame)wrapper.Model); note.UIRotationKeyframes.Remove(wrapper); hasDeleted = true; }
+                    foreach (var wrapper in noteRotDel) { note.Model.AnimatableProperties.Rotation.KeyFrames.Remove((RotationKeyFrame)wrapper.Model); note.UIRotationKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
 
                     // Note Opacity
                     var noteOpaDel = note.UIOpacityKeyframes.Where(k => k.IsSelected).ToList();
-                    foreach (var wrapper in noteOpaDel) { note.Model.AnimatableProperties.Opacity.KeyFrames.Remove((OpacityKeyFrame)wrapper.Model); note.UIOpacityKeyframes.Remove(wrapper); hasDeleted = true; }
+                    foreach (var wrapper in noteOpaDel) { note.Model.AnimatableProperties.Opacity.KeyFrames.Remove((OpacityKeyFrame)wrapper.Model); note.UIOpacityKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
 
                     // ✨ 新增：Note Kind 关键帧删除
                     if (note.Model.KindKeyFrames != null)
@@ -375,7 +389,8 @@ namespace Axphi.ViewModels
                         {
                             note.Model.KindKeyFrames.Remove((NoteKindKeyFrame)wrapper.Model);
                             note.UINoteKindKeyframes.Remove(wrapper);
-                            hasDeleted = true;
+                            hasDeletedChildren = true;
+                            layersToSelectAfterDelete.Add(track);
                         }
                     }
                 }
@@ -388,7 +403,8 @@ namespace Axphi.ViewModels
                 {
                     track.Data.Notes.Remove(note.Model);
                     track.UINotes.Remove(note);
-                    hasDeleted = true;
+                    hasDeletedChildren = true;
+                    layersToSelectAfterDelete.Add(track);
 
                     // 安全防护：如果删掉的正好是正在属性面板显示的那个音符，把面板清空
                     if (track.SelectedNote == note)
@@ -398,28 +414,96 @@ namespace Axphi.ViewModels
                 }
             }
 
-
-
-
-            // 3. 善后工作：如果真的删了东西，通知渲染器和左侧面板更新！
-            if (hasDeleted)
+            if (hasDeletedChildren)
             {
-                // 发信重绘右侧画面
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
-
-
-                // ================= 🌟 补上这句：防漏，确保删了 BPM 后音频长度正确还原 =================
-                AudioTrack?.UpdatePixels();
-
-
-                // 强制刷新一次左侧面板的数值，防止删掉关键帧后数值还停留在幽灵状态
-                int currentTick = GetCurrentTick();
-                var easingDirection = CurrentChart.KeyFrameEasingDirection;
-                BpmTrack?.SyncValuesToTime(currentTick);
-                foreach (var track in Tracks)
+                foreach (var track in layersToSelectAfterDelete)
                 {
-                    track.SyncValuesToTime(currentTick, easingDirection);
+                    track.IsLayerSelected = true;
                 }
+
+                FinalizeDeleteChanges();
+                return;
+            }
+
+            bool hasDeletedLayers = false;
+
+            if (AudioTrack?.IsLayerSelected == true)
+            {
+                AudioTrack.DeleteAudio();
+                hasDeletedLayers = true;
+            }
+
+            var tracksToDelete = Tracks.Where(track => track.IsLayerSelected).ToList();
+            foreach (var track in tracksToDelete)
+            {
+                CurrentChart.JudgementLines.Remove(track.Data);
+                Tracks.Remove(track);
+                hasDeletedLayers = true;
+            }
+
+            if (hasDeletedLayers)
+            {
+                ReindexTrackNames();
+                FinalizeDeleteChanges();
+            }
+        }
+
+        public void RefreshLayerSelectionVisuals()
+        {
+            foreach (var track in Tracks)
+            {
+                track.HasSelectedChildren = TrackHasSelectedChildren(track);
+            }
+        }
+
+        private bool TrackHasSelectedChildren(TrackViewModel track)
+        {
+            if (track.UIOffsetKeyframes.Any(k => k.IsSelected) ||
+                track.UIScaleKeyframes.Any(k => k.IsSelected) ||
+                track.UIRotationKeyframes.Any(k => k.IsSelected) ||
+                track.UIOpacityKeyframes.Any(k => k.IsSelected) ||
+                track.UISpeedKeyframes.Any(k => k.IsSelected))
+            {
+                return true;
+            }
+
+            foreach (var note in track.UINotes)
+            {
+                if (note.IsSelected ||
+                    note.UIOffsetKeyframes.Any(k => k.IsSelected) ||
+                    note.UIScaleKeyframes.Any(k => k.IsSelected) ||
+                    note.UIRotationKeyframes.Any(k => k.IsSelected) ||
+                    note.UIOpacityKeyframes.Any(k => k.IsSelected) ||
+                    note.UINoteKindKeyframes.Any(k => k.IsSelected))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void FinalizeDeleteChanges()
+        {
+            RefreshLayerSelectionVisuals();
+
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            AudioTrack?.UpdatePixels();
+
+            int currentTick = GetCurrentTick();
+            var easingDirection = CurrentChart.KeyFrameEasingDirection;
+            BpmTrack?.SyncValuesToTime(currentTick);
+            foreach (var track in Tracks)
+            {
+                track.SyncValuesToTime(currentTick, easingDirection);
+            }
+        }
+
+        private void ReindexTrackNames()
+        {
+            for (int i = 0; i < Tracks.Count; i++)
+            {
+                Tracks[i].TrackName = $"判定线图层 {i + 1}";
             }
         }
 

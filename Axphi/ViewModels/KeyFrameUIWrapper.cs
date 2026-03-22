@@ -17,6 +17,11 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private bool _isSelected;
 
+        partial void OnIsSelectedChanged(bool value)
+        {
+            _timeline.RefreshLayerSelectionVisuals();
+        }
+
         [ObservableProperty]
         private double _pixelX;
 

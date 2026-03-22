@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:comp="clr-namespace:Axphi.Components"
+                         InputMethod.IsInputMethodEnabled="False"
          Loaded="UserControl_Loaded"
              mc:Ignorable="d"
              d:DesignHeight="380" d:DesignWidth="1200">
@@ -11,6 +12,7 @@
           Background="Transparent"
           ClipToBounds="True"
         Focusable="True"
+                                InputMethod.IsInputMethodEnabled="False"
                 MouseLeave="EditorRoot_MouseLeave"
         PreviewKeyDown="EditorRoot_PreviewKeyDown"
           PreviewMouseDown="EditorRoot_PreviewMouseDown"
@@ -19,6 +21,7 @@
           PreviewMouseWheel="EditorRoot_PreviewMouseWheel">
         <comp:JudgementLineEditorCanvas x:Name="EditorCanvas"
                         Focusable="True"
+                                                InputMethod.IsInputMethodEnabled="False"
                         Editor="{Binding}"
                         MouseMove="EditorCanvas_MouseMove"
                         />

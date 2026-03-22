@@ -34,24 +34,25 @@ namespace Axphi.Components
         private static readonly Pen HoldTailHandlePen = new Pen(new SolidColorBrush(Color.FromArgb(220, 137, 186, 255)), 1.2);
         private static readonly Typeface LabelTypeface = new Typeface("Consolas");
         private static readonly BitmapImage TapImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/tap.png"));
-        private static readonly BitmapImage TapMultiHitImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/tap_mh.png"));
+        private static readonly BitmapImage TapMultiHitImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/tapHL.png"));
         private static readonly BitmapImage DragImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/drag.png"));
-        private static readonly BitmapImage DragMultiHitImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/drag_mh.png"));
+        private static readonly BitmapImage DragMultiHitImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/dragHL.png"));
         private static readonly BitmapImage HoldImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/hold.png"));
-        private static readonly BitmapImage HoldMultiHitImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/hold_mh.png"));
+        private static readonly BitmapImage HoldMultiHitImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/holdHL.png"));
         private static readonly BitmapImage FlickImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/flick.png"));
-        private static readonly BitmapImage FlickMultiHitImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/flick_mh.png"));
+        private static readonly BitmapImage FlickMultiHitImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/flickHL.png"));
         private static readonly ImageBrush HoldTailBrush;
         private static readonly ImageBrush HoldBodyBrush;
         private static readonly ImageBrush HoldHeadBrush;
         private static readonly ImageBrush HoldTailMultiHitBrush;
         private static readonly ImageBrush HoldBodyMultiHitBrush;
         private static readonly ImageBrush HoldHeadMultiHitBrush;
-        private static readonly ImageBrush HoldGlowMultiHitBrush;
         private const double BaseNoteTextureWidthPixels = 989.0;
-        private const double HoldMultiHitTailPixels = 50.0;
-        private const double HoldMultiHitHeadPixels = 45.0;
-        private const double HoldMultiHitGlowPixels = 50.0;
+        private const double HoldSegmentOverlapPixels = 1.0;
+        private const double HoldHeadPixels = 50.0;
+        private const double HoldTailPixels = 50.0;
+        private const double HoldHighlightHeadPixels = 100.0;
+        private const double HoldHighlightTailPixels = 100.0;
         private bool _isMessengerRegistered;
 
         public enum HitTargetKind
@@ -63,29 +64,38 @@ namespace Axphi.Components
 
         static JudgementLineEditorCanvas()
         {
-            HoldTailBrush = new ImageBrush(HoldImage) { Viewbox = new Rect(0, 0, 1, 1.0 / 3.0), ViewboxUnits = BrushMappingMode.RelativeToBoundingBox };
-            HoldBodyBrush = new ImageBrush(HoldImage) { Viewbox = new Rect(0, 1.0 / 3.0, 1, 1.0 / 3.0), ViewboxUnits = BrushMappingMode.RelativeToBoundingBox };
-            HoldHeadBrush = new ImageBrush(HoldImage) { Viewbox = new Rect(0, 2.0 / 3.0, 1, 1.0 / 3.0), ViewboxUnits = BrushMappingMode.RelativeToBoundingBox };
-            double multiHitHeight = Math.Max(1.0, HoldMultiHitImage.PixelHeight);
-            double multiHitBodyPixels = Math.Max(1.0, multiHitHeight - HoldMultiHitTailPixels - HoldMultiHitHeadPixels - HoldMultiHitGlowPixels);
-            HoldTailMultiHitBrush = new ImageBrush(HoldMultiHitImage)
+            double holdHeight = Math.Max(1.0, HoldImage.PixelHeight);
+            double holdBodyPixels = Math.Max(1.0, holdHeight - HoldHeadPixels - HoldTailPixels);
+            HoldHeadBrush = new ImageBrush(HoldImage)
             {
-                Viewbox = new Rect(0, 0, 1, HoldMultiHitTailPixels / multiHitHeight),
+                Viewbox = new Rect(0, (holdHeight - HoldHeadPixels) / holdHeight, 1, HoldHeadPixels / holdHeight),
+                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
+            };
+            HoldBodyBrush = new ImageBrush(HoldImage)
+            {
+                Viewbox = new Rect(0, HoldHeadPixels / holdHeight, 1, holdBodyPixels / holdHeight),
+                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
+            };
+            HoldTailBrush = new ImageBrush(HoldImage)
+            {
+                Viewbox = new Rect(0, 0, 1, HoldTailPixels / holdHeight),
+                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
+            };
+            double multiHitHeight = Math.Max(1.0, HoldMultiHitImage.PixelHeight);
+            double multiHitBodyPixels = Math.Max(1.0, multiHitHeight - HoldHighlightHeadPixels - HoldHighlightTailPixels);
+            HoldHeadMultiHitBrush = new ImageBrush(HoldMultiHitImage)
+            {
+                Viewbox = new Rect(0, (multiHitHeight - HoldHighlightHeadPixels) / multiHitHeight, 1, HoldHighlightHeadPixels / multiHitHeight),
                 ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
             };
             HoldBodyMultiHitBrush = new ImageBrush(HoldMultiHitImage)
             {
-                Viewbox = new Rect(0, HoldMultiHitTailPixels / multiHitHeight, 1, multiHitBodyPixels / multiHitHeight),
+                Viewbox = new Rect(0, HoldHighlightHeadPixels / multiHitHeight, 1, multiHitBodyPixels / multiHitHeight),
                 ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
             };
-            HoldHeadMultiHitBrush = new ImageBrush(HoldMultiHitImage)
+            HoldTailMultiHitBrush = new ImageBrush(HoldMultiHitImage)
             {
-                Viewbox = new Rect(0, (multiHitHeight - HoldMultiHitGlowPixels - HoldMultiHitHeadPixels) / multiHitHeight, 1, HoldMultiHitHeadPixels / multiHitHeight),
-                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
-            };
-            HoldGlowMultiHitBrush = new ImageBrush(HoldMultiHitImage)
-            {
-                Viewbox = new Rect(0, (multiHitHeight - HoldMultiHitGlowPixels) / multiHitHeight, 1, HoldMultiHitGlowPixels / multiHitHeight),
+                Viewbox = new Rect(0, 0, 1, HoldHighlightTailPixels / multiHitHeight),
                 ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
             };
 
@@ -122,7 +132,6 @@ namespace Axphi.Components
             if (HoldTailMultiHitBrush.CanFreeze) HoldTailMultiHitBrush.Freeze();
             if (HoldBodyMultiHitBrush.CanFreeze) HoldBodyMultiHitBrush.Freeze();
             if (HoldHeadMultiHitBrush.CanFreeze) HoldHeadMultiHitBrush.Freeze();
-            if (HoldGlowMultiHitBrush.CanFreeze) HoldGlowMultiHitBrush.Freeze();
         }
 
         public JudgementLineEditorCanvas()
@@ -449,7 +458,15 @@ namespace Axphi.Components
                 return;
             }
 
-            DrawPreviewNote(dc, kind, previewWidth, x, y, 0.58, isMultiHitPreview);
+            if (kind == NoteKind.Hold)
+            {
+                DrawPreviewHold(dc, previewWidth, x, y, 0, 0.58, true, isMultiHitPreview);
+            }
+            else
+            {
+                DrawPreviewNote(dc, kind, previewWidth, x, y, 0.58, isMultiHitPreview);
+            }
+
             double selectionSize = previewWidth + 6;
             dc.DrawRectangle(null, HoverPreviewPen, new Rect(x - selectionSize / 2, y - selectionSize / 2, selectionSize, selectionSize));
         }
@@ -457,21 +474,14 @@ namespace Axphi.Components
         private static void DrawRenderedNote(DrawingContext dc, JudgementLineEditorViewModel editor, TrackViewModel track, NoteViewModel note, Size viewportSize, JudgementLineEditorRenderMath.ViewMetrics metrics, int currentTick, double centerX, double centerY, double judgementLineY, double opacityMultiplier, bool isMultiHit)
         {
             bool isHold = note.CurrentNoteKind == NoteKind.Hold;
-            bool useMultiHitResource = isMultiHit && note.CurrentNoteKind != NoteKind.Hold;
+            bool useMultiHitResource = isMultiHit;
             bool isForwardFlow = (note.Model.CustomSpeed ?? 1.0) >= 0;
-            double holdGlowScreenHeight = 0;
-            if (isHold && useMultiHitResource)
-            {
-                double baseNotePixelWidth = GetRenderedNotePixelWidth(metrics.NotePixelWidth, note.CurrentNoteKind, true);
-                double sourceWidth = GetTexturePixelWidth(note.CurrentNoteKind, true);
-                holdGlowScreenHeight = baseNotePixelWidth * (HoldMultiHitGlowPixels / sourceWidth) * Math.Abs(note.CurrentScaleY);
-            }
 
             if (isHold)
             {
                 Rect clipRect = isForwardFlow
-                    ? new Rect(-100000, -100000, 200000, 100000 + judgementLineY + holdGlowScreenHeight)
-                    : new Rect(-100000, judgementLineY - holdGlowScreenHeight, 200000, 100000 + holdGlowScreenHeight);
+                    ? new Rect(-100000, -100000, 200000, 100000 + judgementLineY)
+                    : new Rect(-100000, judgementLineY, 200000, 100000);
                 dc.PushClip(new RectangleGeometry(clipRect));
             }
 
@@ -482,10 +492,9 @@ namespace Axphi.Components
 
             if (isHold)
             {
-                bool isHoldPassed = currentTick >= note.HitTime;
                 double holdPixelLength = JudgementLineEditorRenderMath.CalculateHoldLength(editor.Timeline, track, note, viewportSize, editor.ViewZoom);
                 double notePixelWidth = GetRenderedNotePixelWidth(metrics.NotePixelWidth, note.CurrentNoteKind, useMultiHitResource);
-                DrawHoldVisual(dc, notePixelWidth, holdPixelLength, isForwardFlow, useMultiHitResource, drawHead: !isHoldPassed);
+                DrawHoldVisual(dc, notePixelWidth, holdPixelLength, isForwardFlow, useMultiHitResource, drawHead: true);
             }
             else
             {
@@ -524,41 +533,21 @@ namespace Axphi.Components
 
         private static void DrawHoldVisual(DrawingContext dc, double notePixelWidth, double holdPixelLength, bool isForwardFlow, bool isMultiHit, bool drawHead)
         {
-            Rect headRect;
-            Rect glowRect = Rect.Empty;
-            Rect tailRect;
-            Rect bodyRect;
-
-            if (isMultiHit)
+            double sourceWidth = GetTexturePixelWidth(NoteKind.Hold, isMultiHit);
+            double headPixels = isMultiHit ? HoldHighlightHeadPixels : HoldHeadPixels;
+            double tailPixels = isMultiHit ? HoldHighlightTailPixels : HoldTailPixels;
+            double headHeight = notePixelWidth * (headPixels / sourceWidth);
+            double tailHeight = notePixelWidth * (tailPixels / sourceWidth);
+            if (holdPixelLength < tailHeight)
             {
-                double sourceWidth = HoldMultiHitImage.Width;
-                double tailHeight = notePixelWidth * (HoldMultiHitTailPixels / sourceWidth);
-                double headHeight = notePixelWidth * (HoldMultiHitHeadPixels / sourceWidth);
-                double glowHeight = notePixelWidth * (HoldMultiHitGlowPixels / sourceWidth);
-                if (holdPixelLength < tailHeight)
-                {
-                    holdPixelLength = tailHeight;
-                }
-
-                double bodyHeight = Math.Max(0, holdPixelLength - tailHeight);
-                headRect = new Rect(-notePixelWidth / 2, -headHeight, notePixelWidth, headHeight);
-                glowRect = new Rect(-notePixelWidth / 2, 0, notePixelWidth, glowHeight);
-                tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength - tailHeight / 2, notePixelWidth, tailHeight);
-                bodyRect = new Rect(-notePixelWidth / 2, -holdPixelLength + tailHeight / 2 - 1.0, notePixelWidth, bodyHeight + 1.0 + headHeight);
+                holdPixelLength = tailHeight;
             }
-            else
-            {
-                double partHeight = notePixelWidth * (50.0 / GetTexturePixelWidth(NoteKind.Hold, false));
-                if (holdPixelLength < partHeight)
-                {
-                    holdPixelLength = partHeight;
-                }
 
-                double bodyHeight = Math.Max(0, holdPixelLength - partHeight);
-                headRect = new Rect(-notePixelWidth / 2, -partHeight / 2, notePixelWidth, partHeight);
-                tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength - partHeight / 2, notePixelWidth, partHeight);
-                bodyRect = new Rect(-notePixelWidth / 2, -holdPixelLength + partHeight / 2 - 1.0, notePixelWidth, bodyHeight + 2.0);
-            }
+            double bodyHeight = Math.Max(0, holdPixelLength - tailHeight);
+            double overlap = HoldSegmentOverlapPixels;
+            Rect headRect = new Rect(-notePixelWidth / 2, -overlap, notePixelWidth, headHeight + overlap);
+            Rect tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength, notePixelWidth, tailHeight + overlap);
+            Rect bodyRect = new Rect(-notePixelWidth / 2, -bodyHeight, notePixelWidth, bodyHeight);
 
             if (!isForwardFlow)
             {
@@ -570,10 +559,6 @@ namespace Axphi.Components
             if (drawHead)
             {
                 dc.DrawRectangle(isMultiHit ? HoldHeadMultiHitBrush : HoldHeadBrush, null, headRect);
-                if (isMultiHit)
-                {
-                    dc.DrawRectangle(HoldGlowMultiHitBrush, null, glowRect);
-                }
             }
 
             if (!isForwardFlow)
@@ -630,8 +615,10 @@ namespace Axphi.Components
 
             double holdLength = JudgementLineEditorRenderMath.CalculateHoldLength(editor.Timeline, track, note, viewportSize, editor.ViewZoom) * Math.Max(scaleY, 0.1);
             bool isForwardFlow = (note.Model.CustomSpeed ?? 1.0) >= 0;
-            double top = isForwardFlow ? noteCenter.Y - holdLength - notePixelHeight / 2.0 : noteCenter.Y - notePixelHeight / 2.0;
-            double bottom = isForwardFlow ? noteCenter.Y + notePixelHeight / 2.0 : noteCenter.Y + holdLength + notePixelHeight / 2.0;
+            double headPixels = isMultiHit ? HoldHighlightHeadPixels : HoldHeadPixels;
+            double headHeight = notePixelWidth * (headPixels / GetTexturePixelWidth(NoteKind.Hold, isMultiHit)) * Math.Max(scaleY, 0.1);
+            double top = isForwardFlow ? noteCenter.Y - holdLength : noteCenter.Y - headHeight;
+            double bottom = isForwardFlow ? noteCenter.Y + headHeight : noteCenter.Y + holdLength;
             return new Rect(noteCenter.X - notePixelWidth / 2.0, top, notePixelWidth, bottom - top);
         }
 

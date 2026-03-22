@@ -33,13 +33,13 @@ namespace Axphi.Components
         // 🌟 1. 静态缓存音符图片 (路径里的 pack://application:,,,/ 是 WPF 的标准资源路径写法)
         // 请把 Resources/Notes/... 换成你实际的文件夹和文件名！
         private static readonly BitmapImage _imgTap = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/tap.png"));
-        private static readonly BitmapImage _imgTapMultiHit = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/tap_mh.png"));
+        private static readonly BitmapImage _imgTapMultiHit = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/tapHL.png"));
         private static readonly BitmapImage _imgDrag = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/drag.png"));
-        private static readonly BitmapImage _imgDragMultiHit = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/drag_mh.png"));
+        private static readonly BitmapImage _imgDragMultiHit = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/dragHL.png"));
         private static readonly BitmapImage _imgHoldHead = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/hold.png"));
-        private static readonly BitmapImage _imgHoldMultiHit = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/hold_mh.png"));
+        private static readonly BitmapImage _imgHoldMultiHit = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/holdHL.png"));
         private static readonly BitmapImage _imgFlick = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/flick.png"));
-        private static readonly BitmapImage _imgFlickMultiHit = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/flick_mh.png"));
+        private static readonly BitmapImage _imgFlickMultiHit = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/flickHL.png"));
 
 
         // 在其他静态画刷声明的地方（例如 _brushHoldHead 下方）添加：
@@ -56,11 +56,12 @@ namespace Axphi.Components
         private static readonly ImageBrush _brushHoldTailMultiHit;
         private static readonly ImageBrush _brushHoldBodyMultiHit;
         private static readonly ImageBrush _brushHoldHeadMultiHit;
-        private static readonly ImageBrush _brushHoldGlowMultiHit;
         private const double BaseNoteTextureWidthPixels = 989.0;
-        private const double HoldMultiHitTailPixels = 50.0;
-        private const double HoldMultiHitHeadPixels = 45.0;
-        private const double HoldMultiHitGlowPixels = 50.0;
+        private const double HoldSegmentOverlapPixels = 1.0;
+        private const double HoldHeadPixels = 50.0;
+        private const double HoldTailPixels = 50.0;
+        private const double HoldHighlightHeadPixels = 100.0;
+        private const double HoldHighlightTailPixels = 100.0;
 
 
         // 3. 用静态构造函数初始化切图
@@ -68,14 +69,23 @@ namespace Axphi.Components
         {
             var imgHold = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/hold.png", UriKind.Absolute));
 
-            // Viewbox 的四个参数分别是：X比例, Y比例, 宽比例, 高比例
-            // 因为图片高150，三等分的话，每份高 50/150 = 1/3
-            // 上：0 ~ 1/3 (尾巴)
-            _brushHoldTail = new ImageBrush(imgHold) { Viewbox = new Rect(0, 0, 1, 1.0 / 3.0), ViewboxUnits = BrushMappingMode.RelativeToBoundingBox };
-            // 中：1/3 ~ 2/3 (拉伸身体)
-            _brushHoldBody = new ImageBrush(imgHold) { Viewbox = new Rect(0, 1.0 / 3.0, 1, 1.0 / 3.0), ViewboxUnits = BrushMappingMode.RelativeToBoundingBox };
-            // 下：2/3 ~ 1 (头部)
-            _brushHoldHead = new ImageBrush(imgHold) { Viewbox = new Rect(0, 2.0 / 3.0, 1, 1.0 / 3.0), ViewboxUnits = BrushMappingMode.RelativeToBoundingBox };
+            double holdHeight = Math.Max(1.0, imgHold.PixelHeight);
+            double holdBodyPixels = Math.Max(1.0, holdHeight - HoldHeadPixels - HoldTailPixels);
+            _brushHoldHead = new ImageBrush(imgHold)
+            {
+                Viewbox = new Rect(0, (holdHeight - HoldHeadPixels) / holdHeight, 1, HoldHeadPixels / holdHeight),
+                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
+            };
+            _brushHoldBody = new ImageBrush(imgHold)
+            {
+                Viewbox = new Rect(0, HoldHeadPixels / holdHeight, 1, holdBodyPixels / holdHeight),
+                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
+            };
+            _brushHoldTail = new ImageBrush(imgHold)
+            {
+                Viewbox = new Rect(0, 0, 1, HoldTailPixels / holdHeight),
+                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
+            };
 
             // 冻结画刷以获得极限渲染性能
             _brushHoldTail.Freeze();
@@ -83,31 +93,25 @@ namespace Axphi.Components
             _brushHoldHead.Freeze();
 
             double mhHeight = Math.Max(1.0, _imgHoldMultiHit.PixelHeight);
-            double mhBodyPixels = Math.Max(1.0, mhHeight - HoldMultiHitTailPixels - HoldMultiHitHeadPixels - HoldMultiHitGlowPixels);
-            _brushHoldTailMultiHit = new ImageBrush(_imgHoldMultiHit)
+            double mhBodyPixels = Math.Max(1.0, mhHeight - HoldHighlightHeadPixels - HoldHighlightTailPixels);
+            _brushHoldHeadMultiHit = new ImageBrush(_imgHoldMultiHit)
             {
-                Viewbox = new Rect(0, 0, 1, HoldMultiHitTailPixels / mhHeight),
+                Viewbox = new Rect(0, (mhHeight - HoldHighlightHeadPixels) / mhHeight, 1, HoldHighlightHeadPixels / mhHeight),
                 ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
             };
             _brushHoldBodyMultiHit = new ImageBrush(_imgHoldMultiHit)
             {
-                Viewbox = new Rect(0, HoldMultiHitTailPixels / mhHeight, 1, mhBodyPixels / mhHeight),
+                Viewbox = new Rect(0, HoldHighlightHeadPixels / mhHeight, 1, mhBodyPixels / mhHeight),
                 ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
             };
-            _brushHoldHeadMultiHit = new ImageBrush(_imgHoldMultiHit)
+            _brushHoldTailMultiHit = new ImageBrush(_imgHoldMultiHit)
             {
-                Viewbox = new Rect(0, (mhHeight - HoldMultiHitGlowPixels - HoldMultiHitHeadPixels) / mhHeight, 1, HoldMultiHitHeadPixels / mhHeight),
+                Viewbox = new Rect(0, 0, 1, HoldHighlightTailPixels / mhHeight),
                 ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
             };
-            _brushHoldGlowMultiHit = new ImageBrush(_imgHoldMultiHit)
-            {
-                Viewbox = new Rect(0, (mhHeight - HoldMultiHitGlowPixels) / mhHeight, 1, HoldMultiHitGlowPixels / mhHeight),
-                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
-            };
-            _brushHoldTailMultiHit.Freeze();
-            _brushHoldBodyMultiHit.Freeze();
             _brushHoldHeadMultiHit.Freeze();
-            _brushHoldGlowMultiHit.Freeze();
+            _brushHoldBodyMultiHit.Freeze();
+            _brushHoldTailMultiHit.Freeze();
 
 
             _perfectFxBrush.Freeze();
@@ -502,24 +506,11 @@ namespace Axphi.Components
 
             // ================= 🌟 魔法点 1：施加隐形裁切蒙版 (Clip) 🌟 =================
             bool isHold = currentKind == NoteKind.Hold;
-            bool useMultiHitResource = isMultiHit && currentKind != NoteKind.Hold;
-            bool isHoldPassed = isHold && currentTick >= note.HitTime;
-            double holdGlowScreenHeight = 0;
-            if (isHold && useMultiHitResource)
-            {
-                double baseNotePixelWidth = GetRenderedNotePixelWidth(renderInfo.ChartUnitToPixel(1.95), currentKind, true);
-                double sourceWidth = GetTexturePixelWidth(currentKind, true);
-                holdGlowScreenHeight = baseNotePixelWidth * (HoldMultiHitGlowPixels / sourceWidth) * Math.Abs(scale.Y);
-            }
+            bool useMultiHitResource = isMultiHit;
 
             if (isHold)
             {
-                // 我们在判定线（Y=0）的上方画一张无限大的隐形纸！
-                // Rect 的参数：X, Y, Width, Height。
-                // 从 Y = -100000 开始，高度 100000，正好切在 Y=0（判定线中轴线）的位置。
-                // 只有在这个矩形范围内的画面才会被显示，越过判定线（Y>0）的部分直接被隐形！
-                double clipBottom = holdGlowScreenHeight;
-                var clipGeometry = new RectangleGeometry(new Rect(-100000, -100000, 200000, 100000 + clipBottom));
+                var clipGeometry = new RectangleGeometry(new Rect(-100000, -100000, 200000, 100000));
                 drawingContext.PushClip(clipGeometry);
             }
             // =========================================================================
@@ -530,8 +521,6 @@ namespace Axphi.Components
             // ================= 5. 开始画图 =================
             if (currentKind == NoteKind.Hold)
             {
-                // 🌟 魔法点 2：恢复它真实的物理全长，不要去缩短它！
-                // 因为有了蒙版，它无论多长，只要越过线就会被切掉。
                 double endTimeSeconds = TimeTickConverter.TickToTime(note.HitTime + note.HoldDuration, chart.BpmKeyFrames, chart.InitialBpm);
                 double holdDistance = 0;
 
@@ -549,55 +538,24 @@ namespace Axphi.Components
                 double holdPixelLength = Math.Abs(holdDistance);
 
                 double notePixelWidth = GetRenderedNotePixelWidth(renderInfo.ChartUnitToPixel(1.95), currentKind, useMultiHitResource);
-                Rect headRect;
-                Rect glowRect = Rect.Empty;
-                Rect tailRect;
-                Rect bodyRect;
+                double sourceWidth = GetTexturePixelWidth(currentKind, useMultiHitResource);
+                double headPixels = useMultiHitResource ? HoldHighlightHeadPixels : HoldHeadPixels;
+                double tailPixels = useMultiHitResource ? HoldHighlightTailPixels : HoldTailPixels;
+                double headHeight = notePixelWidth * (headPixels / sourceWidth);
+                double tailHeight = notePixelWidth * (tailPixels / sourceWidth);
+                if (holdPixelLength < tailHeight) holdPixelLength = tailHeight;
 
-                if (useMultiHitResource)
-                {
-                    double sourceWidth = GetTexturePixelWidth(currentKind, true);
-                    double tailHeight = notePixelWidth * (HoldMultiHitTailPixels / sourceWidth);
-                    double headHeight = notePixelWidth * (HoldMultiHitHeadPixels / sourceWidth);
-                    double glowHeight = notePixelWidth * (HoldMultiHitGlowPixels / sourceWidth);
-                    if (holdPixelLength < tailHeight) holdPixelLength = tailHeight;
-
-                    double bodyHeight = Math.Max(0, holdPixelLength - tailHeight);
-                    headRect = new Rect(-notePixelWidth / 2, -headHeight, notePixelWidth, headHeight);
-                    glowRect = new Rect(-notePixelWidth / 2, 0, notePixelWidth, glowHeight);
-                    tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength - tailHeight / 2, notePixelWidth, tailHeight);
-
-                    double overlap = 1.0;
-                    bodyRect = new Rect(-notePixelWidth / 2, -holdPixelLength + tailHeight / 2 - overlap, notePixelWidth, bodyHeight + overlap + headHeight);
-                }
-                else
-                {
-                    double partHeight = notePixelWidth * (50.0 / GetTexturePixelWidth(currentKind, false));
-                    if (holdPixelLength < partHeight) holdPixelLength = partHeight;
-
-                    double bodyHeight = Math.Max(0, holdPixelLength - partHeight);
-                    headRect = new Rect(-notePixelWidth / 2, -partHeight / 2, notePixelWidth, partHeight);
-                    tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength - partHeight / 2, notePixelWidth, partHeight);
-
-                    double overlap = 1.0;
-                    bodyRect = new Rect(-notePixelWidth / 2, -holdPixelLength + partHeight / 2 - overlap, notePixelWidth, bodyHeight + overlap * 2.0);
-                }
+                double bodyHeight = Math.Max(0, holdPixelLength - tailHeight);
+                double overlap = HoldSegmentOverlapPixels;
+                Rect headRect = new Rect(-notePixelWidth / 2, -overlap, notePixelWidth, headHeight + overlap);
+                Rect tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength, notePixelWidth, tailHeight + overlap);
+                Rect bodyRect = new Rect(-notePixelWidth / 2, -bodyHeight, notePixelWidth, bodyHeight);
 
                 if (isFlipped) drawingContext.PushTransform(new ScaleTransform(1, -1));
 
-                // 身体和尾巴照常画，越线的部位交给外层的蒙版去切
                 drawingContext.DrawRectangle(useMultiHitResource ? _brushHoldBodyMultiHit : _brushHoldBody, null, bodyRect);
                 drawingContext.DrawRectangle(useMultiHitResource ? _brushHoldTailMultiHit : _brushHoldTail, null, tailRect);
-
-                // 🌟 魔法点 3：如果越线了，"头"直接完全消失，不画了！
-                if (!isHoldPassed)
-                {
-                    drawingContext.DrawRectangle(useMultiHitResource ? _brushHoldHeadMultiHit : _brushHoldHead, null, headRect);
-                    if (useMultiHitResource)
-                    {
-                        drawingContext.DrawRectangle(_brushHoldGlowMultiHit, null, glowRect);
-                    }
-                }
+                drawingContext.DrawRectangle(useMultiHitResource ? _brushHoldHeadMultiHit : _brushHoldHead, null, headRect);
 
                 if (isFlipped) drawingContext.Pop();
             }

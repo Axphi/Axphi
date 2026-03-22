@@ -720,14 +720,39 @@ public partial class MainWindow : Window
     }
 
 
-    // ================= 拦截 Alt 键按下，防止系统菜单抢夺焦点 =================
+    // ================= 全局按键拦截 (Alt, 空格等全局快捷键) =================
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
-        // 如果按下的是系统键，且具体按键是左 Alt 或 右 Alt
+        // 1. 拦截 Alt 键按下，防止系统菜单抢夺焦点
         if (e.Key == Key.System && (e.SystemKey == Key.LeftAlt || e.SystemKey == Key.RightAlt))
         {
             e.Handled = true; // 拦截它！不准激活系统菜单！
         }
+
+        // 2. 🌟 核心修复：全局拦截空格键，强制接管播放/暂停！
+        if (e.Key == Key.Space)
+        {
+            // 防御性设计：如果焦点在输入框 (TextBox) 里，千万别拦截，让用户能正常打字！
+            if (Keyboard.FocusedElement is TextBox)
+            {
+                base.OnPreviewKeyDown(e);
+                return;
+            }
+
+            // 拦截掉这个空格键！这样它就不会触发任何按钮的 Click 事件了
+            e.Handled = true;
+
+            // 调用你之前在 ChartDisplay 里写好的公开 API 进行播放/暂停切换
+            if (MainChartDisplay.IsPlaying)
+            {
+                MainChartDisplay.ForcePause();
+            }
+            else
+            {
+                MainChartDisplay.ForceResume();
+            }
+        }
+
         base.OnPreviewKeyDown(e);
     }
 

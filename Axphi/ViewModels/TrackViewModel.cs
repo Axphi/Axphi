@@ -75,6 +75,12 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private double _currentOpacity = 100.0; // 默认透明度给 100
 
+        [RelayCommand]
+        private void EnterJudgementLineEditor()
+        {
+            _timeline.JudgementLineEditor.Open(this);
+        }
+
         
 
         // ================= 4. 构造函数 =================
@@ -624,11 +630,17 @@ namespace Axphi.ViewModels
             // 1. 将 XAML 传进来的字符串 (比如 "Tap") 转化为枚举
             if (!Enum.TryParse<NoteKind>(kindStr, out var kind)) return;
 
-            // 2. 问大管家现在是第几个 Tick
+            CreateNoteAt(kind, _timeline.GetCurrentTick(), 0);
+        }
+
+        public NoteViewModel CreateNoteAt(NoteKind kind, int hitTick, double offsetX)
+        {
             int currentTick = _timeline.GetCurrentTick();
 
-            // 3. 实例化底层的纯净数据，并加进底层的 List
+            // 2. 实例化底层的纯净数据，并加进底层的 List
             var newNote = new Note(kind, currentTick);
+            newNote.HitTime = hitTick;
+            newNote.AnimatableProperties.Offset.InitialValue = new Vector(offsetX, 0);
             if (Data.Notes == null) Data.Notes = new List<Note>();
             Data.Notes.Add(newNote);
 
@@ -651,6 +663,7 @@ namespace Axphi.ViewModels
 
             // 6. 大喊一声：有人空降了！大家重新排个序，顺便刷新一下右侧画面！
             WeakReferenceMessenger.Default.Send(new NotesNeedSortMessage());
+            return newNoteVM;
         }
 
 

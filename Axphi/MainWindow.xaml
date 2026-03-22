@@ -377,11 +377,26 @@
                 </comp:TabPane>
 
                 <!--  渲染窗口  -->
-                <DockPanel Grid.Row="0" Grid.Column="1">
-
+                <Grid Grid.Row="0" Grid.Column="1">
                     <v:ChartDisplay x:Name="MainChartDisplay" />
 
-                </DockPanel>
+                    <Grid IsHitTestVisible="True" ClipToBounds="True">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Timeline.JudgementLineEditor.IsVisible}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+
+                        <Border Background="#e0000000" />
+
+                        <v:JudgementLineEditorView DataContext="{Binding Timeline.JudgementLineEditor}" />
+                    </Grid>
+                </Grid>
             </Grid>
         </DockPanel>
     </ws:WindowContentAdapter>

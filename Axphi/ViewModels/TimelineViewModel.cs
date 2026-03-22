@@ -170,6 +170,7 @@ namespace Axphi.ViewModels
         public ObservableCollection<TrackViewModel> Tracks { get; } = new ObservableCollection<TrackViewModel>();
 
         public NoteSelectionPanelViewModel NoteSelectionPanel { get; }
+        public JudgementLineEditorViewModel JudgementLineEditor { get; }
 
         [ObservableProperty]
         private TrackViewModel? _activeNotePanelOwner;
@@ -185,6 +186,7 @@ namespace Axphi.ViewModels
 
             _projectManager = projectManager; // 存进私有变量
             NoteSelectionPanel = new NoteSelectionPanelViewModel(this);
+            JudgementLineEditor = new JudgementLineEditorViewModel(this);
 
 
             // 🌟 必须加上这行！让它一出生就计算宽度！
@@ -362,6 +364,7 @@ namespace Axphi.ViewModels
             Tracks.Clear();
             ActiveNotePanelOwner = null;
             NoteSelectionPanel.SyncSelection(Array.Empty<NoteViewModel>());
+            JudgementLineEditor.CloseCommand.Execute(null);
 
             // 3. 请上新演员：遍历新谱面里的判定线，挨个给它们创建前端代理人
             if (CurrentChart.JudgementLines != null)

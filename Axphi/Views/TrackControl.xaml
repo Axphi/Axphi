@@ -27,6 +27,7 @@
                         <ColumnDefinition Width="4" />
                         <ColumnDefinition Width="20" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Rectangle Grid.Column="0" Fill="#FFD700" />
                     <ToggleButton Grid.Column="1" Cursor="Hand" IsChecked="{Binding IsExpanded, Mode=TwoWay}">
@@ -45,6 +46,18 @@
                         </ToggleButton.Template>
                     </ToggleButton>
                     <TextBlock Grid.Column="2" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="#d6d6d6" Text="{Binding TrackName}" />
+                        <Button Grid.Column="3"
+                            Margin="0,2,6,2"
+                            Padding="6,0"
+                            VerticalAlignment="Center"
+                            Command="{Binding EnterJudgementLineEditorCommand}"
+                            Content="Edit"
+                            FontSize="10"
+                            Background="#394459"
+                            Foreground="#DDE6F6"
+                            BorderBrush="#55627A"
+                            BorderThickness="1"
+                            Cursor="Hand" />
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Background" Value="Transparent" />

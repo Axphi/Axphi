@@ -32,6 +32,7 @@ namespace Axphi.ViewModels
         // 1. 缩放比例 (Zoom)：相当于按住 Alt 滚轮修改的值，默认是 1.0
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(TotalPixelWidth))]
+        [NotifyPropertyChangedFor(nameof(TimelineSurfaceWidth))]
         [NotifyPropertyChangedFor(nameof(MaxScrollOffset))]// 当 Zoom 改变时，通知界面重新获取总宽度
         private double _zoomScale = 1.0;
 
@@ -39,6 +40,7 @@ namespace Axphi.ViewModels
         // 假设一首 2 分钟的 120BPM 歌曲，大约有 240 拍 * 32 = 7680 个 Tick。我们先给个默认值 10000 够长了。
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(TotalPixelWidth))]
+        [NotifyPropertyChangedFor(nameof(TimelineSurfaceWidth))]
         [NotifyPropertyChangedFor(nameof(MaxScrollOffset))]
         private int _totalDurationTicks = 10000;
 
@@ -48,6 +50,8 @@ namespace Axphi.ViewModels
 
         // 4. 【核心魔法】计算出右侧轨道的物理总像素宽度！UI 会绑定这个值！
         public double TotalPixelWidth => TotalDurationTicks * BasePixelsPerTick * ZoomScale;
+
+        public double TimelineSurfaceWidth => TotalPixelWidth + RightEmptyPadding;
 
         // ================= 🌟 新增：滚动条防越界限制 =================
         [ObservableProperty]

@@ -37,7 +37,7 @@
                       VerticalScrollBarVisibility="Disabled"
                       PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
-                <Border Width="{Binding Timeline.TotalPixelWidth}" Height="24" HorizontalAlignment="Left" Background="#2b1d1d">
+                <Border Width="{Binding Timeline.TimelineSurfaceWidth}" Height="24" HorizontalAlignment="Left" Background="#2b1d1d">
                     <ItemsControl ItemsSource="{Binding UIBpmKeyframes}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>

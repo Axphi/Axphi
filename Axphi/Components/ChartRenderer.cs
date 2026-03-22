@@ -26,6 +26,8 @@ namespace Axphi.Components
         private static SolidColorBrush _noteDrag = new SolidColorBrush(Color.FromRgb(255, 222, 145));
         private static SolidColorBrush _noteHold = new SolidColorBrush(Color.FromRgb(81, 180, 255));
 
+        private const double BaseVerticalFlowPixelsPerSecondAt1080 = 648.0;
+
 
 
         // 🌟 1. 静态缓存音符图片 (路径里的 pack://application:,,,/ 是 WPF 的标准资源路径写法)
@@ -272,7 +274,12 @@ namespace Axphi.Components
 
         }
         // ================= 核心：数值积分求真实下落距离 =================
-        private static double CalculateIntegralDistance(int startTick, int endTick, JudgementLine line, Chart chart)
+        private static double GetBaseVerticalFlowPixelsPerSecond(RenderInfo renderInfo)
+        {
+            return BaseVerticalFlowPixelsPerSecondAt1080 * (renderInfo.ClientHeight / 1080.0);
+        }
+
+        private static double CalculateIntegralDistance(int startTick, int endTick, JudgementLine line, Chart chart, double noteSpeedMultiplier, RenderInfo renderInfo)
         {
             if (startTick == endTick) return 0;
 
@@ -318,7 +325,10 @@ namespace Axphi.Components
                 totalDistance += midSpeed * (sec2 - sec1);
             }
 
-            return startTick <= endTick ? totalDistance : -totalDistance;
+            double baseVerticalFlowPixelsPerSecond = GetBaseVerticalFlowPixelsPerSecond(renderInfo);
+            double pixelDistance = totalDistance * baseVerticalFlowPixelsPerSecond * noteSpeedMultiplier;
+
+            return startTick <= endTick ? pixelDistance : -pixelDistance;
         }
         private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, int currentTick, bool drawLine, bool drawNotes)
         {
@@ -406,9 +416,11 @@ namespace Axphi.Components
             // ================= 3. 计算物理下落距离 (保持真实下落，绝不定住！) =================
             double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, chart.InitialBpm);
             double hitTimeSeconds = TimeTickConverter.TickToTime(note.HitTime, chart.BpmKeyFrames, chart.InitialBpm);
+            double noteSpeedMultiplier = note.CustomSpeed ?? 1.0;
+            double baseVerticalFlowPixelsPerSecond = GetBaseVerticalFlowPixelsPerSecond(renderInfo);
 
             double currentRealtimeSpeed = line.InitialSpeed;
-            if (line.SpeedMode == "Realtime" && !note.CustomSpeed.HasValue)
+            if (line.SpeedMode == "Realtime")
             {
                 EasingUtils.CalculateObjectSingleTransform(
                     currentTick, chart.KeyFrameEasingDirection,
@@ -416,14 +428,19 @@ namespace Axphi.Components
                     Axphi.Utilities.MathUtils.Lerp, out currentRealtimeSpeed);
             }
 
-            double distance = 0;
-            if (note.CustomSpeed.HasValue) distance = note.CustomSpeed.Value * (hitTimeSeconds - currentSeconds);
-            else if (line.SpeedMode == "Realtime") distance = currentRealtimeSpeed * (hitTimeSeconds - currentSeconds);
-            else distance = CalculateIntegralDistance(currentTick, note.HitTime, line, chart);
+            double pixelDistance = 0;
+            if (line.SpeedMode == "Realtime")
+            {
+                double actualPixelsPerSecond = baseVerticalFlowPixelsPerSecond * currentRealtimeSpeed * noteSpeedMultiplier;
+                pixelDistance = actualPixelsPerSecond * (hitTimeSeconds - currentSeconds);
+            }
+            else
+            {
+                pixelDistance = CalculateIntegralDistance(currentTick, note.HitTime, line, chart, noteSpeedMultiplier, renderInfo);
+            }
 
             // 距离取反（屏幕上方是负方向）
-            distance = -distance;
-            var pixelDistance = renderInfo.ChartUnitToPixel(distance);
+            pixelDistance = -pixelDistance;
 
             // 计算音符本体的变换和透明度
             EasingUtils.CalculateObjectTransform(
@@ -468,12 +485,18 @@ namespace Axphi.Components
                 double endTimeSeconds = TimeTickConverter.TickToTime(note.HitTime + note.HoldDuration, chart.BpmKeyFrames, chart.InitialBpm);
                 double holdDistance = 0;
 
-                if (note.CustomSpeed.HasValue) holdDistance = note.CustomSpeed.Value * (endTimeSeconds - hitTimeSeconds);
-                else if (line.SpeedMode == "Realtime") holdDistance = currentRealtimeSpeed * (endTimeSeconds - hitTimeSeconds);
-                else holdDistance = CalculateIntegralDistance(note.HitTime, note.HitTime + note.HoldDuration, line, chart);
+                if (line.SpeedMode == "Realtime")
+                {
+                    double actualPixelsPerSecond = baseVerticalFlowPixelsPerSecond * currentRealtimeSpeed * noteSpeedMultiplier;
+                    holdDistance = actualPixelsPerSecond * (endTimeSeconds - hitTimeSeconds);
+                }
+                else
+                {
+                    holdDistance = CalculateIntegralDistance(note.HitTime, note.HitTime + note.HoldDuration, line, chart, noteSpeedMultiplier, renderInfo);
+                }
 
                 bool isFlipped = holdDistance < 0;
-                double holdPixelLength = renderInfo.ChartUnitToPixel(Math.Abs(holdDistance));
+                double holdPixelLength = Math.Abs(holdDistance);
 
                 double notePixelWidth = renderInfo.ChartUnitToPixel(1.95);
                 double partHeight = notePixelWidth * (50.0 / 989.0);

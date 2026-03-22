@@ -5,18 +5,18 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
 using NAudio.Wave;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Axphi.ViewModels
 {
     public partial class AudioTrackViewModel : ObservableObject
     {
         public TimelineViewModel _timeline;
-        // 🌟 暴露给 XAML 和 UI 代码后台使用
         public TimelineViewModel Timeline => _timeline;
 
         private readonly ProjectManager _projectManager;
-
         public Chart Chart { get; }
 
         [ObservableProperty]
@@ -26,28 +26,23 @@ namespace Axphi.ViewModels
         [NotifyPropertyChangedFor(nameof(AudioDurationTicks))]
         private double _audioDurationSeconds = 0;
 
-        // ================= 🌟 核心修复：基于积分的动态跨度计算 =================
+        // ================= 🌟 新增：存放波形峰值数据的数组 =================
+        [ObservableProperty]
+        private float[]? _waveformPeaks;
+
+        // ================= 基于积分的动态跨度计算 =================
         public int AudioDurationTicks
         {
             get
             {
                 if (Chart == null || AudioDurationSeconds <= 0) return 0;
-
-                // 1. 算出音频图层左边界（Offset）在宇宙中的绝对起步秒数
                 double startSeconds = TimeTickConverter.TickToTime(Chart.Offset, Chart.BpmKeyFrames, Chart.InitialBpm);
-
-                // 2. 加上音频自身的物理总时长（秒），得到它结束时的绝对秒数
                 double endSeconds = startSeconds + AudioDurationSeconds;
-
-                // 3. 召唤你的积分器！把结束的物理秒数，反推回宇宙中绝对的结束 Tick！
                 double exactEndTick = TimeTickConverter.TimeToTick(endSeconds, Chart.BpmKeyFrames, Chart.InitialBpm);
-
-                // 4. 结束的 Tick 减去 起步的 Tick(Offset) = 这个音频在当前 BPM 环境下跨越的总 Tick 长度！
                 return (int)Math.Round(exactEndTick - Chart.Offset, MidpointRounding.AwayFromZero);
             }
         }
 
-        // ================= 🌟 改为和 TrackViewModel 相同的独立 UI 属性 =================
         [ObservableProperty]
         private double _layerPixelXOffset;
 
@@ -61,50 +56,42 @@ namespace Axphi.ViewModels
             _timeline = timeline;
             _projectManager = projectManager;
 
-            // 1. 出生时计算一次
             UpdatePixels();
 
-            // 2. 完美适配 Alt 缩放
-            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, ZoomScaleChangedMessage>(this, (r, m) =>
-            {
-                r.UpdatePixels();
-            });
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, ZoomScaleChangedMessage>(this, (r, m) => r.UpdatePixels());
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, KeyframesNeedSortMessage>(this, (r, m) => r.UpdatePixels());
 
-            // 3. 订阅音频导入事件
+            // 订阅音频导入事件
             WeakReferenceMessenger.Default.Register<AudioTrackViewModel, AudioLoadedMessage>(this, (r, m) =>
             {
-                r.LoadDurationFromFile(m.FilePath);
+                // 改为异步调用，防止扫描波形时卡住界面
+                _ = r.LoadAudioDataFromFileAsync(m.FilePath);
             });
 
-            // 4. 防御性加载
+            // 防御性加载
             if (_projectManager.EditingProject?.EncodedAudio != null)
             {
-                LoadDurationFromBytes(_projectManager.EditingProject.EncodedAudio);
+                _ = LoadAudioDataFromBytesAsync(_projectManager.EditingProject.EncodedAudio);
             }
-
-
-            // (加在构造函数里) 监听关键帧变动（包括 BPM 关键帧被拖拽重排）
-            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, KeyframesNeedSortMessage>(this, (r, m) =>
-            {
-                r.UpdatePixels();
-            });
         }
 
-        // 根据底层数据（Chart.Offset 和 Duration）强制重算像素！
         public void UpdatePixels()
         {
             LayerPixelXOffset = _timeline.TickToPixel(Chart.Offset);
             LayerPixelWidth = Math.Max(10, _timeline.TickToPixel(AudioDurationTicks));
-            LayerPixelWidth = Math.Max(10, _timeline.TickToPixel(AudioDurationTicks));
         }
 
-        private void LoadDurationFromFile(string filePath)
+        // ================= 🌟 异步解析音频时长与波形 =================
+        private async Task LoadAudioDataFromFileAsync(string filePath)
         {
             try
             {
                 using var reader = new AudioFileReader(filePath);
                 AudioDurationSeconds = reader.TotalTime.TotalSeconds;
                 UpdatePixels();
+
+                // 提取波形数据（交给后台线程算，算完更新 UI）
+                WaveformPeaks = await Task.Run(() => GetPeaks(reader));
             }
             catch (Exception ex)
             {
@@ -112,7 +99,7 @@ namespace Axphi.ViewModels
             }
         }
 
-        private void LoadDurationFromBytes(byte[] audioBytes)
+        private async Task LoadAudioDataFromBytesAsync(byte[] audioBytes)
         {
             if (audioBytes == null || audioBytes.Length == 0) return;
             try
@@ -120,18 +107,43 @@ namespace Axphi.ViewModels
                 string tempFile = Path.GetTempFileName();
                 File.WriteAllBytes(tempFile, audioBytes);
 
-                using (var reader = new MediaFoundationReader(tempFile))
-                {
-                    AudioDurationSeconds = reader.TotalTime.TotalSeconds;
-                }
+                using var reader = new MediaFoundationReader(tempFile);
+                AudioDurationSeconds = reader.TotalTime.TotalSeconds;
+                UpdatePixels();
+
+                // MediaFoundationReader 默认吐出的是 byte[]，我们需要转换成 Float 采样提供器
+                var sampleProvider = reader.ToSampleProvider();
+                WaveformPeaks = await Task.Run(() => GetPeaks(sampleProvider));
 
                 File.Delete(tempFile);
-                UpdatePixels();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"从内存读取音频时长失败: {ex.Message}");
             }
+        }
+
+        // ================= 🌟 核心算法：提取音频包络峰值 =================
+        private float[] GetPeaks(ISampleProvider provider)
+        {
+            // 我们设定一秒钟提取 100 个点（10ms 一个点，这个精度对于画图足够了且性能好）
+            int samplesPerPixel = provider.WaveFormat.SampleRate * provider.WaveFormat.Channels / 100;
+            float[] buffer = new float[samplesPerPixel];
+            int read;
+            var peakList = new List<float>();
+
+            // 一段一段读，找出这段里面声音最大的那个点（振幅）
+            while ((read = provider.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                float max = 0;
+                for (int i = 0; i < read; i++)
+                {
+                    float val = Math.Abs(buffer[i]);
+                    if (val > max) max = val;
+                }
+                peakList.Add(max);
+            }
+            return peakList.ToArray();
         }
     }
 }

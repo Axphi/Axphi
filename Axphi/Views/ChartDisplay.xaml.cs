@@ -8,6 +8,7 @@ using NAudio.Utils;
 using NAudio.Wave; // 需要引用 NAudio
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -22,6 +23,7 @@ namespace Axphi.Views
         private WasapiOut? _wasapiOut;
         private DispatcherTimer? _dispatcherTimer;
         private Stopwatch? _renderStopwatch;
+        private string? _temporaryAudioFilePath;
 
 
         // 【新增】用来记住你刚刚拖拽到了哪里
@@ -115,19 +117,47 @@ namespace Axphi.Views
         /// </summary>
         public void LoadAudio(string fileName)
         {
-            _wasapiOut?.Stop();
-            _wasapiOut?.Dispose();
-            _musicReader?.Dispose();
+            ResetLoadedAudio();
+            LoadAudioFromFile(fileName, isTemporaryFile: false);
+        }
 
+        public void LoadAudio(byte[]? audioBytes)
+        {
+            ResetLoadedAudio();
+
+            if (audioBytes is not { Length: > 0 })
+            {
+                return;
+            }
+
+            string extension = GetAudioFileExtension(audioBytes);
+            string temporaryAudioFilePath = Path.Combine(Path.GetTempPath(), $"axphi-{Guid.NewGuid():N}{extension}");
+            File.WriteAllBytes(temporaryAudioFilePath, audioBytes);
+
+            LoadAudioFromFile(temporaryAudioFilePath, isTemporaryFile: true);
+        }
+
+        private void LoadAudioFromFile(string fileName, bool isTemporaryFile)
+        {
             try
             {
                 // 把 new MediaFoundationReader 替换为 new AudioFileReader！
                 _musicReader = new AudioFileReader(fileName);
                 _wasapiOut = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 50);
                 _wasapiOut.Init(_musicReader);
+
+                if (isTemporaryFile)
+                {
+                    _temporaryAudioFilePath = fileName;
+                }
             }
             catch (Exception ex)
             {
+                if (isTemporaryFile && File.Exists(fileName))
+                {
+                    File.Delete(fileName);
+                }
+
                 MessageBox.Show($"Failed to load audio: {ex.Message}");
             }
         }
@@ -331,6 +361,7 @@ namespace Axphi.Views
             _wasapiOut = null;
             _musicReader?.Dispose();
             _musicReader = null;
+            DeleteTemporaryAudioFile();
 
             // ================= 【注销逻辑】 =================
             // 控件被销毁时，告诉邮局：“别给我发信了”，释放内存！
@@ -339,6 +370,61 @@ namespace Axphi.Views
 
             // 🌟 退订全局事件
             SystemAudioMonitor.OnDefaultDeviceChanged -= ReloadBgmDevice;
+        }
+
+        private void ResetLoadedAudio()
+        {
+            _wasapiOut?.Stop();
+            _wasapiOut?.Dispose();
+            _wasapiOut = null;
+
+            _musicReader?.Dispose();
+            _musicReader = null;
+
+            DeleteTemporaryAudioFile();
+        }
+
+        private void DeleteTemporaryAudioFile()
+        {
+            if (string.IsNullOrWhiteSpace(_temporaryAudioFilePath))
+            {
+                return;
+            }
+
+            if (File.Exists(_temporaryAudioFilePath))
+            {
+                File.Delete(_temporaryAudioFilePath);
+            }
+
+            _temporaryAudioFilePath = null;
+        }
+
+        private static string GetAudioFileExtension(byte[] audioBytes)
+        {
+            if (audioBytes.Length >= 4)
+            {
+                if (audioBytes[0] == 'R' && audioBytes[1] == 'I' && audioBytes[2] == 'F' && audioBytes[3] == 'F')
+                {
+                    return ".wav";
+                }
+
+                if (audioBytes[0] == 'O' && audioBytes[1] == 'g' && audioBytes[2] == 'g' && audioBytes[3] == 'S')
+                {
+                    return ".ogg";
+                }
+
+                if (audioBytes[0] == 'f' && audioBytes[1] == 'L' && audioBytes[2] == 'a' && audioBytes[3] == 'C')
+                {
+                    return ".flac";
+                }
+            }
+
+            if (audioBytes.Length >= 3 && audioBytes[0] == 'I' && audioBytes[1] == 'D' && audioBytes[2] == '3')
+            {
+                return ".mp3";
+            }
+
+            return ".tmp";
         }
 
 

@@ -62,6 +62,11 @@ public partial class MainWindow : Window
             MainChartDisplay.LoadAudio(message.FilePath);
         });
 
+        WeakReferenceMessenger.Default.Register<ProjectLoadedMessage>(this, (r, message) =>
+        {
+            MainChartDisplay.LoadAudio(_mainViewModel.ProjectManager.EditingProject.EncodedAudio);
+        });
+
         
     }
 

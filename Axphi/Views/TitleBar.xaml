@@ -16,6 +16,7 @@
             <TextBlock VerticalAlignment="Center" Text="LOGO" />
             <ws:Menu Margin="4" VerticalAlignment="Center">
                 <ws:MenuItem Header="File">
+                    <ws:MenuItem Command="{Binding FileActions.OpenProjectCommand}" Header="Open" />
                     <ws:MenuItem Command="{Binding FileActions.SaveChartCommand}" Header="Save" />
                 </ws:MenuItem>
                 <ws:MenuItem Header="Debugging">

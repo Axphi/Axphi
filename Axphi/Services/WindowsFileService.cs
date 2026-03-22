@@ -18,6 +18,17 @@ namespace Axphi.Services
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        public string? OpenProjectFile()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Open Project",
+                Filter = "Axphi Project|*.axp|Any File|*.*",
+                CheckFileExists = true
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
         public string? SaveProjectFile(string defaultFileName)
         {
             var dialog = new SaveFileDialog

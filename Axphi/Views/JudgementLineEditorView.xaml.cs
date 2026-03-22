@@ -1,6 +1,7 @@
 using Axphi.ViewModels;
 using Axphi.Utilities;
 using CommunityToolkit.Mvvm.Messaging;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -177,6 +178,19 @@ namespace Axphi.Views
         {
             if (DataContext is not JudgementLineEditorViewModel vm)
             {
+                return;
+            }
+
+            if (e.Key == Key.Delete && vm.IsVisible)
+            {
+                bool hasSelectedNotes = vm.ActiveTrack?.UINotes.Any(note => note.IsSelected) == true;
+                if (hasSelectedNotes)
+                {
+                    vm.Timeline.DeleteSelectedKeyframesCommand.Execute(null);
+                    EditorCanvas.InvalidateVisual();
+                }
+
+                e.Handled = true;
                 return;
             }
 

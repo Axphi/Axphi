@@ -92,6 +92,8 @@
     </Window.Resources>
 
     <Window.InputBindings>
+        <KeyBinding Modifiers="Control" Key="C" Command="{Binding Timeline.CopySelectedKeyframesCommand}" />
+        <KeyBinding Modifiers="Control" Key="V" Command="{Binding Timeline.PasteCopiedKeyframesCommand}" />
         <KeyBinding Key="Delete" Command="{Binding Timeline.DeleteSelectedKeyframesCommand}" />
     </Window.InputBindings>
 

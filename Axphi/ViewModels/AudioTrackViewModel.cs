@@ -299,6 +299,7 @@ namespace Axphi.ViewModels
                 {
                     Chart.AudioVolume = value;
                     OnPropertyChanged(); // 通知 UI 音量变了！
+                    WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
                 }
             }
         }

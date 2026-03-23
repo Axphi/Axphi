@@ -44,6 +44,7 @@ namespace Axphi.ViewModels
             double ViewportActualWidth,
             int WorkspaceStartTick,
             int WorkspaceEndTick,
+            bool IsAudioTrackExpanded,
             IReadOnlyList<TrackUiState> Tracks,
             JudgementLineEditorUiState? Editor);
 
@@ -480,6 +481,10 @@ namespace Axphi.ViewModels
 
                 // ================= ✨ 新增：实例化 Audio 轨道！ =================
                 AudioTrack = new AudioTrackViewModel(CurrentChart, this, _projectManager);
+                if (preservedUiState != null)
+                {
+                    AudioTrack.IsExpanded = preservedUiState.IsAudioTrackExpanded;
+                }
 
 
                 // 2. 砸碎旧舞台：清空前端的 Track UI 集合 (这一步让旧 UI 被 GC 回收)
@@ -625,6 +630,7 @@ namespace Axphi.ViewModels
                 ViewportActualWidth,
                 WorkspaceStartTick,
                 WorkspaceEndTick,
+                AudioTrack?.IsExpanded ?? false,
                 trackStates,
                 editorState);
         }

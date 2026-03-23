@@ -787,7 +787,50 @@ public partial class MainWindow : Window
             }
         }
 
+        if (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.None && !IsTextInputFocused())
+        {
+            if (DataContext is MainViewModel vm && vm.Timeline.DeleteSelectedKeyframesCommand.CanExecute(null))
+            {
+                vm.Timeline.DeleteSelectedKeyframesCommand.Execute(null);
+            }
+
+            e.Handled = true;
+        }
+
         base.OnPreviewKeyDown(e);
+    }
+
+    private static bool IsTextInputFocused()
+    {
+        if (Keyboard.FocusedElement is TextBox or PasswordBox)
+        {
+            return true;
+        }
+
+        if (Keyboard.FocusedElement is DependencyObject dependencyObject)
+        {
+            if (FindVisualParent<ComboBox>(dependencyObject) is ComboBox comboBox)
+            {
+                return comboBox.IsEditable || comboBox.IsKeyboardFocusWithin;
+            }
+        }
+
+        return false;
+    }
+
+    private static T? FindVisualParent<T>(DependencyObject? child) where T : DependencyObject
+    {
+        while (child != null)
+        {
+            if (child is T parent)
+            {
+                return parent;
+            }
+
+            child = VisualTreeHelper.GetParent(child);
+        }
+
+        return null;
     }
 
     // ================= 拦截 Alt 键抬起，彻底封死焦点丢失 =================

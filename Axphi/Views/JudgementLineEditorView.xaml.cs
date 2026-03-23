@@ -169,9 +169,11 @@ namespace Axphi.Views
                 return;
             }
 
-            vm.PanBy(0, e.Delta * 0.2);
-            EditorCanvas.InvalidateVisual();
-            e.Handled = true;
+            if (vm.ScrollTimeByWheelDelta(e.Delta, EditorCanvas.RenderSize))
+            {
+                EditorCanvas.InvalidateVisual();
+                e.Handled = true;
+            }
         }
 
         private void EditorRoot_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -181,7 +183,7 @@ namespace Axphi.Views
                 return;
             }
 
-            if (e.Key == Key.Delete && vm.IsVisible)
+            if ((e.Key == Key.Delete || (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.None)) && vm.IsVisible)
             {
                 bool hasSelectedNotes = vm.ActiveTrack?.UINotes.Any(note => note.IsSelected) == true;
                 if (hasSelectedNotes)

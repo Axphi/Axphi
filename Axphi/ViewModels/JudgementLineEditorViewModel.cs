@@ -172,6 +172,40 @@ namespace Axphi.ViewModels
             ViewZoom = nextZoom;
         }
 
+        public bool ScrollTimeByWheelDelta(int wheelDelta, Size viewportSize)
+        {
+            if (ActiveTrack == null || wheelDelta == 0)
+            {
+                return false;
+            }
+
+            const double wheelStepPixels = 24.0;
+            double pixelsPerSecond = GetCurrentVerticalPixelsPerSecond(viewportSize);
+            if (pixelsPerSecond <= double.Epsilon)
+            {
+                return false;
+            }
+
+            double notchDelta = wheelDelta / (double)Mouse.MouseWheelDeltaForOneLine;
+            double secondsDelta = notchDelta * wheelStepPixels / pixelsPerSecond;
+            if (Math.Abs(secondsDelta) <= double.Epsilon)
+            {
+                return false;
+            }
+
+            double maxSeconds = TimeTickConverter.TickToTime(_timeline.TotalDurationTicks, _timeline.CurrentChart.BpmKeyFrames, _timeline.CurrentChart.InitialBpm);
+            double nextSeconds = Math.Clamp(_timeline.CurrentPlayTimeSeconds + secondsDelta, 0, Math.Max(0, maxSeconds));
+            if (Math.Abs(nextSeconds - _timeline.CurrentPlayTimeSeconds) <= double.Epsilon)
+            {
+                return false;
+            }
+
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _timeline.CurrentPlayTimeSeconds = nextSeconds;
+            WeakReferenceMessenger.Default.Send(new ForceSeekMessage(nextSeconds));
+            return true;
+        }
+
         public bool TryAddNoteAtPoint(Point viewportPoint, Size viewportSize)
         {
             if (ActiveTrack == null || !Enum.TryParse<NoteKind>(CurrentNoteKind, out var kind))
@@ -326,6 +360,28 @@ namespace Axphi.ViewModels
             }
 
             return bestTick;
+        }
+
+        private double GetCurrentVerticalPixelsPerSecond(Size viewportSize)
+        {
+            if (ActiveTrack == null)
+            {
+                return 0;
+            }
+
+            var metrics = JudgementLineEditorRenderMath.CalculateMetrics(viewportSize, ViewZoom);
+            double currentSpeed = ActiveTrack.Data.InitialSpeed;
+
+            EasingUtils.CalculateObjectSingleTransform(
+                _timeline.GetCurrentTick(),
+                _timeline.CurrentChart.KeyFrameEasingDirection,
+                ActiveTrack.Data.InitialSpeed,
+                ActiveTrack.Data.SpeedKeyFrames,
+                MathUtils.Lerp,
+                out currentSpeed);
+
+            currentSpeed = Math.Max(Math.Abs(currentSpeed), 0.01);
+            return metrics.BaseVerticalFlowPixelsPerSecond * currentSpeed;
         }
 
         private IEnumerable<int> EnumerateEditorSnapTargets()

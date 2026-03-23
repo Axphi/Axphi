@@ -411,8 +411,8 @@ namespace Axphi.Components
 
                 if (note.IsSelected)
                 {
-                    double selectionSize = renderedNoteWidth * Math.Max(note.CurrentScaleX, note.CurrentScaleY) + 6;
-                    dc.DrawRectangle(null, SelectedNotePen, new Rect(x - selectionSize / 2, y - selectionSize / 2, selectionSize, selectionSize));
+                    Rect selectionRect = GetSelectionRect(note, editor, track, metrics, viewportSize, new Point(x, y));
+                    dc.DrawRectangle(null, SelectedNotePen, selectionRect);
 
                     if (isHold)
                     {
@@ -443,8 +443,6 @@ namespace Axphi.Components
                 }
 
                 DrawPreviewHold(dc, holdPreviewWidth, previewX, previewY, holdLength, 0.58, true, false);
-                double holdSelectionSize = holdPreviewWidth + 6;
-                dc.DrawRectangle(null, HoverPreviewPen, new Rect(previewX - holdSelectionSize / 2, previewY - holdSelectionSize / 2, holdSelectionSize, holdSelectionSize));
                 return;
             }
 
@@ -466,9 +464,6 @@ namespace Axphi.Components
             {
                 DrawPreviewNote(dc, kind, previewWidth, x, y, 0.58, isMultiHitPreview);
             }
-
-            double selectionSize = previewWidth + 6;
-            dc.DrawRectangle(null, HoverPreviewPen, new Rect(x - selectionSize / 2, y - selectionSize / 2, selectionSize, selectionSize));
         }
 
         private static void DrawRenderedNote(DrawingContext dc, JudgementLineEditorViewModel editor, TrackViewModel track, NoteViewModel note, Size viewportSize, JudgementLineEditorRenderMath.ViewMetrics metrics, int currentTick, double centerX, double centerY, double judgementLineY, double opacityMultiplier, bool isMultiHit)
@@ -620,6 +615,14 @@ namespace Axphi.Components
             double top = isForwardFlow ? noteCenter.Y - holdLength : noteCenter.Y - headHeight;
             double bottom = isForwardFlow ? noteCenter.Y + headHeight : noteCenter.Y + holdLength;
             return new Rect(noteCenter.X - notePixelWidth / 2.0, top, notePixelWidth, bottom - top);
+        }
+
+        private static Rect GetSelectionRect(NoteViewModel note, JudgementLineEditorViewModel editor, TrackViewModel track, JudgementLineEditorRenderMath.ViewMetrics metrics, Size viewportSize, Point noteCenter)
+        {
+            Rect noteBodyRect = GetNoteBodyRect(note, editor, track, metrics, viewportSize, noteCenter);
+            double padding = Math.Max(4.0, Math.Min(noteBodyRect.Width, noteBodyRect.Height) * 0.08);
+            noteBodyRect.Inflate(padding, padding);
+            return noteBodyRect;
         }
 
         private static Rect GetHoldTailHandleRect(NoteViewModel note, JudgementLineEditorViewModel editor, TrackViewModel track, JudgementLineEditorRenderMath.ViewMetrics metrics, Size viewportSize, Point noteCenter)

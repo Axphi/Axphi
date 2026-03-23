@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Axphi.Services;
 
@@ -13,6 +14,11 @@ public partial class ProjectManager : ObservableObject
     private const string ChartEntryName = "chart.json";
     private const string AudioEntryName = "audio";
     private const string IllustrationEntryName = "illustration";
+    private static readonly JsonSerializerOptions ProjectJsonSerializerOptions = new()
+    {
+        IncludeFields = true,
+        PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate
+    };
 
     [ObservableProperty]
     private Project _editingProject = new Project()
@@ -34,7 +40,7 @@ public partial class ProjectManager : ObservableObject
 
         using var fs = new FileStream(path, FileMode.Create);
         using ZipArchive zip = new ZipArchive(fs, ZipArchiveMode.Create);
-        var chartJson = JsonSerializer.Serialize(project.Chart);
+        var chartJson = JsonSerializer.Serialize(project.Chart, ProjectJsonSerializerOptions);
         var chartJsonUtfBytes = Encoding.UTF8.GetBytes(chartJson);
 
         using (var chartEntry = zip.CreateEntry(ChartEntryName).Open())
@@ -64,7 +70,7 @@ public partial class ProjectManager : ObservableObject
         using (var chartReader = new StreamReader(chartStream, Encoding.UTF8, leaveOpen: false))
         {
             var chartJson = chartReader.ReadToEnd();
-            chart = JsonSerializer.Deserialize<Chart>(chartJson);
+            chart = JsonSerializer.Deserialize<Chart>(chartJson, ProjectJsonSerializerOptions);
         }
 
         if (chart is null)

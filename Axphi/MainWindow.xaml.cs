@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     // 在类的最上面，声明一个变量来记住画框起手时的按键状态
     private ModifierKeys _marqueeModifiers = ModifierKeys.None;
     private bool _marqueePreserveNoteSelection = false;
+    private DependencyObject? _marqueeSelectionScope;
 
 
     // 在类成员区域添加
@@ -379,6 +380,8 @@ public partial class MainWindow : Window
         // 🌟 核心修复：防误触终极版！顺藤摸瓜找控件
         DependencyObject? current = e.OriginalSource as DependencyObject;
         _marqueePreserveNoteSelection = false;
+        Point mousePointInTimelineGrid = e.GetPosition(TimelineMainGrid);
+        _marqueeSelectionScope = ResolveMarqueeSelectionScope(current, mousePointInTimelineGrid);
         while (current != null && current != TimelineMainGrid)
         {
             string typeName = current.GetType().Name;
@@ -516,51 +519,193 @@ public partial class MainWindow : Window
         GeneralTransform marqueeTransform = MarqueeRect.TransformToAncestor(TimelineMainGrid);
         Rect marqueeBounds = marqueeTransform.TransformBounds(new Rect(0, 0, MarqueeRect.Width, MarqueeRect.Height));
 
-        var allThumbs = FindVisualChildren<Thumb>(TimelineMainGrid);
+        var selectionRoot = _marqueeSelectionScope ?? TimelineMainGrid;
+        var allThumbs = FindVisualChildren<Thumb>(selectionRoot);
 
         foreach (var thumb in allThumbs)
         {
-            if (thumb.DataContext != null && 
-                thumb.DataContext.GetType().Name.Contains("KeyFrameUIWrapper") ||
-                thumb.DataContext is Axphi.ViewModels.NoteViewModel)
+            object? dataContext = thumb.DataContext;
+            bool isKeyframeThumb = dataContext?.GetType().Name.Contains("KeyFrameUIWrapper") == true;
+            bool isNoteThumb = dataContext is NoteViewModel;
+
+            if (!isKeyframeThumb && !isNoteThumb)
             {
-                try
+                continue;
+            }
+
+            if (!thumb.IsVisible || !thumb.IsLoaded)
+            {
+                continue;
+            }
+
+            if (dataContext is NoteViewModel noteViewModel && !noteViewModel.ParentTrack.IsExpanded)
+            {
+                continue;
+            }
+
+            if (isKeyframeThumb && IsInNotePropertyKeyframeEditor(thumb) && !IsNotePropertyKeyframeEditorExpanded(thumb))
+            {
+                continue;
+            }
+
+            try
+            {
+                if (!TryGetThumbBoundsInTimeline(thumb, out Rect thumbBounds))
                 {
-                    GeneralTransform transform = thumb.TransformToAncestor(TimelineMainGrid);
-                    Rect thumbBounds = transform.TransformBounds(new Rect(0, 0, thumb.ActualWidth, thumb.ActualHeight));
+                    continue;
+                }
 
-                    // 2. 灵魂相交判定！
-                    if (marqueeBounds.IntersectsWith(thumbBounds))
+                // 2. 灵魂相交判定！
+                if (marqueeBounds.IntersectsWith(thumbBounds))
+                {
+                    dynamic wrapper = thumb.DataContext;
+
+                    // 3. 根据起手时的修饰键，执行不同的命运
+                    if (_marqueeModifiers.HasFlag(ModifierKeys.Control))
                     {
-                        dynamic wrapper = thumb.DataContext;
-
-                        // 3. 根据起手时的修饰键，执行不同的命运
-                        if (_marqueeModifiers.HasFlag(ModifierKeys.Control))
-                        {
-                            // Ctrl 框选：取反 (Toggle)
-                            wrapper.IsSelected = !wrapper.IsSelected;
-                        }
-                        else if (_marqueeModifiers.HasFlag(ModifierKeys.Shift))
-                        {
-                            // Shift 框选：纯加选 (Add)
-                            wrapper.IsSelected = true;
-                        }
-                        else
-                        {
-                            // 普通框选 (None)：因为前面已经清空了全场，这里直接点亮即可 (排他)
-                            wrapper.IsSelected = true;
-                        }
+                        // Ctrl 框选：取反 (Toggle)
+                        wrapper.IsSelected = !wrapper.IsSelected;
+                    }
+                    else if (_marqueeModifiers.HasFlag(ModifierKeys.Shift))
+                    {
+                        // Shift 框选：纯加选 (Add)
+                        wrapper.IsSelected = true;
+                    }
+                    else
+                    {
+                        // 普通框选 (None)：因为前面已经清空了全场，这里直接点亮即可 (排他)
+                        wrapper.IsSelected = true;
                     }
                 }
-                catch
-                {
-                    // 防止虚拟化控件报错
-                }
+            }
+            catch
+            {
+                // 防止虚拟化控件报错
             }
         }
+
+        _marqueeSelectionScope = null;
     }
 
     // ================= 【工具：递归查找视觉子元素】 =================
+    private bool TryGetThumbBoundsInTimeline(Thumb thumb, out Rect thumbBounds)
+    {
+        thumbBounds = Rect.Empty;
+
+        try
+        {
+            Rect localBounds = VisualTreeHelper.GetDescendantBounds(thumb);
+            if (localBounds.IsEmpty || localBounds.Width <= 0 || localBounds.Height <= 0)
+            {
+                localBounds = new Rect(0, 0, thumb.ActualWidth, thumb.ActualHeight);
+            }
+
+            if (localBounds.IsEmpty || localBounds.Width <= 0 || localBounds.Height <= 0)
+            {
+                return false;
+            }
+
+            GeneralTransform transform = thumb.TransformToAncestor(TimelineMainGrid);
+            thumbBounds = transform.TransformBounds(localBounds);
+            return thumbBounds.Width > 0 && thumbBounds.Height > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsInNotePropertyKeyframeEditor(DependencyObject current)
+    {
+        while (current != null)
+        {
+            if (current is FrameworkElement frameworkElement && frameworkElement.Name == "NoteKeyframeEditorPanel")
+            {
+                return true;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return false;
+    }
+
+    private static bool IsNotePropertyKeyframeEditorExpanded(DependencyObject current)
+    {
+        while (current != null)
+        {
+            if (current is Axphi.Views.TrackControl trackControl && trackControl.DataContext is TrackViewModel trackViewModel)
+            {
+                return trackViewModel.IsExpanded && trackViewModel.IsNoteExpanded;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return false;
+    }
+
+    private DependencyObject? ResolveMarqueeSelectionScope(DependencyObject? current, Point mousePointInTimelineGrid)
+    {
+        return GetMarqueeSelectionScope(current) ?? GetMarqueeSelectionScopeFromPoint(mousePointInTimelineGrid);
+    }
+
+    private DependencyObject? GetMarqueeSelectionScopeFromPoint(Point mousePointInTimelineGrid)
+    {
+        foreach (var control in FindVisualChildren<Axphi.Views.TrackControl>(TimelineMainGrid))
+        {
+            if (IsPointInsideControl(control, mousePointInTimelineGrid)) return control;
+        }
+
+        foreach (var control in FindVisualChildren<Axphi.Views.BpmTrackControl>(TimelineMainGrid))
+        {
+            if (IsPointInsideControl(control, mousePointInTimelineGrid)) return control;
+        }
+
+        foreach (var control in FindVisualChildren<Axphi.Views.AudioTrackControl>(TimelineMainGrid))
+        {
+            if (IsPointInsideControl(control, mousePointInTimelineGrid)) return control;
+        }
+
+        return null;
+    }
+
+    private bool IsPointInsideControl(FrameworkElement control, Point mousePointInTimelineGrid)
+    {
+        if (!control.IsVisible || control.ActualWidth <= 0 || control.ActualHeight <= 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            GeneralTransform transform = control.TransformToAncestor(TimelineMainGrid);
+            Rect bounds = transform.TransformBounds(new Rect(0, 0, control.ActualWidth, control.ActualHeight));
+            return bounds.Contains(mousePointInTimelineGrid);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static DependencyObject? GetMarqueeSelectionScope(DependencyObject? current)
+    {
+        while (current != null)
+        {
+            if (current is Axphi.Views.TrackControl ||
+                current is Axphi.Views.BpmTrackControl ||
+                current is Axphi.Views.AudioTrackControl)
+            {
+                return current;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
+    }
+
     private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
     {
         if (depObj == null) yield break;

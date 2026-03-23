@@ -684,39 +684,25 @@ namespace Axphi.Components
                         EasingUtils.CalculateObjectTransform(
                             vTick, chart.KeyFrameEasingDirection,
                             line.AnimatableProperties,
-                            out var lineOffset, out var lineScale, out var lineRotationAngle, out _);
+                            out var lineOffset, out _, out _, out _);
 
                         var linePixelOffset = new Vector(
                             renderInfo.ChartUnitToPixel(lineOffset.X),
                             renderInfo.ChartUnitToPixel(lineOffset.Y));
 
-                        var lineTransform = new TransformGroup()
-                        {
-                            Children = {
-                        new ScaleTransform(lineScale.X, lineScale.Y),
-                        new RotateTransform(-lineRotationAngle),
-                        new TranslateTransform(linePixelOffset.X, -linePixelOffset.Y),
-                    }
-                        };
+                        var lineTransform = new TranslateTransform(linePixelOffset.X, -linePixelOffset.Y);
 
                         // 获取音符在【这一个虚拟打击瞬间】相对判定线的历史偏移
                         EasingUtils.CalculateObjectTransform(
                             vTick, chart.KeyFrameEasingDirection,
                             note.AnimatableProperties,
-                            out var noteOffset, out var noteScale, out var noteRotationAngle, out _);
+                            out var noteOffset, out _, out _, out _);
 
                         var notePixelOffset = new Vector(
                             renderInfo.ChartUnitToPixel(noteOffset.X),
                             renderInfo.ChartUnitToPixel(noteOffset.Y));
 
-                        var noteTransform = new TransformGroup()
-                        {
-                            Children = {
-                        new ScaleTransform(noteScale.X, noteScale.Y),
-                        new RotateTransform(noteRotationAngle),
-                        new TranslateTransform(notePixelOffset.X, notePixelOffset.Y),
-                    }
-                        };
+                        var noteTransform = new TranslateTransform(notePixelOffset.X, notePixelOffset.Y);
 
                         // ================= 开始绘制 =================
                         drawingContext.PushTransform(lineTransform);

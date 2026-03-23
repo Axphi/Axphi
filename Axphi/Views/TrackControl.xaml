@@ -909,7 +909,7 @@
                         </Border>
 
 
-                        <StackPanel DataContext="{Binding SelectedNote}">
+                        <StackPanel x:Name="NoteKeyframeEditorPanel" DataContext="{Binding SelectedNote}">
 
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">

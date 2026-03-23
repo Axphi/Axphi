@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     private bool _isMarqueeSelecting = false;
     // 在类的最上面，声明一个变量来记住画框起手时的按键状态
     private ModifierKeys _marqueeModifiers = ModifierKeys.None;
+    private bool _marqueePreserveNoteSelection = false;
 
 
     // 在类成员区域添加
@@ -372,9 +373,15 @@ public partial class MainWindow : Window
     {
         // 🌟 核心修复：防误触终极版！顺藤摸瓜找控件
         DependencyObject? current = e.OriginalSource as DependencyObject;
+        _marqueePreserveNoteSelection = false;
         while (current != null && current != TimelineMainGrid)
         {
             string typeName = current.GetType().Name;
+
+            if (current is FrameworkElement frameworkElement && frameworkElement.Name == "NoteKeyframeEditorPanel")
+            {
+                _marqueePreserveNoteSelection = true;
+            }
 
             // 如果点到了以下任何交互控件，立刻撤退！把事件完整还给它们！
             if (current is System.Windows.Controls.Primitives.ButtonBase || // 涵盖普通的 Button 和 ToggleButton (下拉箭头)
@@ -468,7 +475,15 @@ public partial class MainWindow : Window
             {
                 if (DataContext is MainViewModel vm)
                 {
-                    vm.Timeline.ClearAllSelections();
+                    if (_marqueePreserveNoteSelection)
+                    {
+                        vm.Timeline.ClearKeyframeSelection();
+                        vm.Timeline.ClearLayerSelection();
+                    }
+                    else
+                    {
+                        vm.Timeline.ClearAllSelections();
+                    }
                 }
             }
             return;
@@ -481,7 +496,15 @@ public partial class MainWindow : Window
         {
             if (DataContext is MainViewModel vm)
             {
-                vm.Timeline.ClearAllSelections();
+                if (_marqueePreserveNoteSelection)
+                {
+                    vm.Timeline.ClearKeyframeSelection();
+                    vm.Timeline.ClearLayerSelection();
+                }
+                else
+                {
+                    vm.Timeline.ClearAllSelections();
+                }
             }
         }
 

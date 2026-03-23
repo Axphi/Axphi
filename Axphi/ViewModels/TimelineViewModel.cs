@@ -5,9 +5,13 @@ using Axphi.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Windows.Threading;
 
 namespace Axphi.ViewModels
 {
@@ -21,6 +25,28 @@ namespace Axphi.ViewModels
     // 必须继承 ObservableObject 才能使用 MVVM 魔法
     public partial class TimelineViewModel : ObservableObject
     {
+        private sealed record TrackUiState(
+            string TrackId,
+            bool IsExpanded,
+            bool IsNoteExpanded);
+
+        private sealed record JudgementLineEditorUiState(
+            string ActiveTrackId,
+            string CurrentNoteKind,
+            int HorizontalDivisions,
+            double ViewZoom,
+            double PanX,
+            double PanY);
+
+        private sealed record TimelineUiState(
+            double CurrentPlayTimeSeconds,
+            double ZoomScale,
+            double ViewportActualWidth,
+            int WorkspaceStartTick,
+            int WorkspaceEndTick,
+            IReadOnlyList<TrackUiState> Tracks,
+            JudgementLineEditorUiState? Editor);
+
         private enum KeyframeClipboardTarget
         {
             Bpm,
@@ -46,6 +72,19 @@ namespace Axphi.ViewModels
         // 【新增】保存全局数据源的引用
         private readonly ProjectManager _projectManager;
         private readonly List<KeyframeClipboardItem> _keyframeClipboard = new();
+        private readonly SnapshotHistory<string> _history = new(200);
+        private readonly DispatcherTimer _historyCommitTimer = new()
+        {
+            Interval = TimeSpan.FromMilliseconds(250)
+        };
+        private bool _isReloadingChartState;
+        private bool _isApplyingHistorySnapshot;
+
+        private static readonly JsonSerializerOptions HistoryJsonSerializerOptions = new()
+        {
+            IncludeFields = true,
+            PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate
+        };
 
         // 核心数据：需要暴露给界面的谱面对象
         [ObservableProperty]
@@ -79,6 +118,9 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(MaxScrollOffset))]
         private double _viewportActualWidth = 800; // 默认给个安全值
+
+        [ObservableProperty]
+        private double _currentHorizontalScrollOffset;
 
         // 🌟 新增：在最右侧强行留出一段安全空白（单位：像素）
         // 你可以根据喜好调整大小
@@ -163,6 +205,12 @@ namespace Axphi.ViewModels
 
             // 3. 刷新小地图里工作区和视野框的比例和物理像素
             UpdateMinimapPixels();
+
+            if (!_isReloadingChartState)
+            {
+                CurrentChart.Duration = value;
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
         }
 
 
@@ -209,6 +257,7 @@ namespace Axphi.ViewModels
             _projectManager = projectManager; // 存进私有变量
             NoteSelectionPanel = new NoteSelectionPanelViewModel(this);
             JudgementLineEditor = new JudgementLineEditorViewModel(this);
+            _historyCommitTimer.Tick += (_, _) => FlushPendingHistorySnapshot();
 
 
             // 🌟 必须加上这行！让它一出生就计算宽度！
@@ -220,7 +269,13 @@ namespace Axphi.ViewModels
             if (_projectManager.EditingProject != null)
             {
                 ReloadTracksFromCurrentChart();
+                ResetHistorySnapshot();
             }
+
+            WeakReferenceMessenger.Default.Register<TimelineViewModel, JudgementLinesChangedMessage>(this, (recipient, message) =>
+            {
+                recipient.ScheduleHistorySnapshotCapture();
+            });
 
 
             WeakReferenceMessenger.Default.Register<TimelineViewModel, ProjectLoadedMessage>(this, (recipient, message) =>
@@ -228,12 +283,11 @@ namespace Axphi.ViewModels
                 // 重新去抱 ProjectManager 的大腿！拿到最新的“谱面B”！
                 if (recipient._projectManager.EditingProject != null)
                 {
-                    recipient.CurrentChart = recipient._projectManager.EditingProject.Chart;
-                    recipient.Tracks.Clear();
                     recipient._keyframeClipboard.Clear();
                     recipient.NotifyKeyframeClipboardCommandsStateChanged();
                     // 收到换工程的广播后，立刻执行重建动作！
                     recipient.ReloadTracksFromCurrentChart();
+                    recipient.ResetHistorySnapshot();
                 }
             });
 
@@ -365,57 +419,250 @@ namespace Axphi.ViewModels
             Tracks.Add(newTrackVM);
         }
 
+        private bool CanUndo() => _history.HasPendingChanges || _history.CanUndo;
+
+        private bool CanRedo() => _history.CanRedo;
+
+        [RelayCommand(CanExecute = nameof(CanUndo))]
+        private void Undo()
+        {
+            FlushPendingHistorySnapshot();
+            if (!_history.TryUndo(out var snapshot))
+            {
+                return;
+            }
+
+            ApplyHistorySnapshot(snapshot);
+            NotifyHistoryCommandsStateChanged();
+        }
+
+        [RelayCommand(CanExecute = nameof(CanRedo))]
+        private void Redo()
+        {
+            FlushPendingHistorySnapshot();
+            if (!_history.TryRedo(out var snapshot))
+            {
+                return;
+            }
+
+            ApplyHistorySnapshot(snapshot);
+            NotifyHistoryCommandsStateChanged();
+        }
+
         // ================= 【新增的核心函数】 =================
         /// <summary>
         /// 根据当前 ProjectManager 里的真实谱面，重新生成左侧的所有 Track UI
         /// </summary>
-        private void ReloadTracksFromCurrentChart()
+        private void ReloadTracksFromCurrentChart(TimelineUiState? preservedUiState = null)
         {
             if (_projectManager.EditingProject == null || _projectManager.EditingProject.Chart == null)
                 return;
 
-            // 1. 换绑剧本：把指针指向最新的真实谱面
-            CurrentChart = _projectManager.EditingProject.Chart;
-
-            // ================= ✨ 塞入第一步：实例化 BPM 轨道！ =================
-            BpmTrack = new BpmTrackViewModel(CurrentChart, this);
-            // =====================================================================
-
-            // ================= ✨ 新增：实例化 Audio 轨道！ =================
-            AudioTrack = new AudioTrackViewModel(CurrentChart, this, _projectManager);
-
-
-            // 2. 砸碎旧舞台：清空前端的 Track UI 集合 (这一步让旧 UI 被 GC 回收)
-            Tracks.Clear();
-            ActiveNotePanelOwner = null;
-            NoteSelectionPanel.SyncSelection(Array.Empty<NoteViewModel>());
-            JudgementLineEditor.CloseCommand.Execute(null);
-            NotifyKeyframeClipboardCommandsStateChanged();
-
-            // 3. 请上新演员：遍历新谱面里的判定线，挨个给它们创建前端代理人
-            if (CurrentChart.JudgementLines != null)
+            _isReloadingChartState = true;
+            try
             {
-                for (int i = 0; i < CurrentChart.JudgementLines.Count; i++)
+                if (preservedUiState != null)
                 {
-                    var line = CurrentChart.JudgementLines[i];
-                    // 名字自动按序号排：判定线图层 1, 判定线图层 2...
-                    var newTrackVM = new TrackViewModel(line, $"判定线图层 {i + 1}",this);
-                    Tracks.Add(newTrackVM);
+                    ZoomScale = preservedUiState.ZoomScale;
+                    ViewportActualWidth = preservedUiState.ViewportActualWidth;
                 }
+
+                // 1. 换绑剧本：把指针指向最新的真实谱面
+                CurrentChart = _projectManager.EditingProject.Chart;
+                if (CurrentChart.Duration > 0)
+                {
+                    TotalDurationTicks = Math.Max(100, CurrentChart.Duration);
+                }
+
+                // ================= ✨ 塞入第一步：实例化 BPM 轨道！ =================
+                BpmTrack = new BpmTrackViewModel(CurrentChart, this);
+                // =====================================================================
+
+                // ================= ✨ 新增：实例化 Audio 轨道！ =================
+                AudioTrack = new AudioTrackViewModel(CurrentChart, this, _projectManager);
+
+
+                // 2. 砸碎旧舞台：清空前端的 Track UI 集合 (这一步让旧 UI 被 GC 回收)
+                Tracks.Clear();
+                ActiveNotePanelOwner = null;
+                NoteSelectionPanel.SyncSelection(Array.Empty<NoteViewModel>());
+                JudgementLineEditor.CloseCommand.Execute(null);
+                NotifyKeyframeClipboardCommandsStateChanged();
+
+                // 3. 请上新演员：遍历新谱面里的判定线，挨个给它们创建前端代理人
+                if (CurrentChart.JudgementLines != null)
+                {
+                    for (int i = 0; i < CurrentChart.JudgementLines.Count; i++)
+                    {
+                        var line = CurrentChart.JudgementLines[i];
+                        // 名字自动按序号排：判定线图层 1, 判定线图层 2...
+                        var newTrackVM = new TrackViewModel(line, $"判定线图层 {i + 1}",this);
+                        Tracks.Add(newTrackVM);
+                    }
+                }
+
+                if (preservedUiState != null)
+                {
+                    var trackStatesById = preservedUiState.Tracks.ToDictionary(track => track.TrackId);
+                    foreach (var track in Tracks)
+                    {
+                        if (trackStatesById.TryGetValue(track.Data.ID, out var trackState))
+                        {
+                            track.IsExpanded = trackState.IsExpanded;
+                            track.IsNoteExpanded = trackState.IsNoteExpanded;
+                        }
+                    }
+                }
+
+                if (preservedUiState != null)
+                {
+                    WorkspaceStartTick = preservedUiState.WorkspaceStartTick;
+                    WorkspaceEndTick = preservedUiState.WorkspaceEndTick;
+                    CurrentPlayTimeSeconds = preservedUiState.CurrentPlayTimeSeconds;
+                }
+                else
+                {
+                    // 4. (可选) 让时间轴游标归零
+                    CurrentPlayTimeSeconds = 0;
+
+                    // 🌟 【新增核心修复】：同时发信给右侧渲染器和音频播放器，强制它们也空降回 0 秒！
+                    // 这样前后端的记忆就彻底统一了！
+                    WeakReferenceMessenger.Default.Send(new ForceSeekMessage(0));
+                }
+
+                UpdateWorkspacePixels();
+
+                if (preservedUiState?.Editor is { } editorState)
+                {
+                    var targetTrack = Tracks.FirstOrDefault(track => track.Data.ID == editorState.ActiveTrackId);
+                    if (targetTrack != null)
+                    {
+                        JudgementLineEditor.Open(targetTrack);
+                        JudgementLineEditor.CurrentNoteKind = editorState.CurrentNoteKind;
+                        JudgementLineEditor.HorizontalDivisions = editorState.HorizontalDivisions;
+                        JudgementLineEditor.ViewZoom = editorState.ViewZoom;
+                        JudgementLineEditor.PanX = editorState.PanX;
+                        JudgementLineEditor.PanY = editorState.PanY;
+                    }
+                }
+
+                if (preservedUiState != null)
+                {
+                    WeakReferenceMessenger.Default.Send(new ForceSeekMessage(preservedUiState.CurrentPlayTimeSeconds));
+                }
+
+                // 5. 顺便大喊一声，让右侧的渲染器也强制刷新一下画面！
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+            finally
+            {
+                _isReloadingChartState = false;
             }
 
-            // 4. (可选) 让时间轴游标归零
-            CurrentPlayTimeSeconds = 0;
+        }
 
-            // 🌟 【新增核心修复】：同时发信给右侧渲染器和音频播放器，强制它们也空降回 0 秒！
-            // 这样前后端的记忆就彻底统一了！
-            WeakReferenceMessenger.Default.Send(new ForceSeekMessage(0));
+        private void ScheduleHistorySnapshotCapture()
+        {
+            if (_isReloadingChartState || _isApplyingHistorySnapshot || _projectManager.EditingProject?.Chart == null)
+            {
+                return;
+            }
 
-            UpdateWorkspacePixels();
+            _history.ObserveSnapshot(SerializeHistorySnapshot());
+            if (_history.HasPendingChanges)
+            {
+                _historyCommitTimer.Stop();
+                _historyCommitTimer.Start();
+                NotifyHistoryCommandsStateChanged();
+            }
+        }
 
-            // 5. 顺便大喊一声，让右侧的渲染器也强制刷新一下画面！
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        private void FlushPendingHistorySnapshot()
+        {
+            _historyCommitTimer.Stop();
+            _history.FlushPendingChanges();
+            NotifyHistoryCommandsStateChanged();
+        }
 
+        private void ResetHistorySnapshot()
+        {
+            _historyCommitTimer.Stop();
+            _history.Reset(SerializeHistorySnapshot());
+            NotifyHistoryCommandsStateChanged();
+        }
+
+        private string SerializeHistorySnapshot()
+        {
+            return JsonSerializer.Serialize(CurrentChart, HistoryJsonSerializerOptions);
+        }
+
+        private Chart DeserializeHistorySnapshot(string snapshot)
+        {
+            return JsonSerializer.Deserialize<Chart>(snapshot, HistoryJsonSerializerOptions) ?? new Chart();
+        }
+
+        private TimelineUiState CaptureTimelineUiState()
+        {
+            var trackStates = Tracks
+                .Select(track => new TrackUiState(track.Data.ID, track.IsExpanded, track.IsNoteExpanded))
+                .ToList();
+
+            JudgementLineEditorUiState? editorState = null;
+            if (JudgementLineEditor.ActiveTrack != null)
+            {
+                editorState = new JudgementLineEditorUiState(
+                    JudgementLineEditor.ActiveTrack.Data.ID,
+                    JudgementLineEditor.CurrentNoteKind,
+                    JudgementLineEditor.HorizontalDivisions,
+                    JudgementLineEditor.ViewZoom,
+                    JudgementLineEditor.PanX,
+                    JudgementLineEditor.PanY);
+            }
+
+            return new TimelineUiState(
+                CurrentPlayTimeSeconds,
+                ZoomScale,
+                ViewportActualWidth,
+                WorkspaceStartTick,
+                WorkspaceEndTick,
+                trackStates,
+                editorState);
+        }
+
+        private void ApplyHistorySnapshot(string snapshot)
+        {
+            if (_projectManager.EditingProject == null)
+            {
+                return;
+            }
+
+            var uiState = CaptureTimelineUiState();
+            var restoredChart = DeserializeHistorySnapshot(snapshot);
+            var currentProject = _projectManager.EditingProject;
+
+            _historyCommitTimer.Stop();
+            _isApplyingHistorySnapshot = true;
+            try
+            {
+                _projectManager.EditingProject = new Project
+                {
+                    Chart = restoredChart,
+                    EncodedAudio = currentProject.EncodedAudio,
+                    EncodedIllustration = currentProject.EncodedIllustration
+                };
+
+                ReloadTracksFromCurrentChart(uiState);
+            }
+            finally
+            {
+                _isApplyingHistorySnapshot = false;
+            }
+        }
+
+        private void NotifyHistoryCommandsStateChanged()
+        {
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
         }
 
 

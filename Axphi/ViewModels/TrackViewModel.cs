@@ -150,6 +150,7 @@ namespace Axphi.ViewModels
 
 
             // 放在构造函数里初始化一下
+            LayerPixelXOffset = _timeline.TickToPixel(LayerStartTick);
             LayerPixelWidth = _timeline.TickToPixel(LayerDurationTicks);
             // 当收到缩放比例改变的信件时，立刻根据绝对时间重算像素偏移！
             CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Register<TrackViewModel, ZoomScaleChangedMessage>(this, (r, m) =>

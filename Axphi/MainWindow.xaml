@@ -94,6 +94,8 @@
     <Window.InputBindings>
         <KeyBinding Modifiers="Control" Key="C" Command="{Binding Timeline.CopySelectedKeyframesCommand}" />
         <KeyBinding Modifiers="Control" Key="V" Command="{Binding Timeline.PasteCopiedKeyframesCommand}" />
+        <KeyBinding Modifiers="Control" Key="Z" Command="{Binding Timeline.UndoCommand}" />
+        <KeyBinding Modifiers="Control+Shift" Key="Z" Command="{Binding Timeline.RedoCommand}" />
         <KeyBinding Key="Delete" Command="{Binding Timeline.DeleteSelectedKeyframesCommand}" />
     </Window.InputBindings>
 

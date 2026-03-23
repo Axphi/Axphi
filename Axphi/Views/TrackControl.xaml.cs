@@ -31,6 +31,8 @@ namespace Axphi.Views
         {
             InitializeComponent();
 
+            Loaded += (_, _) => ApplyCurrentHorizontalOffset();
+
             // 1. 注册监听全局的滚动指令
             WeakReferenceMessenger.Default.Register<TrackControl, SyncHorizontalScrollMessage>(this, (recipient, message) =>
             {
@@ -40,6 +42,14 @@ namespace Axphi.Views
 
             // 2. 销毁时取消注册，防止内存泄漏
             this.Unloaded += (s, e) => WeakReferenceMessenger.Default.UnregisterAll(this);
+        }
+
+        private void ApplyCurrentHorizontalOffset()
+        {
+            if (DataContext is TrackViewModel trackViewModel)
+            {
+                TrackScrollViewer.ScrollToHorizontalOffset(trackViewModel.Timeline.CurrentHorizontalScrollOffset);
+            }
         }
 
         // 3. 原封不动地把鼠标滚轮穿透代码搬过来

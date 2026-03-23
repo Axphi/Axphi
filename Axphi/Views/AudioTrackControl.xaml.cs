@@ -17,6 +17,8 @@ namespace Axphi.Views
         {
             InitializeComponent();
 
+            Loaded += (_, _) => ApplyCurrentHorizontalOffset();
+
             // 1. 注册全局滚动同步
             WeakReferenceMessenger.Default.Register<AudioTrackControl, SyncHorizontalScrollMessage>(this, (recipient, message) =>
             {
@@ -24,6 +26,14 @@ namespace Axphi.Views
             });
 
             this.Unloaded += (s, e) => WeakReferenceMessenger.Default.UnregisterAll(this);
+        }
+
+        private void ApplyCurrentHorizontalOffset()
+        {
+            if (DataContext is AudioTrackViewModel audioTrackViewModel)
+            {
+                TrackScrollViewer.ScrollToHorizontalOffset(audioTrackViewModel.Timeline.CurrentHorizontalScrollOffset);
+            }
         }
 
         // ================= 滚轮事件透传 (完美适配 Alt 缩放) =================

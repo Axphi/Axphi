@@ -205,6 +205,11 @@ public partial class MainWindow : Window
         // 拿到当前滚动条的进度值
         double offset = e.NewValue;
 
+        if (DataContext is MainViewModel vm)
+        {
+            vm.Timeline.CurrentHorizontalScrollOffset = offset;
+        }
+
         // 🌟 核心修改：大喇叭广播！所有活着的 TrackControl 收到消息后会自动滚动！
         WeakReferenceMessenger.Default.Send(new SyncHorizontalScrollMessage(offset));
 

@@ -28,6 +28,8 @@ namespace Axphi.Views
         {
             InitializeComponent();
 
+            Loaded += (_, _) => ApplyCurrentHorizontalOffset();
+
             // 监听主窗口滚动条传来的滚动指令
             WeakReferenceMessenger.Default.Register<BpmTrackControl, SyncHorizontalScrollMessage>(this, (recipient, message) =>
             {
@@ -35,6 +37,14 @@ namespace Axphi.Views
             });
 
             this.Unloaded += (s, e) => WeakReferenceMessenger.Default.UnregisterAll(this);
+        }
+
+        private void ApplyCurrentHorizontalOffset()
+        {
+            if (DataContext is BpmTrackViewModel bpmTrackViewModel)
+            {
+                BpmTrackScrollViewer.ScrollToHorizontalOffset(bpmTrackViewModel.Timeline.CurrentHorizontalScrollOffset);
+            }
         }
 
         private void InnerTrack_PreviewMouseWheel(object sender, MouseWheelEventArgs e)

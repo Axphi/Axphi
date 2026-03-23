@@ -1205,7 +1205,7 @@ namespace Axphi.ViewModels
             if (pixelsPerTick <= 0) return rawTick;
 
             int snapThresholdPixels = 12;
-            int tickThreshold = (int)(snapThresholdPixels / pixelsPerTick);
+            double tickThreshold = snapThresholdPixels / pixelsPerTick;
 
             int bestTick = rawTick;
             double minDiff = double.MaxValue;
@@ -1222,17 +1222,18 @@ namespace Axphi.ViewModels
                     break;
             }
 
-            int gridTick = (int)Math.Round((double)rawTick / currentInterval) * currentInterval;
-            if (Math.Abs(gridTick - rawTick) <= tickThreshold)
+            int gridTick = (int)Math.Round(exactTickDouble / currentInterval, MidpointRounding.AwayFromZero) * currentInterval;
+            double gridDiff = Math.Abs(gridTick - exactTickDouble);
+            if (gridDiff <= tickThreshold)
             {
                 bestTick = gridTick;
-                minDiff = Math.Abs(gridTick - rawTick);
+                minDiff = gridDiff;
             }
 
             // ================= B. 全局元素吸附 =================
             void TrySnap(int targetTick)
             {
-                int diff = Math.Abs(targetTick - rawTick);
+                double diff = Math.Abs(targetTick - exactTickDouble);
                 if (diff <= tickThreshold && diff < minDiff)
                 {
                     minDiff = diff;

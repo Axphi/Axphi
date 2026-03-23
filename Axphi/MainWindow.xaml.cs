@@ -347,7 +347,12 @@ public partial class MainWindow : Window
             // 🌟 换成 OverlayCanvas
             Point currentPos = Mouse.GetPosition(OverlayCanvas);
 
-            double targetAbsolutePixel = currentPos.X + GlobalHorizontalScroll.Value + _playheadDragMouseOffset;
+            bool isSnapDragging = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+            double targetAbsolutePixel = currentPos.X + GlobalHorizontalScroll.Value;
+            if (!isSnapDragging)
+            {
+                targetAbsolutePixel += _playheadDragMouseOffset;
+            }
 
             if (targetAbsolutePixel < 0) targetAbsolutePixel = 0;
             if (targetAbsolutePixel > vm.Timeline.TotalPixelWidth) targetAbsolutePixel = vm.Timeline.TotalPixelWidth;

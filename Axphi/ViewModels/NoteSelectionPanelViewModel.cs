@@ -74,6 +74,16 @@ namespace Axphi.ViewModels
         public bool CanEditKeyframes => IsSingleSelection && SingleSelectedNote != null;
         public bool HasResolvedCustomSpeed => HasCustomSpeed == true;
 
+        private void NotifyKeyframeCommandBindingsChanged()
+        {
+            OnPropertyChanged(nameof(AddNoteKindKeyframeCommand));
+            OnPropertyChanged(nameof(AddPositionKeyframeCommand));
+            OnPropertyChanged(nameof(AddScaleKeyframeCommand));
+            OnPropertyChanged(nameof(AddRotationKeyframeCommand));
+            OnPropertyChanged(nameof(AddOpacityKeyframeCommand));
+            OnPropertyChanged(nameof(CanEditKeyframes));
+        }
+
         public void SyncSelection(IReadOnlyList<NoteViewModel> selectedNotes)
         {
             _selectedNotes.Clear();
@@ -100,7 +110,7 @@ namespace Axphi.ViewModels
                 HasCustomSpeed = false;
                 CurrentCustomSpeed = 1.0;
                 _isSyncing = false;
-                OnPropertyChanged(nameof(CanEditKeyframes));
+                NotifyKeyframeCommandBindingsChanged();
                 OnPropertyChanged(nameof(HasResolvedCustomSpeed));
                 return;
             }
@@ -141,7 +151,7 @@ namespace Axphi.ViewModels
             }
 
             _isSyncing = false;
-            OnPropertyChanged(nameof(CanEditKeyframes));
+            NotifyKeyframeCommandBindingsChanged();
             OnPropertyChanged(nameof(HasResolvedCustomSpeed));
         }
 

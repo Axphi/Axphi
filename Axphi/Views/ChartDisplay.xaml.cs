@@ -24,6 +24,8 @@ namespace Axphi.Views
         private DispatcherTimer? _dispatcherTimer;
         private Stopwatch? _renderStopwatch;
         private string? _temporaryAudioFilePath;
+        private string? _temporaryDecodedAudioFilePath;
+        private const int WasapiLatencyMilliseconds = 50;
 
 
         // 【新增】用来记住你刚刚拖拽到了哪里
@@ -92,14 +94,7 @@ namespace Axphi.Views
 
                 bool wasPlaying = IsPlaying;
 
-                if (_wasapiOut != null)
-                {
-                    if (wasPlaying) _wasapiOut.Stop();
-                    _wasapiOut.Dispose();
-                }
-
-                _wasapiOut = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 50);
-                _wasapiOut.Init(_musicReader);
+                RecreateAudioOutput();
 
                 if (wasPlaying)
                 {
@@ -141,10 +136,9 @@ namespace Axphi.Views
         {
             try
             {
-                // 把 new MediaFoundationReader 替换为 new AudioFileReader！
-                _musicReader = new AudioFileReader(fileName);
-                _wasapiOut = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, 50);
-                _wasapiOut.Init(_musicReader);
+                string playbackFilePath = PreparePlaybackFile(fileName);
+                _musicReader = new AudioFileReader(playbackFilePath);
+                RecreateAudioOutput();
 
                 if (isTemporaryFile)
                 {
@@ -153,6 +147,8 @@ namespace Axphi.Views
             }
             catch (Exception ex)
             {
+                DeleteTemporaryDecodedAudioFile();
+
                 if (isTemporaryFile && File.Exists(fileName))
                 {
                     File.Delete(fileName);
@@ -179,8 +175,7 @@ namespace Axphi.Views
 
             if (_dispatcherTimer.IsEnabled)
             {
-                // _wasapiOut?.Play();
-                // 因为我们已经在 RenderTimerCallback 里做了智能判断：游标踩中图层才会出声！
+                StartAudioAtTimelineTime(_manualTimeOffset);
                 _renderStopwatch.Start();
             }
             else
@@ -314,9 +309,7 @@ namespace Axphi.Views
                     {
                         if (_wasapiOut.PlaybackState != NAudio.Wave.PlaybackState.Playing)
                         {
-                            // 只要游标回到合法区间，且没在播放，就校准时间并唤醒！
-                            _musicReader.CurrentTime = TimeSpan.FromSeconds(targetAudioSeconds);
-                            _wasapiOut.Play();
+                            StartAudioAtTimelineTime(currentTime);
                         }
                     }
                     else
@@ -362,6 +355,7 @@ namespace Axphi.Views
             _musicReader?.Dispose();
             _musicReader = null;
             DeleteTemporaryAudioFile();
+            DeleteTemporaryDecodedAudioFile();
 
             // ================= 【注销逻辑】 =================
             // 控件被销毁时，告诉邮局：“别给我发信了”，释放内存！
@@ -382,6 +376,81 @@ namespace Axphi.Views
             _musicReader = null;
 
             DeleteTemporaryAudioFile();
+            DeleteTemporaryDecodedAudioFile();
+        }
+
+        private void RecreateAudioOutput()
+        {
+            if (_musicReader == null)
+            {
+                _wasapiOut?.Dispose();
+                _wasapiOut = null;
+                return;
+            }
+
+            _wasapiOut?.Stop();
+            _wasapiOut?.Dispose();
+            _wasapiOut = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, WasapiLatencyMilliseconds);
+            _wasapiOut.Init(_musicReader);
+        }
+
+        private void StartAudioAtTimelineTime(TimeSpan chartTime)
+        {
+            if (_musicReader == null)
+            {
+                return;
+            }
+
+            if (!TryGetTargetAudioTime(chartTime, out TimeSpan audioTime))
+            {
+                _wasapiOut?.Pause();
+                return;
+            }
+
+            _wasapiOut?.Stop();
+            _musicReader.CurrentTime = audioTime;
+            _wasapiOut?.Play();
+        }
+
+        private string PreparePlaybackFile(string sourceFilePath)
+        {
+            DeleteTemporaryDecodedAudioFile();
+
+            if (string.Equals(Path.GetExtension(sourceFilePath), ".wav", StringComparison.OrdinalIgnoreCase))
+            {
+                return sourceFilePath;
+            }
+
+            string decodedFilePath = Path.Combine(Path.GetTempPath(), $"axphi-decoded-{Guid.NewGuid():N}.wav");
+            using (var reader = new AudioFileReader(sourceFilePath))
+            {
+                WaveFileWriter.CreateWaveFile16(decodedFilePath, reader);
+            }
+
+            _temporaryDecodedAudioFilePath = decodedFilePath;
+            return decodedFilePath;
+        }
+
+        private bool TryGetTargetAudioTime(TimeSpan chartTime, out TimeSpan audioTime)
+        {
+            audioTime = TimeSpan.Zero;
+
+            if (_musicReader == null || this.DataContext is not MainViewModel vm || vm.ProjectManager.EditingProject?.Chart == null)
+            {
+                return false;
+            }
+
+            var chart = vm.ProjectManager.EditingProject.Chart;
+            double offsetSeconds = TimeTickConverter.TickToTime(chart.Offset, chart.BpmKeyFrames, chart.InitialBpm);
+            double targetAudioSeconds = chartTime.TotalSeconds - offsetSeconds;
+
+            if (targetAudioSeconds < 0 || targetAudioSeconds >= _musicReader.TotalTime.TotalSeconds)
+            {
+                return false;
+            }
+
+            audioTime = TimeSpan.FromSeconds(targetAudioSeconds);
+            return true;
         }
 
         private void DeleteTemporaryAudioFile()
@@ -397,6 +466,21 @@ namespace Axphi.Views
             }
 
             _temporaryAudioFilePath = null;
+        }
+
+        private void DeleteTemporaryDecodedAudioFile()
+        {
+            if (string.IsNullOrWhiteSpace(_temporaryDecodedAudioFilePath))
+            {
+                return;
+            }
+
+            if (File.Exists(_temporaryDecodedAudioFilePath))
+            {
+                File.Delete(_temporaryDecodedAudioFilePath);
+            }
+
+            _temporaryDecodedAudioFilePath = null;
         }
 
         private static string GetAudioFileExtension(byte[] audioBytes)
@@ -435,26 +519,15 @@ namespace Axphi.Views
         {
             if (this.DataContext is MainViewModel vm && vm.ProjectManager.EditingProject?.Chart != null)
             {
-                var chart = vm.ProjectManager.EditingProject.Chart;
-
-                // 🌟 算出音频图层距离宇宙起点 (Tick=0) 的物理秒数
-                double offsetSeconds = TimeTickConverter.TickToTime(chart.Offset, chart.BpmKeyFrames, chart.InitialBpm);
-
-                // 🌟 音频自己真正该播的时间 = 当前宇宙时间 - 图层开始的时间
-                double audioSeconds = time.TotalSeconds - offsetSeconds;
-
                 if (_musicReader != null)
                 {
-                    if (audioSeconds < 0)
+                    if (TryGetTargetAudioTime(time, out TimeSpan audioTime))
                     {
-                        // 如果游标在音频图层的左边，让音频回到开头待命
-                        _musicReader.CurrentTime = TimeSpan.Zero;
+                        _musicReader.CurrentTime = audioTime;
                     }
                     else
                     {
-                        // 如果游标踩在了音频图层上，让音频空降到对应进度
-                        if (audioSeconds <= _musicReader.TotalTime.TotalSeconds)
-                            _musicReader.CurrentTime = TimeSpan.FromSeconds(audioSeconds);
+                        _musicReader.CurrentTime = TimeSpan.Zero;
                     }
                 }
             }

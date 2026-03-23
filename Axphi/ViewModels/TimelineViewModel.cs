@@ -56,6 +56,7 @@ namespace Axphi.ViewModels
             TrackRotation,
             TrackOpacity,
             TrackSpeed,
+            NoteBody,
             NoteOffset,
             NoteScale,
             NoteRotation,
@@ -706,6 +707,23 @@ namespace Axphi.ViewModels
             PasteCopiedKeyframesCommand.NotifyCanExecuteChanged();
         }
 
+        private static int GetNoteOwnKeyframeCount(NoteViewModel note)
+        {
+            return note.UIOffsetKeyframes.Count
+                + note.UIScaleKeyframes.Count
+                + note.UIRotationKeyframes.Count
+                + note.UIOpacityKeyframes.Count
+                + note.UINoteKindKeyframes.Count;
+        }
+
+        private Note CloneNote(Note note)
+        {
+            var clonedNote = JsonSerializer.Deserialize<Note>(JsonSerializer.Serialize(note, HistoryJsonSerializerOptions), HistoryJsonSerializerOptions)
+                ?? new Note();
+            clonedNote.ID = Guid.NewGuid().ToString();
+            return clonedNote;
+        }
+
         private int GetSelectedKeyframeCount()
         {
             int count = 0;
@@ -725,11 +743,18 @@ namespace Axphi.ViewModels
 
                 foreach (var note in track.UINotes)
                 {
-                    count += note.UIOffsetKeyframes.Count(k => k.IsSelected);
-                    count += note.UIScaleKeyframes.Count(k => k.IsSelected);
-                    count += note.UIRotationKeyframes.Count(k => k.IsSelected);
-                    count += note.UIOpacityKeyframes.Count(k => k.IsSelected);
-                    count += note.UINoteKindKeyframes.Count(k => k.IsSelected);
+                    if (note.IsSelected)
+                    {
+                        count += 1;
+                    }
+                    else
+                    {
+                        count += note.UIOffsetKeyframes.Count(k => k.IsSelected);
+                        count += note.UIScaleKeyframes.Count(k => k.IsSelected);
+                        count += note.UIRotationKeyframes.Count(k => k.IsSelected);
+                        count += note.UIOpacityKeyframes.Count(k => k.IsSelected);
+                        count += note.UINoteKindKeyframes.Count(k => k.IsSelected);
+                    }
                 }
             }
 
@@ -744,48 +769,85 @@ namespace Axphi.ViewModels
         private void CopySelectedKeyframes()
         {
             _keyframeClipboard.Clear();
+            var copiedKeys = new HashSet<string>();
+
+            void AddClipboardItem(KeyframeClipboardTarget target, object? owner, int time, object value, BezierEasing easing, string? uniqueKey = null)
+            {
+                string key = uniqueKey ?? $"{target}|{owner?.GetHashCode() ?? 0}|{time}";
+                if (copiedKeys.Add(key))
+                {
+                    _keyframeClipboard.Add(new KeyframeClipboardItem(target, owner, time, value, easing));
+                }
+            }
 
             if (BpmTrack != null)
             {
                 foreach (var wrapper in BpmTrack.UIBpmKeyframes.Where(k => k.IsSelected))
                 {
-                    _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.Bpm, null, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    AddClipboardItem(KeyframeClipboardTarget.Bpm, null, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
                 }
             }
 
             foreach (var track in Tracks)
             {
                 foreach (var wrapper in track.UIOffsetKeyframes.Where(k => k.IsSelected))
-                    _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.TrackOffset, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    AddClipboardItem(KeyframeClipboardTarget.TrackOffset, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
 
                 foreach (var wrapper in track.UIScaleKeyframes.Where(k => k.IsSelected))
-                    _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.TrackScale, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    AddClipboardItem(KeyframeClipboardTarget.TrackScale, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
 
                 foreach (var wrapper in track.UIRotationKeyframes.Where(k => k.IsSelected))
-                    _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.TrackRotation, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    AddClipboardItem(KeyframeClipboardTarget.TrackRotation, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
 
                 foreach (var wrapper in track.UIOpacityKeyframes.Where(k => k.IsSelected))
-                    _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.TrackOpacity, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    AddClipboardItem(KeyframeClipboardTarget.TrackOpacity, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
 
                 foreach (var wrapper in track.UISpeedKeyframes.Where(k => k.IsSelected))
-                    _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.TrackSpeed, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    AddClipboardItem(KeyframeClipboardTarget.TrackSpeed, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
 
                 foreach (var note in track.UINotes)
                 {
-                    foreach (var wrapper in note.UIOffsetKeyframes.Where(k => k.IsSelected))
-                        _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.NoteOffset, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    if (note.IsSelected)
+                    {
+                        AddClipboardItem(
+                            KeyframeClipboardTarget.NoteBody,
+                            track,
+                            note.HitTime,
+                            CloneNote(note.Model),
+                            default,
+                            $"{KeyframeClipboardTarget.NoteBody}|{track.GetHashCode()}|{note.Model.ID}");
+                        continue;
+                    }
 
-                    foreach (var wrapper in note.UIScaleKeyframes.Where(k => k.IsSelected))
-                        _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.NoteScale, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    IEnumerable<KeyFrameUIWrapper<System.Windows.Vector>> offsetWrappers = note.IsSelected
+                        ? note.UIOffsetKeyframes
+                        : note.UIOffsetKeyframes.Where(k => k.IsSelected);
+                    foreach (var wrapper in offsetWrappers)
+                        AddClipboardItem(KeyframeClipboardTarget.NoteOffset, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
 
-                    foreach (var wrapper in note.UIRotationKeyframes.Where(k => k.IsSelected))
-                        _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.NoteRotation, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    IEnumerable<KeyFrameUIWrapper<System.Windows.Vector>> scaleWrappers = note.IsSelected
+                        ? note.UIScaleKeyframes
+                        : note.UIScaleKeyframes.Where(k => k.IsSelected);
+                    foreach (var wrapper in scaleWrappers)
+                        AddClipboardItem(KeyframeClipboardTarget.NoteScale, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
 
-                    foreach (var wrapper in note.UIOpacityKeyframes.Where(k => k.IsSelected))
-                        _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.NoteOpacity, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    IEnumerable<KeyFrameUIWrapper<double>> rotationWrappers = note.IsSelected
+                        ? note.UIRotationKeyframes
+                        : note.UIRotationKeyframes.Where(k => k.IsSelected);
+                    foreach (var wrapper in rotationWrappers)
+                        AddClipboardItem(KeyframeClipboardTarget.NoteRotation, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
 
-                    foreach (var wrapper in note.UINoteKindKeyframes.Where(k => k.IsSelected))
-                        _keyframeClipboard.Add(new KeyframeClipboardItem(KeyframeClipboardTarget.NoteKind, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing));
+                    IEnumerable<KeyFrameUIWrapper<double>> opacityWrappers = note.IsSelected
+                        ? note.UIOpacityKeyframes
+                        : note.UIOpacityKeyframes.Where(k => k.IsSelected);
+                    foreach (var wrapper in opacityWrappers)
+                        AddClipboardItem(KeyframeClipboardTarget.NoteOpacity, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+
+                    IEnumerable<KeyFrameUIWrapper<NoteKind>> kindWrappers = note.IsSelected
+                        ? note.UINoteKindKeyframes
+                        : note.UINoteKindKeyframes.Where(k => k.IsSelected);
+                    foreach (var wrapper in kindWrappers)
+                        AddClipboardItem(KeyframeClipboardTarget.NoteKind, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
                 }
             }
 
@@ -803,9 +865,14 @@ namespace Axphi.ViewModels
             int earliestTime = _keyframeClipboard.Min(item => item.Time);
             int cursorTick = GetCurrentTick();
             int deltaTick = cursorTick - earliestTime;
+            bool containsNoteBodies = _keyframeClipboard.Any(item => item.Target == KeyframeClipboardTarget.NoteBody);
 
             EnterSubItemSelectionContext();
             ClearKeyframeSelection();
+            if (containsNoteBodies)
+            {
+                ClearNoteSelection();
+            }
 
             var pastedWrappers = new List<object>();
             foreach (var item in _keyframeClipboard.OrderBy(item => item.Time))
@@ -829,6 +896,10 @@ namespace Axphi.ViewModels
                         break;
                     case KeyFrameUIWrapper<NoteKind> kindWrapper:
                         kindWrapper.IsSelected = true;
+                        break;
+                    case NoteViewModel noteViewModel:
+                        noteViewModel.ParentTrack.IsNoteExpanded = true;
+                        noteViewModel.IsSelected = true;
                         break;
                 }
             }
@@ -862,6 +933,7 @@ namespace Axphi.ViewModels
                 KeyframeClipboardTarget.TrackRotation when item.Owner is TrackViewModel track => PasteTrackRotationKeyframe(track, targetTime, (double)item.Value, item.Easing),
                 KeyframeClipboardTarget.TrackOpacity when item.Owner is TrackViewModel track => PasteTrackOpacityKeyframe(track, targetTime, (double)item.Value, item.Easing),
                 KeyframeClipboardTarget.TrackSpeed when item.Owner is TrackViewModel track => PasteTrackSpeedKeyframe(track, targetTime, (double)item.Value, item.Easing),
+                KeyframeClipboardTarget.NoteBody when item.Owner is TrackViewModel track => PasteNoteBody(track, targetTime, (Note)item.Value),
                 KeyframeClipboardTarget.NoteOffset when item.Owner is NoteViewModel note => PasteNoteOffsetKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing),
                 KeyframeClipboardTarget.NoteScale when item.Owner is NoteViewModel note => PasteNoteScaleKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing),
                 KeyframeClipboardTarget.NoteRotation when item.Owner is NoteViewModel note => PasteNoteRotationKeyframe(note, targetTime, (double)item.Value, item.Easing),
@@ -914,6 +986,25 @@ namespace Axphi.ViewModels
         {
             if (!Tracks.Contains(track)) return null;
             return UpsertKeyframe(track.Data.SpeedKeyFrames, track.UISpeedKeyframes, new KeyFrame<double> { Time = targetTime, Value = value, Easing = easing });
+        }
+
+        private NoteViewModel? PasteNoteBody(TrackViewModel track, int targetTime, Note sourceNote)
+        {
+            if (!Tracks.Contains(track))
+            {
+                return null;
+            }
+
+            var clonedNote = CloneNote(sourceNote);
+            clonedNote.HitTime = Math.Max(0, targetTime);
+
+            track.Data.Notes ??= new List<Note>();
+            track.Data.Notes.Add(clonedNote);
+
+            var newNoteViewModel = new NoteViewModel(clonedNote, this, track);
+            newNoteViewModel.SyncValuesToTime(GetCurrentTick(), CurrentChart.KeyFrameEasingDirection);
+            track.UINotes.Add(newNoteViewModel);
+            return newNoteViewModel;
         }
 
         private KeyFrameUIWrapper<System.Windows.Vector>? PasteNoteOffsetKeyframe(NoteViewModel note, int targetTime, System.Windows.Vector value, BezierEasing easing)

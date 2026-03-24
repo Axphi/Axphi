@@ -17,6 +17,7 @@ namespace Axphi.Components
     {
         None = 0,
         JudgementLineAnchors = 1 << 0,
+        NoteCenters = 1 << 1,
         All = JudgementLineAnchors,
     }
 
@@ -183,6 +184,12 @@ namespace Axphi.Components
             set { SetValue(ShowAuxiliaryUiProperty, value); }
         }
 
+        public bool ShowNoteCenters
+        {
+            get { return (bool)GetValue(ShowNoteCentersProperty); }
+            set { SetValue(ShowNoteCentersProperty, value); }
+        }
+
         public int BpmLinesDivisor
         {
             get { return (int)GetValue(BpmLinesDivisorProperty); }
@@ -208,6 +215,13 @@ namespace Axphi.Components
                 typeof(bool),
                 typeof(ChartRenderer),
                 new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public static readonly DependencyProperty ShowNoteCentersProperty =
+            DependencyProperty.Register(
+                nameof(ShowNoteCenters),
+                typeof(bool),
+                typeof(ChartRenderer),
+                new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
 
 
 
@@ -300,13 +314,14 @@ namespace Axphi.Components
 
             // 【第一遍遍历】：只画所有的判定线本身（铺在最底层）
             OverlayUiFlags effectiveOverlayFlags = ShowAuxiliaryUi ? OverlayUiVisibility : OverlayUiFlags.None;
+            bool effectiveShowNoteCenters = ShowAuxiliaryUi && ShowNoteCenters;
             foreach (var judgementLine in judgementLines)
             {
                 if (currentTick < judgementLine.StartTick || currentTick > (judgementLine.StartTick + judgementLine.DurationTicks))
                     continue;
 
                 // 传入 true, false (只画线，不画音符)
-                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, true, false, effectiveOverlayFlags, multiHitTicks: null);
+                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, true, false, effectiveOverlayFlags, effectiveShowNoteCenters, multiHitTicks: null);
             }
 
             var multiHitTicks = CollectMultiHitTicks(chart);
@@ -318,7 +333,7 @@ namespace Axphi.Components
                     continue;
 
                 // 传入 false, true (只画音符，不画线)
-                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, false, true, effectiveOverlayFlags, multiHitTicks);
+                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, false, true, effectiveOverlayFlags, effectiveShowNoteCenters, multiHitTicks);
             }
             // =====================================================================
 
@@ -412,7 +427,7 @@ namespace Axphi.Components
 
             return startTick <= endTick ? pixelDistance : -pixelDistance;
         }
-        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, double currentTick, bool drawLine, bool drawNotes, OverlayUiFlags overlayUiVisibility, HashSet<int>? multiHitTicks)
+        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, double currentTick, bool drawLine, bool drawNotes, OverlayUiFlags overlayUiVisibility, bool showNoteCenters, HashSet<int>? multiHitTicks)
         {
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
@@ -483,7 +498,7 @@ namespace Axphi.Components
 
                 foreach (var note in sortedNotes)
                 {
-                    RenderNote(drawingContext, renderInfo, chart, note, currentTick, line, multiHitTicks?.Contains(note.HitTime) == true);
+                    RenderNote(drawingContext, renderInfo, chart, note, currentTick, line, showNoteCenters, multiHitTicks?.Contains(note.HitTime) == true);
                 }
             }
 
@@ -491,7 +506,7 @@ namespace Axphi.Components
             drawingContext.Pop();
         }
 
-        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, double currentTick, JudgementLine line, bool isMultiHit)
+        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, double currentTick, JudgementLine line, bool showNoteCenter, bool isMultiHit)
         {
             int currentDiscreteTick = (int)Math.Round(currentTick, MidpointRounding.AwayFromZero);
             var ticksFromNow = note.HitTime - currentTick;
@@ -628,6 +643,13 @@ namespace Axphi.Components
                 var notePixelHeight = notePixelWidth * aspectRatio;
 
                 drawingContext.DrawImage(imgSrc, new Rect(-notePixelWidth / 2, -notePixelHeight / 2, notePixelWidth, notePixelHeight));
+            }
+
+            if (showNoteCenter)
+            {
+                double anchorWidth = renderInfo.ChartUnitToPixel(0.46);
+                double anchorHeight = anchorWidth * (_imgAnchor.PixelHeight / (double)Math.Max(1, _imgAnchor.PixelWidth));
+                drawingContext.DrawImage(_imgAnchor, new Rect(-anchorWidth / 2.0, -anchorHeight / 2.0, anchorWidth, anchorHeight));
             }
 
 

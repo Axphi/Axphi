@@ -173,15 +173,29 @@
                     Grid.Row="0"
                     Grid.Column="4"
                     Header="Display Controls">
-                    <StackPanel Margin="10" Orientation="Horizontal" VerticalAlignment="Top">
-                        <CheckBox
-                            VerticalAlignment="Center"
-                            IsChecked="{Binding ElementName=MainChartDisplay, Path=ShowAuxiliaryUi, Mode=TwoWay}" />
-                        <TextBlock
-                            Margin="6,0,0,0"
-                            VerticalAlignment="Center"
-                            Foreground="#d6d6d6"
-                            Text="显示辅助UI" />
+                    <StackPanel Margin="10" Orientation="Vertical" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal">
+                            <CheckBox
+                                VerticalAlignment="Center"
+                                IsChecked="{Binding ElementName=MainChartDisplay, Path=ShowAuxiliaryUi, Mode=TwoWay}" />
+                            <TextBlock
+                                Margin="6,0,0,0"
+                                VerticalAlignment="Center"
+                                Foreground="#d6d6d6"
+                                Text="显示辅助UI" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                            <CheckBox
+                                VerticalAlignment="Center"
+                                IsChecked="{Binding ElementName=MainChartDisplay, Path=ShowNoteCenters, Mode=TwoWay}"
+                                IsEnabled="{Binding ElementName=MainChartDisplay, Path=ShowAuxiliaryUi}" />
+                            <TextBlock
+                                Margin="6,0,0,0"
+                                VerticalAlignment="Center"
+                                Foreground="#d6d6d6"
+                                Text="显示note中心" />
+                        </StackPanel>
                     </StackPanel>
                 </comp:TabPane>
 

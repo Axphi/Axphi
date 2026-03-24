@@ -30,6 +30,19 @@ namespace Axphi.Views
                 typeof(ChartDisplay),
                 new PropertyMetadata(true));
 
+        public bool ShowNoteCenters
+        {
+            get => (bool)GetValue(ShowNoteCentersProperty);
+            set => SetValue(ShowNoteCentersProperty, value);
+        }
+
+        public static readonly DependencyProperty ShowNoteCentersProperty =
+            DependencyProperty.Register(
+                nameof(ShowNoteCenters),
+                typeof(bool),
+                typeof(ChartDisplay),
+                new PropertyMetadata(false));
+
         // 私有变量搬过来
         // 把 private MediaFoundationReader? _musicReader; 替换为：
         private AudioFileReader? _musicReader;

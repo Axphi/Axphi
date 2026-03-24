@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\UI\anchor.png" />
     <None Remove="Resources\Notes\drag.png" />
     <None Remove="Resources\Notes\dragHL.png" />
     <None Remove="Resources\Notes\flick.png" />
@@ -49,6 +50,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Resources\UI\anchor.png" />
     <Resource Include="Resources\Notes\hit_fx.png" />
     <Resource Include="Resources\Notes\tap.png" />
     <Resource Include="Resources\Notes\tapHL.png" />

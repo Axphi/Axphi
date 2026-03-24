@@ -67,6 +67,7 @@ namespace Axphi.ViewModels
         private double _uIHoldPixelWidth;
 
         // ================= 3. 音符【专属】的动画 UI 替身集合 =================
+        public ObservableCollection<KeyFrameUIWrapper<Vector>> UIAnchorKeyframes { get; } = new();
         public ObservableCollection<KeyFrameUIWrapper<Vector>> UIOffsetKeyframes { get; } = new();
         public ObservableCollection<KeyFrameUIWrapper<Vector>> UIScaleKeyframes { get; } = new();
         public ObservableCollection<KeyFrameUIWrapper<double>> UIRotationKeyframes { get; } = new();
@@ -75,6 +76,8 @@ namespace Axphi.ViewModels
         public ObservableCollection<KeyFrameUIWrapper<NoteKind>> UINoteKindKeyframes { get; } = new();
 
         // ================= 4. 供 XAML 绑定的【音符专属】当前数值 =================
+        [ObservableProperty] private double _currentAnchorX;
+        [ObservableProperty] private double _currentAnchorY;
         [ObservableProperty] private double _currentOffsetX;
         [ObservableProperty] private double _currentOffsetY;
         [ObservableProperty] private double _currentScaleX = 1.0;
@@ -105,6 +108,10 @@ namespace Axphi.ViewModels
 
 
             // === 把底层已有的数据全部包上保镖 ===
+            if (Model.AnimatableProperties.Anchor.KeyFrames != null)
+                foreach (var kf in Model.AnimatableProperties.Anchor.KeyFrames)
+                    UIAnchorKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline));
+
             if (Model.AnimatableProperties.Offset.KeyFrames != null)
                 foreach (var kf in Model.AnimatableProperties.Offset.KeyFrames)
                     UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline));
@@ -197,6 +204,25 @@ namespace Axphi.ViewModels
                 offsetKeyframesData.Add(newFrame);
                 offsetKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
                 UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
+            }
+        }
+
+        private void UpsertAnchorKeyframe(double x, double y)
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var anchorKeyframesData = Model.AnimatableProperties.Anchor.KeyFrames;
+            var existingWrapper = UIAnchorKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+
+            if (existingWrapper != null)
+            {
+                existingWrapper.Model.Value = new Vector(x, y);
+            }
+            else
+            {
+                var newFrame = new OffsetKeyFrame() { Time = currentTick, Value = new Vector(x, y) };
+                anchorKeyframesData.Add(newFrame);
+                anchorKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
+                UIAnchorKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
             }
         }
 
@@ -301,6 +327,34 @@ namespace Axphi.ViewModels
         public void ApplyPositionDelta(double deltaX, double deltaY)
         {
             ApplyPositionChangeInternal(CurrentOffsetX + deltaX, CurrentOffsetY + deltaY);
+        }
+
+        private void ApplyAnchorChangeInternal(double x, double y)
+        {
+            if (Model.AnimatableProperties.Anchor.KeyFrames.Count == 0)
+            {
+                Model.AnimatableProperties.Anchor.InitialValue = new Vector(x, y);
+            }
+            else
+            {
+                UpsertAnchorKeyframe(x, y);
+            }
+
+            UpdateDisplayedValues(() =>
+            {
+                CurrentAnchorX = x;
+                CurrentAnchorY = y;
+            });
+        }
+
+        public void ApplyAnchorAbsolute(double x, double y)
+        {
+            ApplyAnchorChangeInternal(x, y);
+        }
+
+        public void ApplyAnchorDelta(double deltaX, double deltaY)
+        {
+            ApplyAnchorChangeInternal(CurrentAnchorX + deltaX, CurrentAnchorY + deltaY);
         }
 
         private void ApplyScaleChangeInternal(double x, double y)
@@ -433,6 +487,22 @@ namespace Axphi.ViewModels
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
+        partial void OnCurrentAnchorXChanged(double value)
+        {
+            if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            ApplyAnchorChangeInternal(CurrentAnchorX, CurrentAnchorY);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        partial void OnCurrentAnchorYChanged(double value)
+        {
+            if (_isSyncing) return;
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            ApplyAnchorChangeInternal(CurrentAnchorX, CurrentAnchorY);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
         partial void OnCurrentOffsetYChanged(double value)
         {
             if (_isSyncing) return;
@@ -561,6 +631,13 @@ namespace Axphi.ViewModels
         // ... (Scale, Rotation, Opacity 的拦截器和 AddKeyframe 逻辑与 TrackVM 完全一样，只是把 Data 换成 Model，这里为了简洁略过重复代码，你直接粘贴过来改名即可) ...
 
         [RelayCommand]
+        private void AddAnchorKeyframe()
+        {
+            UpsertAnchorKeyframe(CurrentAnchorX, CurrentAnchorY);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        [RelayCommand]
         private void AddPositionKeyframe()
         {
             UpsertPositionKeyframe(CurrentOffsetX, CurrentOffsetY);
@@ -592,8 +669,10 @@ namespace Axphi.ViewModels
             _isSyncing = true;
             EasingUtils.CalculateObjectTransform(
                 currentTick, direction, Model.AnimatableProperties,
-                out var offset, out var scale, out var rotationAngle, out var opacity);
+                out var anchor, out var offset, out var scale, out var rotationAngle, out var opacity);
 
+            CurrentAnchorX = anchor.X;
+            CurrentAnchorY = anchor.Y;
             CurrentOffsetX = offset.X;
             CurrentOffsetY = offset.Y;
             CurrentScaleX = scale.X;
@@ -777,6 +856,7 @@ namespace Axphi.ViewModels
 
             // 🌟 核心：让自己肚子里的关键帧也跟着搬家！
             foreach (var kf in UIOffsetKeyframes) kf.ShiftBy(deltaTick);
+            foreach (var kf in UIAnchorKeyframes) kf.ShiftBy(deltaTick);
             foreach (var kf in UIScaleKeyframes) kf.ShiftBy(deltaTick);
             foreach (var kf in UIRotationKeyframes) kf.ShiftBy(deltaTick);
             foreach (var kf in UIOpacityKeyframes) kf.ShiftBy(deltaTick);

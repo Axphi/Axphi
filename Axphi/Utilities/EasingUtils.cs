@@ -156,21 +156,27 @@ namespace Axphi.Utilities
             int time,
             KeyFrameEasingDirection easingDirection,
             StandardAnimatableProperties properties,
-            out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+            out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
-            CalculateObjectTransform((double)time, easingDirection, properties, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
+            CalculateObjectTransform((double)time, easingDirection, properties, out finalAnchor, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
         }
 
         public static void CalculateObjectTransform(
             double time,
             KeyFrameEasingDirection easingDirection,
             StandardAnimatableProperties properties,
-            out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+            out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
+            finalAnchor = properties.Anchor.InitialValue;
             finalOffset = properties.Offset.InitialValue;
             finalScale = properties.Scale.InitialValue;
             finalRotationAngle = properties.Rotation.InitialValue;
             finalOpacity = properties.Opacity.InitialValue;
+
+            if (properties.Anchor.KeyFrames is { } anchorKeyFrames)
+            {
+                CalculateObjectSingleTransform(time, easingDirection, properties.Anchor.InitialValue, anchorKeyFrames, MathUtils.Lerp, out finalAnchor);
+            }
 
             if (properties.Offset.KeyFrames is { } offsetKeyFrames)
             {

@@ -96,6 +96,13 @@ namespace Axphi.ViewModels
             foreach (var track in Timeline.Tracks)
             {
                 // ================= A. 判定线自己的关键帧 =================
+                // Anchor
+                foreach (var wrapper in track.UIAnchorKeyframes.Where(k => k.IsSelected))
+                {
+                    wrapper.Model.Easing = newEasing;
+                    hasModified = true;
+                }
+
                 // Offset
                 foreach (var wrapper in track.UIOffsetKeyframes.Where(k => k.IsSelected))
                 {
@@ -127,6 +134,13 @@ namespace Axphi.ViewModels
                 // ================= B. 新增：扫荡音符自己的关键帧 =================
                 foreach (var note in track.UINotes)
                 {
+                    // Note Anchor
+                    foreach (var wrapper in note.UIAnchorKeyframes.Where(k => k.IsSelected))
+                    {
+                        wrapper.Model.Easing = newEasing;
+                        hasModified = true;
+                    }
+
                     // Note Offset
                     foreach (var wrapper in note.UIOffsetKeyframes.Where(k => k.IsSelected))
                     {

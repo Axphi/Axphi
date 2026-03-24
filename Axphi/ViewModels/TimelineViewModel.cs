@@ -56,12 +56,14 @@ namespace Axphi.ViewModels
         private enum KeyframeClipboardTarget
         {
             Bpm,
+            TrackAnchor,
             TrackOffset,
             TrackScale,
             TrackRotation,
             TrackOpacity,
             TrackSpeed,
             NoteBody,
+            NoteAnchor,
             NoteOffset,
             NoteScale,
             NoteRotation,
@@ -778,7 +780,8 @@ namespace Axphi.ViewModels
 
         private static int GetNoteOwnKeyframeCount(NoteViewModel note)
         {
-            return note.UIOffsetKeyframes.Count
+            return note.UIAnchorKeyframes.Count
+                + note.UIOffsetKeyframes.Count
                 + note.UIScaleKeyframes.Count
                 + note.UIRotationKeyframes.Count
                 + note.UIOpacityKeyframes.Count
@@ -804,6 +807,7 @@ namespace Axphi.ViewModels
 
             foreach (var track in Tracks)
             {
+                count += track.UIAnchorKeyframes.Count(k => k.IsSelected);
                 count += track.UIOffsetKeyframes.Count(k => k.IsSelected);
                 count += track.UIScaleKeyframes.Count(k => k.IsSelected);
                 count += track.UIRotationKeyframes.Count(k => k.IsSelected);
@@ -818,6 +822,7 @@ namespace Axphi.ViewModels
                     }
                     else
                     {
+                        count += note.UIAnchorKeyframes.Count(k => k.IsSelected);
                         count += note.UIOffsetKeyframes.Count(k => k.IsSelected);
                         count += note.UIScaleKeyframes.Count(k => k.IsSelected);
                         count += note.UIRotationKeyframes.Count(k => k.IsSelected);
@@ -859,6 +864,9 @@ namespace Axphi.ViewModels
 
             foreach (var track in Tracks)
             {
+                foreach (var wrapper in track.UIAnchorKeyframes.Where(k => k.IsSelected))
+                    AddClipboardItem(KeyframeClipboardTarget.TrackAnchor, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+
                 foreach (var wrapper in track.UIOffsetKeyframes.Where(k => k.IsSelected))
                     AddClipboardItem(KeyframeClipboardTarget.TrackOffset, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
 
@@ -893,6 +901,12 @@ namespace Axphi.ViewModels
                         : note.UIOffsetKeyframes.Where(k => k.IsSelected);
                     foreach (var wrapper in offsetWrappers)
                         AddClipboardItem(KeyframeClipboardTarget.NoteOffset, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+
+                    IEnumerable<KeyFrameUIWrapper<System.Windows.Vector>> anchorWrappers = note.IsSelected
+                        ? note.UIAnchorKeyframes
+                        : note.UIAnchorKeyframes.Where(k => k.IsSelected);
+                    foreach (var wrapper in anchorWrappers)
+                        AddClipboardItem(KeyframeClipboardTarget.NoteAnchor, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
 
                     IEnumerable<KeyFrameUIWrapper<System.Windows.Vector>> scaleWrappers = note.IsSelected
                         ? note.UIScaleKeyframes
@@ -997,12 +1011,14 @@ namespace Axphi.ViewModels
             return item.Target switch
             {
                 KeyframeClipboardTarget.Bpm => PasteBpmKeyframe(targetTime, (double)item.Value, item.Easing),
+                KeyframeClipboardTarget.TrackAnchor when item.Owner is TrackViewModel track => PasteTrackAnchorKeyframe(track, targetTime, (System.Windows.Vector)item.Value, item.Easing),
                 KeyframeClipboardTarget.TrackOffset when item.Owner is TrackViewModel track => PasteTrackOffsetKeyframe(track, targetTime, (System.Windows.Vector)item.Value, item.Easing),
                 KeyframeClipboardTarget.TrackScale when item.Owner is TrackViewModel track => PasteTrackScaleKeyframe(track, targetTime, (System.Windows.Vector)item.Value, item.Easing),
                 KeyframeClipboardTarget.TrackRotation when item.Owner is TrackViewModel track => PasteTrackRotationKeyframe(track, targetTime, (double)item.Value, item.Easing),
                 KeyframeClipboardTarget.TrackOpacity when item.Owner is TrackViewModel track => PasteTrackOpacityKeyframe(track, targetTime, (double)item.Value, item.Easing),
                 KeyframeClipboardTarget.TrackSpeed when item.Owner is TrackViewModel track => PasteTrackSpeedKeyframe(track, targetTime, (double)item.Value, item.Easing),
                 KeyframeClipboardTarget.NoteBody when item.Owner is TrackViewModel track => PasteNoteBody(track, targetTime, (Note)item.Value),
+                KeyframeClipboardTarget.NoteAnchor when item.Owner is NoteViewModel note => PasteNoteAnchorKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing),
                 KeyframeClipboardTarget.NoteOffset when item.Owner is NoteViewModel note => PasteNoteOffsetKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing),
                 KeyframeClipboardTarget.NoteScale when item.Owner is NoteViewModel note => PasteNoteScaleKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing),
                 KeyframeClipboardTarget.NoteRotation when item.Owner is NoteViewModel note => PasteNoteRotationKeyframe(note, targetTime, (double)item.Value, item.Easing),
@@ -1025,6 +1041,12 @@ namespace Axphi.ViewModels
                 Value = value,
                 Easing = easing,
             });
+        }
+
+        private KeyFrameUIWrapper<System.Windows.Vector>? PasteTrackAnchorKeyframe(TrackViewModel track, int targetTime, System.Windows.Vector value, BezierEasing easing)
+        {
+            if (!Tracks.Contains(track)) return null;
+            return UpsertKeyframe(track.Data.AnimatableProperties.Anchor.KeyFrames, track.UIAnchorKeyframes, new OffsetKeyFrame { Time = targetTime, Value = value, Easing = easing });
         }
 
         private KeyFrameUIWrapper<System.Windows.Vector>? PasteTrackOffsetKeyframe(TrackViewModel track, int targetTime, System.Windows.Vector value, BezierEasing easing)
@@ -1074,6 +1096,12 @@ namespace Axphi.ViewModels
             newNoteViewModel.SyncValuesToTime(GetCurrentTick(), CurrentChart.KeyFrameEasingDirection);
             track.UINotes.Add(newNoteViewModel);
             return newNoteViewModel;
+        }
+
+        private KeyFrameUIWrapper<System.Windows.Vector>? PasteNoteAnchorKeyframe(NoteViewModel note, int targetTime, System.Windows.Vector value, BezierEasing easing)
+        {
+            if (!note.ParentTrack.UINotes.Contains(note)) return null;
+            return UpsertKeyframe(note.Model.AnimatableProperties.Anchor.KeyFrames, note.UIAnchorKeyframes, new OffsetKeyFrame { Time = targetTime, Value = value, Easing = easing });
         }
 
         private KeyFrameUIWrapper<System.Windows.Vector>? PasteNoteOffsetKeyframe(NoteViewModel note, int targetTime, System.Windows.Vector value, BezierEasing easing)
@@ -1151,6 +1179,16 @@ namespace Axphi.ViewModels
             foreach (var track in Tracks)
             {
                 // ================= A. 删判定线自己的关键帧 =================
+                // Anchor
+                var anchorToDelete = track.UIAnchorKeyframes.Where(k => k.IsSelected).ToList();
+                foreach (var wrapper in anchorToDelete)
+                {
+                    track.Data.AnimatableProperties.Anchor.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model);
+                    track.UIAnchorKeyframes.Remove(wrapper);
+                    hasDeletedChildren = true;
+                    layersToSelectAfterDelete.Add(track);
+                }
+
                 // Position (Offset)
                 var offsetToDelete = track.UIOffsetKeyframes.Where(k => k.IsSelected).ToList();
                 foreach (var wrapper in offsetToDelete)
@@ -1200,6 +1238,10 @@ namespace Axphi.ViewModels
                 // ================= B. 删音符自己的关键帧 =================
                 foreach (var note in track.UINotes)
                 {
+                    // Note Anchor
+                    var noteAnchorDel = note.UIAnchorKeyframes.Where(k => k.IsSelected).ToList();
+                    foreach (var wrapper in noteAnchorDel) { note.Model.AnimatableProperties.Anchor.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model); note.UIAnchorKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
+
                     // Note Offset
                     var noteOffsetDel = note.UIOffsetKeyframes.Where(k => k.IsSelected).ToList();
                     foreach (var wrapper in noteOffsetDel) { note.Model.AnimatableProperties.Offset.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model); note.UIOffsetKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
@@ -1296,7 +1338,8 @@ namespace Axphi.ViewModels
 
         private bool TrackHasSelectedChildren(TrackViewModel track)
         {
-            if (track.UIOffsetKeyframes.Any(k => k.IsSelected) ||
+            if (track.UIAnchorKeyframes.Any(k => k.IsSelected) ||
+                track.UIOffsetKeyframes.Any(k => k.IsSelected) ||
                 track.UIScaleKeyframes.Any(k => k.IsSelected) ||
                 track.UIRotationKeyframes.Any(k => k.IsSelected) ||
                 track.UIOpacityKeyframes.Any(k => k.IsSelected) ||
@@ -1308,6 +1351,7 @@ namespace Axphi.ViewModels
             foreach (var note in track.UINotes)
             {
                 if (note.IsSelected ||
+                    note.UIAnchorKeyframes.Any(k => k.IsSelected) ||
                     note.UIOffsetKeyframes.Any(k => k.IsSelected) ||
                     note.UIScaleKeyframes.Any(k => k.IsSelected) ||
                     note.UIRotationKeyframes.Any(k => k.IsSelected) ||
@@ -1420,6 +1464,7 @@ namespace Axphi.ViewModels
             foreach (var track in Tracks)
             {
                 // 判定线自身的关键帧
+                foreach (var kf in track.UIAnchorKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
                 foreach (var kf in track.UIOffsetKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
                 foreach (var kf in track.UIScaleKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
                 foreach (var kf in track.UIRotationKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
@@ -1437,6 +1482,7 @@ namespace Axphi.ViewModels
                     }
 
                     // 🌟 重点补漏：把音符【内部】的所有关键帧也扔进雷达！
+                    foreach (var kf in note.UIAnchorKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
                     foreach (var kf in note.UIOffsetKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
                     foreach (var kf in note.UIScaleKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);
                     foreach (var kf in note.UIRotationKeyframes) if (!ShouldIgnore(kf.IsSelected)) TrySnap(kf.Model.Time);

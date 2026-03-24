@@ -388,6 +388,7 @@ namespace Axphi.ViewModels
         {
             foreach (var track in _timeline.Tracks)
             {
+                foreach (var kf in track.UIAnchorKeyframes.Where(kf => !kf.IsSelected)) yield return kf.Model.Time;
                 foreach (var kf in track.UIOffsetKeyframes.Where(kf => !kf.IsSelected)) yield return kf.Model.Time;
                 foreach (var kf in track.UIScaleKeyframes.Where(kf => !kf.IsSelected)) yield return kf.Model.Time;
                 foreach (var kf in track.UIRotationKeyframes.Where(kf => !kf.IsSelected)) yield return kf.Model.Time;
@@ -405,6 +406,7 @@ namespace Axphi.ViewModels
                         }
                     }
 
+                    foreach (var kf in note.UIAnchorKeyframes.Where(kf => !kf.IsSelected)) yield return kf.Model.Time;
                     foreach (var kf in note.UIOffsetKeyframes.Where(kf => !kf.IsSelected)) yield return kf.Model.Time;
                     foreach (var kf in note.UIScaleKeyframes.Where(kf => !kf.IsSelected)) yield return kf.Model.Time;
                     foreach (var kf in note.UIRotationKeyframes.Where(kf => !kf.IsSelected)) yield return kf.Model.Time;

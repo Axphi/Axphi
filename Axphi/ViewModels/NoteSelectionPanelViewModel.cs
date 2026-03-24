@@ -37,6 +37,12 @@ namespace Axphi.ViewModels
         private string _currentNoteKind = nameof(NoteKind.Tap);
 
         [ObservableProperty]
+        private double _currentAnchorX;
+
+        [ObservableProperty]
+        private double _currentAnchorY;
+
+        [ObservableProperty]
         private double _currentOffsetX;
 
         [ObservableProperty]
@@ -66,6 +72,7 @@ namespace Axphi.ViewModels
         }
 
         public ICommand? AddNoteKindKeyframeCommand => SingleSelectedNote?.AddNoteKindKeyframeCommand;
+        public ICommand? AddAnchorKeyframeCommand => SingleSelectedNote?.AddAnchorKeyframeCommand;
         public ICommand? AddPositionKeyframeCommand => SingleSelectedNote?.AddPositionKeyframeCommand;
         public ICommand? AddScaleKeyframeCommand => SingleSelectedNote?.AddScaleKeyframeCommand;
         public ICommand? AddRotationKeyframeCommand => SingleSelectedNote?.AddRotationKeyframeCommand;
@@ -77,6 +84,7 @@ namespace Axphi.ViewModels
         private void NotifyKeyframeCommandBindingsChanged()
         {
             OnPropertyChanged(nameof(AddNoteKindKeyframeCommand));
+            OnPropertyChanged(nameof(AddAnchorKeyframeCommand));
             OnPropertyChanged(nameof(AddPositionKeyframeCommand));
             OnPropertyChanged(nameof(AddScaleKeyframeCommand));
             OnPropertyChanged(nameof(AddRotationKeyframeCommand));
@@ -101,6 +109,8 @@ namespace Axphi.ViewModels
                 SelectionTitle = "Note";
                 SelectionModeHint = string.Empty;
                 CurrentNoteKind = nameof(NoteKind.Tap);
+                CurrentAnchorX = 0;
+                CurrentAnchorY = 0;
                 CurrentOffsetX = 0;
                 CurrentOffsetY = 0;
                 CurrentScaleX = 1.0;
@@ -121,6 +131,8 @@ namespace Axphi.ViewModels
                 SelectionTitle = "Note";
                 SelectionModeHint = string.Empty;
                 CurrentNoteKind = note.CurrentNoteKind.ToString();
+                CurrentAnchorX = note.CurrentAnchorX;
+                CurrentAnchorY = note.CurrentAnchorY;
                 CurrentOffsetX = note.CurrentOffsetX;
                 CurrentOffsetY = note.CurrentOffsetY;
                 CurrentScaleX = note.CurrentScaleX;
@@ -137,6 +149,8 @@ namespace Axphi.ViewModels
                 CurrentNoteKind = _selectedNotes.Select(note => note.CurrentNoteKind).Distinct().Count() == 1
                     ? _selectedNotes[0].CurrentNoteKind.ToString()
                     : "Mixed";
+                CurrentAnchorX = 0;
+                CurrentAnchorY = 0;
                 CurrentOffsetX = 0;
                 CurrentOffsetY = 0;
                 CurrentScaleX = 0;
@@ -180,6 +194,30 @@ namespace Axphi.ViewModels
             }
 
             ApplyVectorDelta(newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyPositionDelta(deltaX, deltaY));
+        }
+
+        partial void OnCurrentAnchorXChanged(double oldValue, double newValue)
+        {
+            if (_isSyncing || !HasSelection) return;
+            if (IsSingleSelection)
+            {
+                ApplyAbsolute(note => note.ApplyAnchorAbsolute(CurrentAnchorX, CurrentAnchorY));
+                return;
+            }
+
+            ApplyVectorDelta(newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyAnchorDelta(deltaX, deltaY));
+        }
+
+        partial void OnCurrentAnchorYChanged(double oldValue, double newValue)
+        {
+            if (_isSyncing || !HasSelection) return;
+            if (IsSingleSelection)
+            {
+                ApplyAbsolute(note => note.ApplyAnchorAbsolute(CurrentAnchorX, CurrentAnchorY));
+                return;
+            }
+
+            ApplyVectorDelta(0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyAnchorDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentOffsetYChanged(double oldValue, double newValue)

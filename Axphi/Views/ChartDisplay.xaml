@@ -24,6 +24,7 @@
         <comp:ChartRenderer
             x:Name="InternalChartRenderer"
             Chart="{Binding ProjectManager.EditingProject.Chart}"
-            ClipToBounds="True" />
+            ClipToBounds="True"
+            ShowAuxiliaryUi="{Binding ElementName=Root, Path=ShowAuxiliaryUi}" />
     </DockPanel>
 </UserControl>

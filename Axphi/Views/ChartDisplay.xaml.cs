@@ -17,6 +17,19 @@ namespace Axphi.Views
 {
     public partial class ChartDisplay : UserControl
     {
+        public bool ShowAuxiliaryUi
+        {
+            get => (bool)GetValue(ShowAuxiliaryUiProperty);
+            set => SetValue(ShowAuxiliaryUiProperty, value);
+        }
+
+        public static readonly DependencyProperty ShowAuxiliaryUiProperty =
+            DependencyProperty.Register(
+                nameof(ShowAuxiliaryUi),
+                typeof(bool),
+                typeof(ChartDisplay),
+                new PropertyMetadata(true));
+
         // 私有变量搬过来
         // 把 private MediaFoundationReader? _musicReader; 替换为：
         private AudioFileReader? _musicReader;

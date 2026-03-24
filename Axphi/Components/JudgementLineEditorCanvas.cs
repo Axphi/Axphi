@@ -17,6 +17,7 @@ namespace Axphi.Components
     {
         private readonly record struct NoteRenderState(
             NoteKind Kind,
+            Vector Anchor,
             Vector Offset,
             Vector Scale,
             double Rotation,
@@ -623,8 +624,10 @@ namespace Axphi.Components
             }
 
             dc.PushTransform(new TranslateTransform(centerX, centerY));
+            dc.PushTransform(new TranslateTransform(-renderState.Anchor.X * metrics.PixelsPerChartUnit, -renderState.Anchor.Y * metrics.PixelsPerChartUnit));
             dc.PushTransform(new RotateTransform(renderState.Rotation));
             dc.PushTransform(new ScaleTransform(renderState.Scale.X, renderState.Scale.Y));
+            dc.PushTransform(new TranslateTransform(renderState.Anchor.X * metrics.PixelsPerChartUnit, renderState.Anchor.Y * metrics.PixelsPerChartUnit));
             dc.PushOpacity((renderState.Opacity / 100.0) * opacityMultiplier);
 
             if (isHold)
@@ -639,6 +642,7 @@ namespace Axphi.Components
                 DrawNoteImage(dc, renderState.Kind, renderedNoteWidth, opacity: 1.0, isMultiHit);
             }
 
+            dc.Pop();
             dc.Pop();
             dc.Pop();
             dc.Pop();
@@ -786,6 +790,7 @@ namespace Axphi.Components
                 currentTick,
                 timeline.CurrentChart.KeyFrameEasingDirection,
                 note.Model.AnimatableProperties,
+                out var anchor,
                 out var offset,
                 out var scale,
                 out var rotation,
@@ -796,7 +801,7 @@ namespace Axphi.Components
                 ? KeyFrameUtils.GetStepValueAtTick(note.Model.KindKeyFrames, discreteTick, note.Model.InitialKind)
                 : note.Model.InitialKind;
 
-            return new NoteRenderState(kind, offset, scale, rotation, opacity);
+            return new NoteRenderState(kind, anchor, offset, scale, rotation, opacity);
         }
 
         private static double CalculateNoteY(TimelineViewModel timeline, TrackViewModel track, NoteViewModel note, double currentTick, Size viewportSize, double viewZoom, double centerY, double offsetY)

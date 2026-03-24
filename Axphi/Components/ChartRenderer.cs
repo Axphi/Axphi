@@ -12,6 +12,14 @@ using System.Windows.Media.Imaging;
 
 namespace Axphi.Components
 {
+    [Flags]
+    public enum OverlayUiFlags
+    {
+        None = 0,
+        JudgementLineAnchors = 1 << 0,
+        All = JudgementLineAnchors,
+    }
+
     public class ChartRenderer : FrameworkElement
     {
         private static SolidColorBrush _lineYellow = new SolidColorBrush(Color.FromRgb(254, 255, 169)); // #feffa9
@@ -40,6 +48,7 @@ namespace Axphi.Components
         private static readonly BitmapImage _imgHoldMultiHit = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/holdHL.png"));
         private static readonly BitmapImage _imgFlick = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/flick.png"));
         private static readonly BitmapImage _imgFlickMultiHit = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/flickHL.png"));
+        private static readonly BitmapImage _imgAnchor = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/UI/anchor.png"));
 
 
         // 在其他静态画刷声明的地方（例如 _brushHoldHead 下方）添加：
@@ -113,6 +122,11 @@ namespace Axphi.Components
             _brushHoldBodyMultiHit.Freeze();
             _brushHoldTailMultiHit.Freeze();
 
+            if (_imgAnchor.CanFreeze)
+            {
+                _imgAnchor.Freeze();
+            }
+
 
             _perfectFxBrush.Freeze();
 
@@ -157,6 +171,18 @@ namespace Axphi.Components
             set { SetValue(ShowBpmLinesProperty, value); }
         }
 
+        public OverlayUiFlags OverlayUiVisibility
+        {
+            get { return (OverlayUiFlags)GetValue(OverlayUiVisibilityProperty); }
+            set { SetValue(OverlayUiVisibilityProperty, value); }
+        }
+
+        public bool ShowAuxiliaryUi
+        {
+            get { return (bool)GetValue(ShowAuxiliaryUiProperty); }
+            set { SetValue(ShowAuxiliaryUiProperty, value); }
+        }
+
         public int BpmLinesDivisor
         {
             get { return (int)GetValue(BpmLinesDivisorProperty); }
@@ -168,6 +194,20 @@ namespace Axphi.Components
 
         public static readonly DependencyProperty ShowBpmLinesProperty =
             DependencyProperty.Register("ShowBpmLines", typeof(bool), typeof(ChartRenderer), new PropertyMetadata(false));
+
+        public static readonly DependencyProperty OverlayUiVisibilityProperty =
+            DependencyProperty.Register(
+                nameof(OverlayUiVisibility),
+                typeof(OverlayUiFlags),
+                typeof(ChartRenderer),
+                new FrameworkPropertyMetadata(OverlayUiFlags.All, FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public static readonly DependencyProperty ShowAuxiliaryUiProperty =
+            DependencyProperty.Register(
+                nameof(ShowAuxiliaryUi),
+                typeof(bool),
+                typeof(ChartRenderer),
+                new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
 
 
 
@@ -259,13 +299,14 @@ namespace Axphi.Components
             // ================= 🌟 核心修改：双Pass分层渲染引擎 =================
 
             // 【第一遍遍历】：只画所有的判定线本身（铺在最底层）
+            OverlayUiFlags effectiveOverlayFlags = ShowAuxiliaryUi ? OverlayUiVisibility : OverlayUiFlags.None;
             foreach (var judgementLine in judgementLines)
             {
                 if (currentTick < judgementLine.StartTick || currentTick > (judgementLine.StartTick + judgementLine.DurationTicks))
                     continue;
 
                 // 传入 true, false (只画线，不画音符)
-                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, true, false, multiHitTicks: null);
+                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, true, false, effectiveOverlayFlags, multiHitTicks: null);
             }
 
             var multiHitTicks = CollectMultiHitTicks(chart);
@@ -277,7 +318,7 @@ namespace Axphi.Components
                     continue;
 
                 // 传入 false, true (只画音符，不画线)
-                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, false, true, multiHitTicks);
+                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, false, true, effectiveOverlayFlags, multiHitTicks);
             }
             // =====================================================================
 
@@ -371,23 +412,28 @@ namespace Axphi.Components
 
             return startTick <= endTick ? pixelDistance : -pixelDistance;
         }
-        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, double currentTick, bool drawLine, bool drawNotes, HashSet<int>? multiHitTicks)
+        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, double currentTick, bool drawLine, bool drawNotes, OverlayUiFlags overlayUiVisibility, HashSet<int>? multiHitTicks)
         {
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
                 line.AnimatableProperties,
-                out var offset, out var scale, out var rotationAngle, out var opacity);
+                out var anchor, out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(
                 renderInfo.ChartUnitToPixel(offset.X),
                 renderInfo.ChartUnitToPixel(offset.Y));
+            var pixelAnchor = new Vector(
+                renderInfo.ChartUnitToPixel(anchor.X),
+                -renderInfo.ChartUnitToPixel(anchor.Y));
 
             var transform = new TransformGroup()
             {
                 Children =
                 {
+                    new TranslateTransform(-pixelAnchor.X, -pixelAnchor.Y),
                     new ScaleTransform(scale.X, scale.Y),
                     new RotateTransform(-rotationAngle),
+                    new TranslateTransform(pixelAnchor.X, pixelAnchor.Y),
                     new TranslateTransform(pixelOffset.X, -pixelOffset.Y),
                 }
             };
@@ -403,6 +449,13 @@ namespace Axphi.Components
                 double thickness = renderInfo.CanvasHeight * 0.0075;
 
                 drawingContext.DrawRectangle(_lineYellow, null, new Rect(-lineLength / 2, -thickness / 2, lineLength, thickness));
+
+                if ((overlayUiVisibility & OverlayUiFlags.JudgementLineAnchors) != 0)
+                {
+                    double anchorWidth = renderInfo.ChartUnitToPixel(0.66);
+                    double anchorHeight = anchorWidth * (_imgAnchor.PixelHeight / (double)Math.Max(1, _imgAnchor.PixelWidth));
+                    drawingContext.DrawImage(_imgAnchor, new Rect(pixelAnchor.X - anchorWidth / 2.0, pixelAnchor.Y - anchorHeight / 2.0, anchorWidth, anchorHeight));
+                }
 
                 drawingContext.Pop(); // note 不继承 line 的 opacity
             }
@@ -489,15 +542,18 @@ namespace Axphi.Components
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
                 note.AnimatableProperties,
-                out var offset, out var scale, out var rotationAngle, out var opacity);
+                out var anchor, out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(renderInfo.ChartUnitToPixel(offset.X), renderInfo.ChartUnitToPixel(offset.Y));
+            var pixelAnchor = new Vector(renderInfo.ChartUnitToPixel(anchor.X), renderInfo.ChartUnitToPixel(anchor.Y));
 
             var noteTransform = new TransformGroup()
             {
                 Children = {
+            new TranslateTransform(-pixelAnchor.X, -pixelAnchor.Y),
             new ScaleTransform(scale.X, scale.Y),
             new RotateTransform(rotationAngle),
+            new TranslateTransform(pixelAnchor.X, pixelAnchor.Y),
             new TranslateTransform(pixelOffset.X, pixelOffset.Y + pixelDistance),
         }
             };
@@ -682,7 +738,7 @@ namespace Axphi.Components
                         EasingUtils.CalculateObjectTransform(
                             vTick, chart.KeyFrameEasingDirection,
                             line.AnimatableProperties,
-                            out var lineOffset, out _, out _, out _);
+                            out _, out var lineOffset, out _, out _, out _);
 
                         var linePixelOffset = new Vector(
                             renderInfo.ChartUnitToPixel(lineOffset.X),
@@ -694,7 +750,7 @@ namespace Axphi.Components
                         EasingUtils.CalculateObjectTransform(
                             vTick, chart.KeyFrameEasingDirection,
                             note.AnimatableProperties,
-                            out var noteOffset, out _, out _, out _);
+                            out _, out var noteOffset, out _, out _, out _);
 
                         var notePixelOffset = new Vector(
                             renderInfo.ChartUnitToPixel(noteOffset.X),

@@ -356,7 +356,7 @@ namespace Axphi.Views
             {
                 note.IsSelected = true;
             }
-            else if (!note.IsSelected)
+            else
             {
                 foreach (var n in vm.ActiveTrack?.UINotes ?? Enumerable.Empty<NoteViewModel>())
                 {
@@ -460,7 +460,8 @@ namespace Axphi.Views
             {
                 if (_currentSelectionRect.Width < 5 && _currentSelectionRect.Height < 5)
                 {
-                    if (Keyboard.Modifiers == ModifierKeys.None && DataContext is JudgementLineEditorViewModel vm)
+                    if (DataContext is JudgementLineEditorViewModel vm
+                        && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
                     {
                         vm.TryAddNoteAtPoint(_dragStartPoint, EditorCanvas.RenderSize);
                     }

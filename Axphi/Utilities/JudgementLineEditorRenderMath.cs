@@ -54,6 +54,27 @@ namespace Axphi.Utilities
         {
             var metrics = CalculateMetrics(viewportSize, viewZoom);
             double noteSpeedMultiplier = note.Model.CustomSpeed ?? 1.0;
+
+            if (track.Data.SpeedMode == "Realtime")
+            {
+                double currentTick = timeline.GetExactTick();
+                double holdStartSeconds = TimeTickConverter.TickToTime(note.HitTime, timeline.CurrentChart.BpmKeyFrames, timeline.CurrentChart.InitialBpm);
+                double holdEndSeconds = TimeTickConverter.TickToTime(note.HitTime + note.HoldDuration, timeline.CurrentChart.BpmKeyFrames, timeline.CurrentChart.InitialBpm);
+                double holdDurationSeconds = Math.Max(0, holdEndSeconds - holdStartSeconds);
+
+                double currentRealtimeSpeed = track.Data.InitialSpeed;
+                EasingUtils.CalculateObjectSingleTransform(
+                    currentTick,
+                    timeline.CurrentChart.KeyFrameEasingDirection,
+                    track.Data.InitialSpeed,
+                    track.Data.SpeedKeyFrames,
+                    MathUtils.Lerp,
+                    out currentRealtimeSpeed);
+
+                double actualPixelsPerSecond = metrics.BaseVerticalFlowPixelsPerSecond * currentRealtimeSpeed * noteSpeedMultiplier;
+                return Math.Abs(actualPixelsPerSecond * holdDurationSeconds);
+            }
+
             return Math.Abs(CalculateTravelDistance(timeline.CurrentChart, track.Data, note.HitTime, note.HitTime + note.HoldDuration, noteSpeedMultiplier, metrics));
         }
 

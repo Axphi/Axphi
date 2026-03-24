@@ -11,6 +11,8 @@ public partial class BezierCurveEditor : UserControl
     // 记录正在拖拽的圆点
     private FrameworkElement? _draggingThumb;
 
+    private const int GridDivisions = 8;
+
     public BezierCurveEditor()
     {
         InitializeComponent();
@@ -59,6 +61,8 @@ public partial class BezierCurveEditor : UserControl
         double h = GraphCanvas.ActualHeight;
         if (w <= 0 || h <= 0) return;
 
+        UpdateGrid(w, h);
+
         double px1 = X1 * w;
         double py1 = h - (Y1 * h);
         double px2 = X2 * w;
@@ -85,6 +89,28 @@ public partial class BezierCurveEditor : UserControl
         figure.Segments.Add(new BezierSegment(new Point(px1, py1), new Point(px2, py2), new Point(w, 0), true));
         geometry.Figures.Add(figure);
         CurvePath.Data = geometry;
+    }
+
+    private void UpdateGrid(double w, double h)
+    {
+        var geometry = new StreamGeometry();
+
+        using (var ctx = geometry.Open())
+        {
+            for (int i = 0; i <= GridDivisions; i++)
+            {
+                double x = w * i / GridDivisions;
+                ctx.BeginFigure(new Point(x, 0), false, false);
+                ctx.LineTo(new Point(x, h), true, false);
+
+                double y = h * i / GridDivisions;
+                ctx.BeginFigure(new Point(0, y), false, false);
+                ctx.LineTo(new Point(w, y), true, false);
+            }
+        }
+
+        geometry.Freeze();
+        GridPath.Data = geometry;
     }
 
     #endregion
@@ -150,8 +176,48 @@ public partial class BezierCurveEditor : UserControl
         double h = GraphCanvas.ActualHeight;
         if (w <= 0 || h <= 0) return;
 
-        double xNorm = Math.Max(0, Math.Min(1, mousePos.X / w)); // 钳制在 0~1 之间
+        double xNorm = mousePos.X / w;
         double yNorm = (h - mousePos.Y) / h;
+
+        ModifierKeys modifiers = Keyboard.Modifiers;
+
+        if ((modifiers & ModifierKeys.Shift) != 0)
+        {
+            if (_draggingThumb == Thumb1)
+            {
+                // 左下角端点(0,0)的手柄只允许在两条轴线上：(0,y) 或 (x,0)
+                if (Math.Abs(xNorm) <= Math.Abs(yNorm))
+                {
+                    xNorm = 0.0;
+                }
+                else
+                {
+                    yNorm = 0.0;
+                }
+            }
+            else
+            {
+                // 右上角端点(1,1)的手柄只允许在两条轴线上：(1,y) 或 (x,1)
+                if (Math.Abs(xNorm - 1.0) <= Math.Abs(yNorm - 1.0))
+                {
+                    xNorm = 1.0;
+                }
+                else
+                {
+                    yNorm = 1.0;
+                }
+            }
+        }
+
+        if ((modifiers & ModifierKeys.Control) != 0)
+        {
+            double step = 1.0 / GridDivisions;
+            xNorm = Math.Round(xNorm / step) * step;
+            yNorm = Math.Round(yNorm / step) * step;
+        }
+
+        // X 仍限制在 0~1，Y 可自由超出范围
+        xNorm = Math.Clamp(xNorm, 0.0, 1.0);
 
         // 直接更新依赖属性，由于我们设置了 BindsTwoWayByDefault，这会自动同步给外界绑定的 ViewModel！
         if (_draggingThumb == Thumb1)

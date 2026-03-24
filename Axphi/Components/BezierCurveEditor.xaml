@@ -19,6 +19,12 @@
                 PreviewMouseLeftButtonUp="GraphCanvas_PreviewMouseLeftButtonUp">
 
                 <Path
+                    x:Name="GridPath"
+                    Stroke="#66FFFFFF"
+                    StrokeThickness="0.5"
+                    SnapsToDevicePixels="True" />
+
+                <Path
                     x:Name="CurvePath"
                     Stroke="Red"
                     StrokeThickness="2" />

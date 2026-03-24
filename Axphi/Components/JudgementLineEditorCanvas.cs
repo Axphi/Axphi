@@ -623,11 +623,21 @@ namespace Axphi.Components
                 dc.PushClip(new RectangleGeometry(clipRect));
             }
 
-            dc.PushTransform(new TranslateTransform(centerX, centerY));
-            dc.PushTransform(new TranslateTransform(-renderState.Anchor.X * metrics.PixelsPerChartUnit, -renderState.Anchor.Y * metrics.PixelsPerChartUnit));
-            dc.PushTransform(new RotateTransform(renderState.Rotation));
-            dc.PushTransform(new ScaleTransform(renderState.Scale.X, renderState.Scale.Y));
-            dc.PushTransform(new TranslateTransform(renderState.Anchor.X * metrics.PixelsPerChartUnit, renderState.Anchor.Y * metrics.PixelsPerChartUnit));
+            double anchorX = renderState.Anchor.X * metrics.PixelsPerChartUnit;
+            double anchorY = renderState.Anchor.Y * metrics.PixelsPerChartUnit;
+            var noteTransform = new TransformGroup
+            {
+                Children =
+                {
+                    new TranslateTransform(-anchorX, -anchorY),
+                    new ScaleTransform(renderState.Scale.X, renderState.Scale.Y),
+                    new RotateTransform(renderState.Rotation),
+                    new TranslateTransform(anchorX, anchorY),
+                    new TranslateTransform(centerX, centerY),
+                }
+            };
+
+            dc.PushTransform(noteTransform);
             dc.PushOpacity((renderState.Opacity / 100.0) * opacityMultiplier);
 
             if (isHold)
@@ -642,9 +652,6 @@ namespace Axphi.Components
                 DrawNoteImage(dc, renderState.Kind, renderedNoteWidth, opacity: 1.0, isMultiHit);
             }
 
-            dc.Pop();
-            dc.Pop();
-            dc.Pop();
             dc.Pop();
             dc.Pop();
 

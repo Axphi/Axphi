@@ -494,6 +494,15 @@ namespace Axphi.ViewModels
         // 当用户在属性面板里手动修改了数字时，同步更新底层 Model 和前端宽度
         partial void OnHoldDurationChanged(int value)
         {
+            if (value < 1)
+            {
+                if (HoldDuration != 1)
+                {
+                    HoldDuration = 1;
+                }
+                return;
+            }
+
             if (Model != null)
             {
                 Model.HoldDuration = value;

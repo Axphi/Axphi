@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -39,6 +40,18 @@ namespace Axphi.Components
         private static readonly Pen SelectedNotePen = new Pen(Brushes.White, 1.4);
         private static readonly Brush HoverPreviewPenBrush = new SolidColorBrush(Color.FromArgb(160, 255, 255, 255));
         private static readonly Pen HoverPreviewPen = new Pen(HoverPreviewPenBrush, 1.0);
+        private static readonly Pen HoverTimelineStrongPen = new Pen(new SolidColorBrush(Color.FromArgb(246, 255, 237, 166)), 2.0);
+        private static readonly Pen HoverTimelineMediumPen = new Pen(new SolidColorBrush(Color.FromArgb(226, 218, 236, 255)), 1.7);
+        private static readonly Pen HoverTimelineWeakPen = new Pen(new SolidColorBrush(Color.FromArgb(188, 179, 212, 244)), 1.35);
+        private static readonly Pen HoverTimelineFinePen = new Pen(new SolidColorBrush(Color.FromArgb(152, 137, 170, 208)), 1.1);
+        private static readonly Brush HoverTimelineStrongLabelBrush = new SolidColorBrush(Color.FromArgb(255, 255, 247, 210));
+        private static readonly Brush HoverTimelineMediumLabelBrush = new SolidColorBrush(Color.FromArgb(255, 234, 243, 255));
+        private static readonly Brush HoverTimelineWeakLabelBrush = new SolidColorBrush(Color.FromArgb(255, 210, 226, 246));
+        private static readonly Brush HoverTimelineFineLabelBrush = new SolidColorBrush(Color.FromArgb(248, 194, 210, 230));
+        private static readonly Brush HoverTimelineStrongLabelBackgroundBrush = new SolidColorBrush(Color.FromArgb(202, 84, 66, 16));
+        private static readonly Brush HoverTimelineMediumLabelBackgroundBrush = new SolidColorBrush(Color.FromArgb(188, 26, 56, 94));
+        private static readonly Brush HoverTimelineWeakLabelBackgroundBrush = new SolidColorBrush(Color.FromArgb(174, 20, 44, 78));
+        private static readonly Brush HoverTimelineFineLabelBackgroundBrush = new SolidColorBrush(Color.FromArgb(160, 18, 34, 62));
         private static readonly Pen SelectionRectPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 0, 120, 215)), 1.0);
         private static readonly Brush SelectionRectBrush = new SolidColorBrush(Color.FromArgb(50, 0, 120, 215));
         private static readonly Pen HoldTailHandlePen = new Pen(new SolidColorBrush(Color.FromArgb(220, 137, 186, 255)), 1.2);
@@ -64,6 +77,8 @@ namespace Axphi.Components
         private const double HoldHighlightHeadPixels = 100.0;
         private const double HoldHighlightTailPixels = 100.0;
         private bool _isMessengerRegistered;
+
+        private readonly record struct BeatGuideVisualStyle(Pen GuidePen, Brush LabelBrush, Brush LabelBackgroundBrush);
 
         public enum HitTargetKind
         {
@@ -119,6 +134,22 @@ namespace Axphi.Components
             if (WaveBrush.CanFreeze) WaveBrush.Freeze();
             if (PreviewOverlayBrush.CanFreeze) PreviewOverlayBrush.Freeze();
             if (HoldTailHandleBrush.CanFreeze) HoldTailHandleBrush.Freeze();
+            if (HoverTimelineStrongPen.Brush.CanFreeze) ((SolidColorBrush)HoverTimelineStrongPen.Brush).Freeze();
+            if (HoverTimelineStrongPen.CanFreeze) HoverTimelineStrongPen.Freeze();
+            if (HoverTimelineMediumPen.Brush.CanFreeze) ((SolidColorBrush)HoverTimelineMediumPen.Brush).Freeze();
+            if (HoverTimelineMediumPen.CanFreeze) HoverTimelineMediumPen.Freeze();
+            if (HoverTimelineWeakPen.Brush.CanFreeze) ((SolidColorBrush)HoverTimelineWeakPen.Brush).Freeze();
+            if (HoverTimelineWeakPen.CanFreeze) HoverTimelineWeakPen.Freeze();
+            if (HoverTimelineFinePen.Brush.CanFreeze) ((SolidColorBrush)HoverTimelineFinePen.Brush).Freeze();
+            if (HoverTimelineFinePen.CanFreeze) HoverTimelineFinePen.Freeze();
+            if (HoverTimelineStrongLabelBrush.CanFreeze) HoverTimelineStrongLabelBrush.Freeze();
+            if (HoverTimelineMediumLabelBrush.CanFreeze) HoverTimelineMediumLabelBrush.Freeze();
+            if (HoverTimelineWeakLabelBrush.CanFreeze) HoverTimelineWeakLabelBrush.Freeze();
+            if (HoverTimelineFineLabelBrush.CanFreeze) HoverTimelineFineLabelBrush.Freeze();
+            if (HoverTimelineStrongLabelBackgroundBrush.CanFreeze) HoverTimelineStrongLabelBackgroundBrush.Freeze();
+            if (HoverTimelineMediumLabelBackgroundBrush.CanFreeze) HoverTimelineMediumLabelBackgroundBrush.Freeze();
+            if (HoverTimelineWeakLabelBackgroundBrush.CanFreeze) HoverTimelineWeakLabelBackgroundBrush.Freeze();
+            if (HoverTimelineFineLabelBackgroundBrush.CanFreeze) HoverTimelineFineLabelBackgroundBrush.Freeze();
             if (CenterPen.CanFreeze) CenterPen.Freeze();
             if (MajorGridPen.CanFreeze) MajorGridPen.Freeze();
             if (MinorGridPen.CanFreeze) MinorGridPen.Freeze();
@@ -354,6 +385,7 @@ namespace Axphi.Components
             DrawHorizontalGrid(drawingContext, editor, track, viewportSize, width, height, centerX, centerY, currentTick);
             DrawCenterLine(drawingContext, width, centerY);
             DrawNotes(drawingContext, editor, track, viewportSize, metrics, width, height, centerX, centerY, currentTick, multiHitTicks);
+            DrawHoveredNoteTimelineGuide(drawingContext, editor, track, viewportSize, metrics, width, height, centerX, centerY, currentTick);
             DrawHoverPreview(drawingContext, editor, track, viewportSize, metrics, width, height, centerX, centerY, currentTick, multiHitTicks);
 
             if (!SelectionRect.IsEmpty)
@@ -531,6 +563,49 @@ namespace Axphi.Components
             {
                 DrawPreviewNote(dc, kind, previewWidth, x, y, 0.58, isMultiHitPreview);
             }
+
+            string fractionText = BuildBeatFractionText(editor.HoverHitTick);
+            var style = ResolveBeatGuideVisualStyle(editor.HoverHitTick);
+            FormattedText previewMarkerText = CreateLabel(fractionText, 11.0, style.LabelBrush);
+            double markerX = Math.Clamp(x + 14, 8, Math.Max(8, width - previewMarkerText.Width - 8));
+            double markerY = Math.Clamp(y - previewMarkerText.Height - 10, 6, Math.Max(6, height - previewMarkerText.Height - 6));
+            DrawLabelBadge(dc, previewMarkerText, new Point(markerX, markerY), style.LabelBackgroundBrush);
+        }
+
+        private void DrawHoveredNoteTimelineGuide(DrawingContext dc, JudgementLineEditorViewModel editor, TrackViewModel track, Size viewportSize, JudgementLineEditorRenderMath.ViewMetrics metrics, double width, double height, double centerX, double centerY, double currentTick)
+        {
+            if (!IsMouseOver)
+            {
+                return;
+            }
+
+            Point pointer = Mouse.GetPosition(this);
+            if (!TryHitTest(pointer, out var hoveredNote, out _, out _) || hoveredNote == null)
+            {
+                return;
+            }
+
+            int hitTick = hoveredNote.HitTime;
+            double y = JudgementLineEditorRenderMath.CalculateHoverY(editor.Timeline, track, currentTick, hitTick, viewportSize, editor.ViewZoom, centerY);
+            if (y < -4 || y > height + 4)
+            {
+                return;
+            }
+
+            var style = ResolveBeatGuideVisualStyle(hitTick);
+            string fractionText = BuildBeatFractionText(hitTick);
+
+            dc.DrawLine(style.GuidePen, new Point(0, y), new Point(width, y));
+
+            FormattedText markerText = CreateLabel(fractionText, 11.5, style.LabelBrush);
+            double markerX = Math.Max(10, width - markerText.Width - 18);
+            DrawLabelBadge(dc, markerText, new Point(markerX, y - markerText.Height - 8), style.LabelBackgroundBrush);
+
+            var renderState = GetNoteRenderState(editor.Timeline, hoveredNote, currentTick);
+            Point noteCenter = GetNoteCenter(hoveredNote, editor, track, metrics, viewportSize, centerX, centerY, currentTick, renderState);
+            double noteMarkerX = Math.Clamp(noteCenter.X + 14, 8, Math.Max(8, width - markerText.Width - 8));
+            double noteMarkerY = Math.Clamp(noteCenter.Y - markerText.Height - 10, 6, Math.Max(6, height - markerText.Height - 6));
+            DrawLabelBadge(dc, markerText, new Point(noteMarkerX, noteMarkerY), style.LabelBackgroundBrush);
         }
 
         private static void DrawRenderedNote(DrawingContext dc, JudgementLineEditorViewModel editor, TrackViewModel track, NoteViewModel note, Size viewportSize, JudgementLineEditorRenderMath.ViewMetrics metrics, double currentTick, double centerX, double centerY, double judgementLineY, double opacityMultiplier, bool isMultiHit, NoteRenderState renderState)
@@ -870,13 +945,18 @@ namespace Axphi.Components
 
         private static FormattedText CreateLabel(string text, double fontSize)
         {
+            return CreateLabel(text, fontSize, LabelBrush);
+        }
+
+        private static FormattedText CreateLabel(string text, double fontSize, Brush foreground)
+        {
             return new FormattedText(
                 text,
                 CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight,
                 LabelTypeface,
                 fontSize,
-                LabelBrush,
+                foreground,
                 1.25);
         }
 
@@ -895,6 +975,11 @@ namespace Axphi.Components
 
         private static void DrawLabelBadge(DrawingContext dc, FormattedText text, Point origin)
         {
+            DrawLabelBadge(dc, text, origin, LabelBackgroundBrush);
+        }
+
+        private static void DrawLabelBadge(DrawingContext dc, FormattedText text, Point origin, Brush backgroundBrush)
+        {
             const double horizontalPadding = 5.0;
             const double verticalPadding = 2.0;
             Rect backgroundRect = new Rect(
@@ -903,8 +988,48 @@ namespace Axphi.Components
                 text.Width + horizontalPadding * 2.0,
                 text.Height + verticalPadding * 2.0);
 
-            dc.DrawRoundedRectangle(LabelBackgroundBrush, null, backgroundRect, 3.0, 3.0);
+            dc.DrawRoundedRectangle(backgroundBrush, null, backgroundRect, 3.0, 3.0);
             dc.DrawText(text, origin);
+        }
+
+        private static (int Numerator, int Denominator) BuildBeatFractionWithoutReduction(int tickInMeasure)
+        {
+            int denominator = 16;
+            while (denominator < 128 && (tickInMeasure * denominator) % 128 != 0)
+            {
+                denominator *= 2;
+            }
+
+            int numerator = tickInMeasure * denominator / 128;
+            return (numerator, denominator);
+        }
+
+        private static string BuildBeatFractionText(int hitTick)
+        {
+            int tickInMeasure = ((hitTick % 128) + 128) % 128;
+            (int numerator, int denominator) = BuildBeatFractionWithoutReduction(tickInMeasure);
+            return $"{numerator}/{denominator}";
+        }
+
+        private static BeatGuideVisualStyle ResolveBeatGuideVisualStyle(int hitTick)
+        {
+            int tickInMeasure = ((hitTick % 128) + 128) % 128;
+            if (tickInMeasure == 0)
+            {
+                return new BeatGuideVisualStyle(HoverTimelineStrongPen, HoverTimelineStrongLabelBrush, HoverTimelineStrongLabelBackgroundBrush);
+            }
+
+            if (tickInMeasure % 32 == 0)
+            {
+                return new BeatGuideVisualStyle(HoverTimelineMediumPen, HoverTimelineMediumLabelBrush, HoverTimelineMediumLabelBackgroundBrush);
+            }
+
+            if (tickInMeasure % 16 == 0)
+            {
+                return new BeatGuideVisualStyle(HoverTimelineWeakPen, HoverTimelineWeakLabelBrush, HoverTimelineWeakLabelBackgroundBrush);
+            }
+
+            return new BeatGuideVisualStyle(HoverTimelineFinePen, HoverTimelineFineLabelBrush, HoverTimelineFineLabelBackgroundBrush);
         }
     }
 }

@@ -98,7 +98,7 @@ namespace Axphi.Views
 
                 if (wasPlaying)
                 {
-                    _wasapiOut.Play();
+                    _wasapiOut?.Play();
                 }
             });
         }

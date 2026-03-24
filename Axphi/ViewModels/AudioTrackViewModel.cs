@@ -78,7 +78,16 @@ namespace Axphi.ViewModels
 
         partial void OnIsExpandedChanged(bool value) => GetMetadata().IsAudioTrackExpanded = value;
 
-        partial void OnIsDragLockedChanged(bool value) => GetMetadata().IsAudioTrackLocked = value;
+        partial void OnIsDragLockedChanged(bool value)
+        {
+            GetMetadata().IsAudioTrackLocked = value;
+
+            // 锁定后音频图层不可被选中，若当前已选中则立即取消。
+            if (value && IsLayerSelected)
+            {
+                IsLayerSelected = false;
+            }
+        }
 
 
         public AudioTrackViewModel(Chart chart, TimelineViewModel timeline, ProjectManager projectManager)
@@ -145,6 +154,11 @@ namespace Axphi.ViewModels
 
         public void HandleLayerPointerDown()
         {
+            if (IsDragLocked)
+            {
+                return;
+            }
+
             _timeline.EnterLayerSelectionContext(this);
             _layerGestureDistance = 0;
             _wasSelectedBeforeLayerGesture = SelectionHelper.BeginSelectionGesture("Layers", this, IsLayerSelected, value => IsLayerSelected = value);
@@ -152,6 +166,11 @@ namespace Axphi.ViewModels
 
         public void HandleLayerPointerUp()
         {
+            if (IsDragLocked)
+            {
+                return;
+            }
+
             SelectionHelper.CompleteSelectionGesture("Layers", this, _wasSelectedBeforeLayerGesture, _layerGestureDistance, value => IsLayerSelected = value);
         }
 

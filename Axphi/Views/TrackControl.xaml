@@ -21,9 +21,21 @@
 
         <!--  左侧  -->
         <Border Grid.Column="0" Margin="0,0,2,2" Background="#2A2A2A" BorderBrush="#444" BorderThickness="0,0,0,1">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="#2A2A2A" />
+                    <Setter Property="BorderBrush" Value="#444" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsLayerHighlighted}" Value="True">
+                            <Setter Property="Background" Value="#2C3444" />
+                            <Setter Property="BorderBrush" Value="#5D7FAF" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <StackPanel x:Name="JudgementLineLayer">
                 <!--  图层条  -->
-                <Grid Height="20" Background="Transparent" PreviewMouseLeftButtonDown="LayerHeader_PreviewMouseLeftButtonDown" PreviewMouseLeftButtonUp="LayerHeader_PreviewMouseLeftButtonUp">
+                <Grid Height="20" PreviewMouseLeftButtonDown="LayerHeader_PreviewMouseLeftButtonDown" PreviewMouseLeftButtonUp="LayerHeader_PreviewMouseLeftButtonUp">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="4" />
                         <ColumnDefinition Width="20" />

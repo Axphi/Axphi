@@ -37,7 +37,10 @@ namespace Axphi.Components
         private static readonly Pen VerticalMajorGridPen = new Pen(VerticalMajorGridBrush, 1.2);
         private static readonly Pen VerticalGridPen = new Pen(VerticalGridBrush, 1.0);
         private static readonly Pen SelectedNotePen = new Pen(Brushes.White, 1.4);
-        private static readonly Pen HoverPreviewPen = new Pen(PreviewOverlayBrush, 1.0);
+        private static readonly Brush HoverPreviewPenBrush = new SolidColorBrush(Color.FromArgb(160, 255, 255, 255));
+        private static readonly Pen HoverPreviewPen = new Pen(HoverPreviewPenBrush, 1.0);
+        private static readonly Pen SelectionRectPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 0, 120, 215)), 1.0);
+        private static readonly Brush SelectionRectBrush = new SolidColorBrush(Color.FromArgb(50, 0, 120, 215));
         private static readonly Pen HoldTailHandlePen = new Pen(new SolidColorBrush(Color.FromArgb(220, 137, 186, 255)), 1.2);
         private static readonly Typeface LabelTypeface = new Typeface("Consolas");
         private static readonly BitmapImage TapImage = new BitmapImage(new Uri("pack://application:,,,/Axphi;component/Resources/Notes/tap.png"));
@@ -140,6 +143,15 @@ namespace Axphi.Components
             if (HoldBodyMultiHitBrush.CanFreeze) HoldBodyMultiHitBrush.Freeze();
             if (HoldHeadMultiHitBrush.CanFreeze) HoldHeadMultiHitBrush.Freeze();
         }
+
+        public Rect SelectionRect
+        {
+            get => (Rect)GetValue(SelectionRectProperty);
+            set => SetValue(SelectionRectProperty, value);
+        }
+
+        public static readonly DependencyProperty SelectionRectProperty =
+            DependencyProperty.Register("SelectionRect", typeof(Rect), typeof(JudgementLineEditorCanvas), new FrameworkPropertyMetadata(Rect.Empty, FrameworkPropertyMetadataOptions.AffectsRender));
 
         public JudgementLineEditorCanvas()
         {
@@ -248,6 +260,52 @@ namespace Axphi.Components
             return false;
         }
 
+        public void SelectNotesInRect(Rect selectionRect, bool addToSelection)
+        {
+            var editor = Editor;
+            var track = editor?.ActiveTrack;
+            if (editor == null || track == null)
+            {
+                return;
+            }
+
+            if (!addToSelection)
+            {
+                foreach (var note in track.UINotes)
+                {
+                    note.IsSelected = false;
+                }
+            }
+
+            var metrics = JudgementLineEditorRenderMath.CalculateMetrics(RenderSize, editor.ViewZoom);
+            double centerX = RenderSize.Width / 2.0 + editor.PanX;
+            double centerY = RenderSize.Height / 2.0 + editor.PanY;
+            double currentTick = editor.Timeline.GetExactTick();
+
+            foreach (var candidate in track.UINotes)
+            {
+                var renderState = GetNoteRenderState(editor.Timeline, candidate, currentTick);
+                if (!ShouldRenderNote(candidate, renderState.Kind, currentTick))
+                {
+                    continue;
+                }
+
+                Point noteCenter = GetNoteCenter(candidate, editor, track, metrics, RenderSize, centerX, centerY, currentTick, renderState);
+                
+                Rect bodyRect = GetNoteBodyRect(candidate, editor, track, metrics, RenderSize, noteCenter, renderState);
+                if (selectionRect.IntersectsWith(bodyRect))
+                {
+                    candidate.IsSelected = true;
+                }
+                else if (renderState.Kind == NoteKind.Hold)
+                {
+                    // Check handle too? Usually clicking body is enough to select.
+                    // But if checking intersection, body intersection covers it.
+                }
+            }
+            InvalidateVisual();
+        }
+
         private void Timeline_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(TimelineViewModel.CurrentPlayTimeSeconds))
@@ -297,6 +355,11 @@ namespace Axphi.Components
             DrawCenterLine(drawingContext, width, centerY);
             DrawNotes(drawingContext, editor, track, viewportSize, metrics, width, height, centerX, centerY, currentTick, multiHitTicks);
             DrawHoverPreview(drawingContext, editor, track, viewportSize, metrics, width, height, centerX, centerY, currentTick, multiHitTicks);
+
+            if (!SelectionRect.IsEmpty)
+            {
+                drawingContext.DrawRectangle(SelectionRectBrush, SelectionRectPen, SelectionRect);
+            }
         }
 
         private static void DrawVerticalGrid(DrawingContext dc, JudgementLineEditorViewModel editor, double width, double height, double centerX, double centerY, double pixelsPerChartUnit)

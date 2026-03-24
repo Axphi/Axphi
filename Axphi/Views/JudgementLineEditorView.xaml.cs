@@ -16,6 +16,7 @@ namespace Axphi.Views
             None,
             MoveNote,
             ResizeHoldTail,
+            BoxSelect,
         }
 
         private bool _isPanning;
@@ -23,6 +24,8 @@ namespace Axphi.Views
         private EditorDragMode _dragMode;
         private NoteViewModel? _dragNote;
         private Vector _dragAnchorOffset;
+        private Point _dragStartPoint;
+        private Rect _currentSelectionRect;
 
         public JudgementLineEditorView()
         {
@@ -51,7 +54,7 @@ namespace Axphi.Views
             }
 
             Point point = e.GetPosition(EditorCanvas);
-            if (_dragMode != EditorDragMode.None && _dragNote != null)
+            if (_dragMode != EditorDragMode.None)
             {
                 UpdateDraggedNote(vm, point);
                 EditorCanvas.InvalidateVisual();
@@ -299,9 +302,21 @@ namespace Axphi.Views
                 return;
             }
 
-            vm.TryAddNoteAtPoint(point, EditorCanvas.RenderSize);
-            EditorCanvas.InvalidateVisual();
+            _dragMode = EditorDragMode.BoxSelect;
+            _dragStartPoint = point;
+            _currentSelectionRect = new Rect(point, point);
+            EditorCanvas.SelectionRect = _currentSelectionRect;
+            EditorCanvas.CaptureMouse();
             EditorCanvas.Focus();
+
+            if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                foreach (var note in vm.ActiveTrack?.UINotes ?? Enumerable.Empty<NoteViewModel>())
+                {
+                    note.IsSelected = false;
+                }
+                EditorCanvas.InvalidateVisual();
+            }
         }
 
         private bool IsMouseOnHud(DependencyObject? dependencyObject)
@@ -332,7 +347,28 @@ namespace Axphi.Views
         private void BeginNoteInteraction(JudgementLineEditorViewModel vm, NoteViewModel note, Axphi.Components.JudgementLineEditorCanvas.HitTargetKind targetKind, Point pointerPoint, Point anchorPoint)
         {
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-            SelectSingleNote(vm, note);
+
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                note.IsSelected = !note.IsSelected;
+            }
+            else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            {
+                note.IsSelected = true;
+            }
+            else if (!note.IsSelected)
+            {
+                foreach (var n in vm.ActiveTrack?.UINotes ?? Enumerable.Empty<NoteViewModel>())
+                {
+                    n.IsSelected = false;
+                }
+                note.IsSelected = true;
+            }
+
+            if (!note.IsSelected)
+            {
+                return;
+            }
 
             _dragNote = note;
             _dragMode = targetKind == Axphi.Components.JudgementLineEditorCanvas.HitTargetKind.HoldTailHandle
@@ -349,6 +385,22 @@ namespace Axphi.Views
 
         private void UpdateDraggedNote(JudgementLineEditorViewModel vm, Point pointerPoint)
         {
+            if (_dragMode == EditorDragMode.BoxSelect)
+            {
+                double x = Math.Min(_dragStartPoint.X, pointerPoint.X);
+                double y = Math.Min(_dragStartPoint.Y, pointerPoint.Y);
+                double width = Math.Abs(_dragStartPoint.X - pointerPoint.X);
+                double height = Math.Abs(_dragStartPoint.Y - pointerPoint.Y);
+                _currentSelectionRect = new Rect(x, y, width, height);
+                EditorCanvas.SelectionRect = _currentSelectionRect;
+
+                bool addToSelection = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) || Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+                EditorCanvas.SelectNotesInRect(_currentSelectionRect, addToSelection);
+                
+                EditorCanvas.InvalidateVisual();
+                return;
+            }
+
             if (_dragNote == null)
             {
                 return;
@@ -361,12 +413,34 @@ namespace Axphi.Views
 
             if (_dragMode == EditorDragMode.MoveNote)
             {
-                double newOffsetX = Math.Clamp((desiredAnchorX - centerX) / metrics.PixelsPerChartUnit, -8.0, 8.0);
+                double targetOffsetX = Math.Clamp((desiredAnchorX - centerX) / metrics.PixelsPerChartUnit, -8.0, 8.0);
                 double tickResolveY = desiredAnchorY - (_dragNote.CurrentOffsetY * metrics.PixelsPerChartUnit);
-                int hitTick = vm.ResolveEditorTick(tickResolveY, EditorCanvas.RenderSize, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+                int targetHitTick = vm.ResolveEditorTick(tickResolveY, EditorCanvas.RenderSize, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
 
-                _dragNote.ApplyPositionAbsolute(newOffsetX, _dragNote.CurrentOffsetY);
-                _dragNote.HitTime = hitTick;
+                double deltaX = targetOffsetX - _dragNote.CurrentOffsetX;
+                int deltaTick = targetHitTick - _dragNote.HitTime;
+
+                if (Math.Abs(deltaX) < 0.0001 && deltaTick == 0)
+                {
+                    return;
+                }
+
+                var selectedNotes = vm.ActiveTrack?.UINotes.Where(n => n.IsSelected).ToList();
+                if (selectedNotes != null)
+                {
+                     foreach (var note in selectedNotes)
+                     {
+                         double newX = Math.Clamp(note.CurrentOffsetX + deltaX, -8.0, 8.0);
+                         int newTick = Math.Max(0, note.HitTime + deltaTick);
+
+                         if (Math.Abs(note.CurrentOffsetX - newX) > 0.0001)
+                             note.ApplyPositionAbsolute(newX, note.CurrentOffsetY);
+                         
+                         if (note.HitTime != newTick)
+                             note.HitTime = newTick;
+                     }
+                }
+
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
                 return;
             }
@@ -382,6 +456,21 @@ namespace Axphi.Views
 
         private void EndNoteInteraction()
         {
+            if (_dragMode == EditorDragMode.BoxSelect)
+            {
+                if (_currentSelectionRect.Width < 5 && _currentSelectionRect.Height < 5)
+                {
+                    if (Keyboard.Modifiers == ModifierKeys.None && DataContext is JudgementLineEditorViewModel vm)
+                    {
+                        vm.TryAddNoteAtPoint(_dragStartPoint, EditorCanvas.RenderSize);
+                    }
+                }
+
+                EditorCanvas.SelectionRect = Rect.Empty;
+                _currentSelectionRect = Rect.Empty;
+                // Don't select anything else here, as Box Select logic ran during Move.
+            }
+
             EditorCanvas.ReleaseMouseCapture();
             _dragMode = EditorDragMode.None;
             _dragNote = null;

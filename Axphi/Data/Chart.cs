@@ -17,11 +17,6 @@ namespace Axphi.Data
         // 关于时间的单位(int), 为 tick, 一个 tick 表示一个 128 分音符, 也就是 1.875 / bpm
 
         /// <summary>
-        /// 音频偏移
-        /// </summary>  
-        public int Offset { get; set; } = 0;
-
-        /// <summary>
         /// 时长
         /// </summary>
         public int Duration { get; set; } = 0;
@@ -81,12 +76,5 @@ namespace Axphi.Data
         /// </summary>
         public KeyFrameEasingDirection KeyFrameEasingDirection { get; set; } = KeyFrameEasingDirection.ToNext;
 
-
-
-        
-        /// <summary>
-        /// 背景音乐音量百分比 (100 = 原始音量)
-        /// </summary>
-        public double AudioVolume { get; set; } = 100.0;
     }
 }

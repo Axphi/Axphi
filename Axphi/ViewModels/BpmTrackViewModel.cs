@@ -135,8 +135,7 @@ namespace Axphi.ViewModels
 
         private void SyncPlayheadToTick(double targetExactTick)
         {
-            double relativeTick = targetExactTick - _chart.Offset;
-            if (relativeTick < 0) relativeTick = 0;
+            double relativeTick = Math.Max(0, targetExactTick);
 
             // 反推算出新的物理秒数
             double newSeconds = TimeTickConverter.TickToTime(relativeTick, _chart.BpmKeyFrames, _chart.InitialBpm);

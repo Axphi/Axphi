@@ -36,10 +36,10 @@ namespace Axphi.ViewModels
             get
             {
                 if (Chart == null || AudioDurationSeconds <= 0) return 0;
-                double startSeconds = TimeTickConverter.TickToTime(Chart.Offset, Chart.BpmKeyFrames, Chart.InitialBpm);
+                double startSeconds = TimeTickConverter.TickToTime(AudioOffsetTicks, Chart.BpmKeyFrames, Chart.InitialBpm);
                 double endSeconds = startSeconds + AudioDurationSeconds;
                 double exactEndTick = TimeTickConverter.TimeToTick(endSeconds, Chart.BpmKeyFrames, Chart.InitialBpm);
-                return (int)Math.Round(exactEndTick - Chart.Offset, MidpointRounding.AwayFromZero);
+                return (int)Math.Round(exactEndTick - AudioOffsetTicks, MidpointRounding.AwayFromZero);
             }
         }
 
@@ -63,12 +63,32 @@ namespace Axphi.ViewModels
         private bool _wasSelectedBeforeLayerGesture;
         private double _layerGestureDistance;
 
+        private ProjectMetadata GetMetadata()
+        {
+            _projectManager.EditingProject ??= new Project { Chart = Chart };
+            _projectManager.EditingProject.Metadata ??= new ProjectMetadata();
+            return _projectManager.EditingProject.Metadata;
+        }
+
+        private int AudioOffsetTicks
+        {
+            get => GetMetadata().AudioOffsetTicks;
+            set => GetMetadata().AudioOffsetTicks = value;
+        }
+
+        partial void OnIsExpandedChanged(bool value) => GetMetadata().IsAudioTrackExpanded = value;
+
+        partial void OnIsDragLockedChanged(bool value) => GetMetadata().IsAudioTrackLocked = value;
+
 
         public AudioTrackViewModel(Chart chart, TimelineViewModel timeline, ProjectManager projectManager)
         {
             Chart = chart;
             _timeline = timeline;
             _projectManager = projectManager;
+
+            IsExpanded = GetMetadata().IsAudioTrackExpanded;
+            IsDragLocked = GetMetadata().IsAudioTrackLocked;
 
             UpdatePixels();
 
@@ -119,7 +139,7 @@ namespace Axphi.ViewModels
 
         public void UpdatePixels()
         {
-            LayerPixelXOffset = _timeline.TickToPixel(Chart.Offset);
+            LayerPixelXOffset = _timeline.TickToPixel(AudioOffsetTicks);
             LayerPixelWidth = Math.Max(10, _timeline.TickToPixel(AudioDurationTicks));
         }
 
@@ -194,7 +214,7 @@ namespace Axphi.ViewModels
         private void ReceiveLayerDragStarted()
         {
             _layerVirtualPixelX = LayerPixelXOffset;
-            _lastAppliedTick = Chart.Offset;
+            _lastAppliedTick = AudioOffsetTicks;
         }
 
         private void ReceiveLayerDragDelta(double horizontalChange, int deltaTick)
@@ -205,7 +225,7 @@ namespace Axphi.ViewModels
             if (deltaTick != 0)
             {
                 _lastAppliedTick += deltaTick;
-                Chart.Offset = _lastAppliedTick;
+                AudioOffsetTicks = _lastAppliedTick;
                 LayerPixelWidth = Math.Max(10, _timeline.TickToPixel(AudioDurationTicks));
             }
 
@@ -221,7 +241,7 @@ namespace Axphi.ViewModels
 
         private void ReceiveLayerDragCompleted()
         {
-            Chart.Offset = _lastAppliedTick;
+            AudioOffsetTicks = _lastAppliedTick;
             UpdatePixels();
         }
 
@@ -232,10 +252,11 @@ namespace Axphi.ViewModels
                 _projectManager.EditingProject.EncodedAudio = null;
             }
 
-            Chart.Offset = 0;
+            AudioOffsetTicks = 0;
             AudioDurationSeconds = 0;
             WaveformPeaks = null;
             IsLayerSelected = false;
+            IsDragLocked = false;
             UpdatePixels();
         }
 
@@ -310,12 +331,12 @@ namespace Axphi.ViewModels
         // ================= 🌟 新增：供前端绑定的音量属性 =================
         public double AudioVolume
         {
-            get => Chart.AudioVolume;
+            get => GetMetadata().AudioVolume;
             set
             {
-                if (Chart.AudioVolume != value)
+                if (GetMetadata().AudioVolume != value)
                 {
-                    Chart.AudioVolume = value;
+                    GetMetadata().AudioVolume = value;
                     OnPropertyChanged(); // 通知 UI 音量变了！
                     WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
                 }

@@ -38,8 +38,13 @@ namespace Axphi.ViewModels
             double PanX,
             double PanY);
 
+        private sealed record ProjectDocumentSnapshot(
+            Chart Chart,
+            ProjectMetadata Metadata);
+
         private sealed record TimelineUiState(
             double CurrentPlayTimeSeconds,
+            double CurrentHorizontalScrollOffset,
             double ZoomScale,
             double ViewportActualWidth,
             int WorkspaceStartTick,
@@ -147,6 +152,7 @@ namespace Axphi.ViewModels
         // 1. 当播放器的时间改变时，重新计算游标位置
         partial void OnCurrentPlayTimeSecondsChanged(double value)
         {
+            GetProjectMetadata().PlayheadTimeSeconds = value;
             UpdatePlayheadPosition();
 
             //  算出当前的 Tick
@@ -176,6 +182,8 @@ namespace Axphi.ViewModels
         // 2. 当你按 Alt+滚轮 缩放时，游标位置也必须跟着伸缩！
         partial void OnZoomScaleChanged(double value)
         {
+            GetProjectMetadata().ZoomScale = value;
+
             // 注意：因为 TotalPixelWidth 用了 NotifyPropertyChangedFor
             // 它会自动更新，但我们必须手动调用更新游标
             UpdatePlayheadPosition();
@@ -208,11 +216,18 @@ namespace Axphi.ViewModels
             // 3. 刷新小地图里工作区和视野框的比例和物理像素
             UpdateMinimapPixels();
 
+            GetProjectMetadata().TotalDurationTicks = value;
+
             if (!_isReloadingChartState)
             {
                 CurrentChart.Duration = value;
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             }
+        }
+
+        partial void OnCurrentHorizontalScrollOffsetChanged(double value)
+        {
+            GetProjectMetadata().CurrentHorizontalScrollOffset = value;
         }
 
 
@@ -463,18 +478,26 @@ namespace Axphi.ViewModels
             _isReloadingChartState = true;
             try
             {
+                var metadata = GetProjectMetadata();
+
                 if (preservedUiState != null)
                 {
                     ZoomScale = preservedUiState.ZoomScale;
                     ViewportActualWidth = preservedUiState.ViewportActualWidth;
                 }
+                else
+                {
+                    ZoomScale = metadata.ZoomScale;
+                }
 
                 // 1. 换绑剧本：把指针指向最新的真实谱面
                 CurrentChart = _projectManager.EditingProject.Chart;
-                if (CurrentChart.Duration > 0)
-                {
-                    TotalDurationTicks = Math.Max(100, CurrentChart.Duration);
-                }
+
+                int projectTotalDurationTicks = metadata.TotalDurationTicks > 0
+                    ? metadata.TotalDurationTicks
+                    : CurrentChart.Duration;
+                TotalDurationTicks = Math.Max(100, projectTotalDurationTicks);
+                CurrentChart.Duration = TotalDurationTicks;
 
                 // ================= ✨ 塞入第一步：实例化 BPM 轨道！ =================
                 BpmTrack = new BpmTrackViewModel(CurrentChart, this);
@@ -522,18 +545,21 @@ namespace Axphi.ViewModels
 
                 if (preservedUiState != null)
                 {
+                    CurrentHorizontalScrollOffset = preservedUiState.CurrentHorizontalScrollOffset;
                     WorkspaceStartTick = preservedUiState.WorkspaceStartTick;
                     WorkspaceEndTick = preservedUiState.WorkspaceEndTick;
                     CurrentPlayTimeSeconds = preservedUiState.CurrentPlayTimeSeconds;
                 }
                 else
                 {
-                    // 4. (可选) 让时间轴游标归零
-                    CurrentPlayTimeSeconds = 0;
+                    WorkspaceStartTick = metadata.WorkspaceStartTick;
+                    WorkspaceEndTick = metadata.WorkspaceEndTick;
+                    CurrentPlayTimeSeconds = metadata.PlayheadTimeSeconds;
+                    CurrentHorizontalScrollOffset = metadata.CurrentHorizontalScrollOffset;
 
-                    // 🌟 【新增核心修复】：同时发信给右侧渲染器和音频播放器，强制它们也空降回 0 秒！
+                    // 🌟 【新增核心修复】：同时发信给右侧渲染器和音频播放器，强制它们也空降到当前工程记忆的时间！
                     // 这样前后端的记忆就彻底统一了！
-                    WeakReferenceMessenger.Default.Send(new ForceSeekMessage(0));
+                    WeakReferenceMessenger.Default.Send(new ForceSeekMessage(CurrentPlayTimeSeconds));
                 }
 
                 UpdateWorkspacePixels();
@@ -599,12 +625,15 @@ namespace Axphi.ViewModels
 
         private string SerializeHistorySnapshot()
         {
-            return JsonSerializer.Serialize(CurrentChart, HistoryJsonSerializerOptions);
+            return JsonSerializer.Serialize(
+                new ProjectDocumentSnapshot(CurrentChart, CloneProjectMetadata()),
+                HistoryJsonSerializerOptions);
         }
 
-        private Chart DeserializeHistorySnapshot(string snapshot)
+        private ProjectDocumentSnapshot DeserializeHistorySnapshot(string snapshot)
         {
-            return JsonSerializer.Deserialize<Chart>(snapshot, HistoryJsonSerializerOptions) ?? new Chart();
+            return JsonSerializer.Deserialize<ProjectDocumentSnapshot>(snapshot, HistoryJsonSerializerOptions)
+                ?? new ProjectDocumentSnapshot(new Chart(), new ProjectMetadata());
         }
 
         private TimelineUiState CaptureTimelineUiState()
@@ -627,6 +656,7 @@ namespace Axphi.ViewModels
 
             return new TimelineUiState(
                 CurrentPlayTimeSeconds,
+                CurrentHorizontalScrollOffset,
                 ZoomScale,
                 ViewportActualWidth,
                 WorkspaceStartTick,
@@ -644,7 +674,7 @@ namespace Axphi.ViewModels
             }
 
             var uiState = CaptureTimelineUiState();
-            var restoredChart = DeserializeHistorySnapshot(snapshot);
+            var restoredSnapshot = DeserializeHistorySnapshot(snapshot);
             var currentProject = _projectManager.EditingProject;
 
             _historyCommitTimer.Stop();
@@ -653,7 +683,8 @@ namespace Axphi.ViewModels
             {
                 _projectManager.EditingProject = new Project
                 {
-                    Chart = restoredChart,
+                    Chart = restoredSnapshot.Chart,
+                    Metadata = restoredSnapshot.Metadata,
                     EncodedAudio = currentProject.EncodedAudio,
                     EncodedIllustration = currentProject.EncodedIllustration
                 };
@@ -686,6 +717,19 @@ namespace Axphi.ViewModels
         {
             return tick * BasePixelsPerTick * ZoomScale;
         }
+
+        public int AudioOffsetTicks
+        {
+            get => GetProjectMetadata().AudioOffsetTicks;
+            set => GetProjectMetadata().AudioOffsetTicks = value;
+        }
+
+        public double AudioVolume
+        {
+            get => GetProjectMetadata().AudioVolume;
+            set => GetProjectMetadata().AudioVolume = value;
+        }
+
         // 像素 反推回 Tick
         public double PixelToTick(double pixelX)
         {
@@ -699,6 +743,31 @@ namespace Axphi.ViewModels
             double exactTick = TimeTickConverter.TimeToTick(CurrentPlayTimeSeconds, CurrentChart.BpmKeyFrames, CurrentChart.InitialBpm);
             //return exactTick + CurrentChart.Offset;
             return exactTick;
+        }
+
+        private ProjectMetadata GetProjectMetadata()
+        {
+            _projectManager.EditingProject ??= new Project();
+            _projectManager.EditingProject.Metadata ??= new ProjectMetadata();
+            return _projectManager.EditingProject.Metadata;
+        }
+
+        private ProjectMetadata CloneProjectMetadata()
+        {
+            var metadata = GetProjectMetadata();
+            return new ProjectMetadata
+            {
+                AudioOffsetTicks = metadata.AudioOffsetTicks,
+                AudioVolume = metadata.AudioVolume,
+                PlayheadTimeSeconds = metadata.PlayheadTimeSeconds,
+                CurrentHorizontalScrollOffset = metadata.CurrentHorizontalScrollOffset,
+                ZoomScale = metadata.ZoomScale,
+                TotalDurationTicks = metadata.TotalDurationTicks,
+                WorkspaceStartTick = metadata.WorkspaceStartTick,
+                WorkspaceEndTick = metadata.WorkspaceEndTick,
+                IsAudioTrackExpanded = metadata.IsAudioTrackExpanded,
+                IsAudioTrackLocked = metadata.IsAudioTrackLocked
+            };
         }
 
         public void NotifyKeyframeClipboardCommandsStateChanged()
@@ -1408,8 +1477,17 @@ namespace Axphi.ViewModels
         private double _workspaceWidth;
 
         // 只要 Tick 改变，立刻重新计算像素
-        partial void OnWorkspaceStartTickChanged(int value) => UpdateWorkspacePixels();
-        partial void OnWorkspaceEndTickChanged(int value) => UpdateWorkspacePixels();
+        partial void OnWorkspaceStartTickChanged(int value)
+        {
+            GetProjectMetadata().WorkspaceStartTick = value;
+            UpdateWorkspacePixels();
+        }
+
+        partial void OnWorkspaceEndTickChanged(int value)
+        {
+            GetProjectMetadata().WorkspaceEndTick = value;
+            UpdateWorkspacePixels();
+        }
 
         public void UpdateWorkspacePixels()
         {

@@ -68,15 +68,34 @@ public partial class MainWindow : Window
         WeakReferenceMessenger.Default.Register<ProjectLoadedMessage>(this, (r, message) =>
         {
             MainChartDisplay.LoadAudio(_mainViewModel.ProjectManager.EditingProject.EncodedAudio);
+            Dispatcher.BeginInvoke(new Action(RestoreHorizontalScrollFromTimeline), DispatcherPriority.Loaded);
         });
 
-        Loaded += (_, _) => SyncTimelinePanelWidths();
+        Loaded += (_, _) =>
+        {
+            SyncTimelinePanelWidths();
+            RestoreHorizontalScrollFromTimeline();
+        };
 
         
     }
 
 
     // ================= 全局拖拽 60 帧引擎 =================
+
+    private void RestoreHorizontalScrollFromTimeline()
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        double expectedMaximum = Math.Max(0, vm.Timeline.MaxScrollOffset);
+        GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedMaximum);
+
+        double restoredOffset = Math.Clamp(vm.Timeline.CurrentHorizontalScrollOffset, 0, expectedMaximum);
+        GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, restoredOffset);
+    }
 
     private void DragTimer_Tick(object? sender, EventArgs e)
     {

@@ -19,7 +19,6 @@ public class ProjectManagerTests
             Chart = new Chart
             {
                 formatVersion = "2.5",
-                Offset = 128,
                 Duration = 4096,
                 SoneName = "Round Trip Song",
                 Rank = Rank.IN,
@@ -28,8 +27,20 @@ public class ProjectManagerTests
                 Composer = "Composer",
                 Charter = "Charter",
                 Illustrator = "Illustrator",
-                InitialBpm = 180,
-                AudioVolume = 75
+                InitialBpm = 180
+            },
+            Metadata = new ProjectMetadata
+            {
+                AudioOffsetTicks = 128,
+                AudioVolume = 75,
+                PlayheadTimeSeconds = 12.5,
+                CurrentHorizontalScrollOffset = 640,
+                ZoomScale = 1.75,
+                TotalDurationTicks = 8192,
+                WorkspaceStartTick = 96,
+                WorkspaceEndTick = 2048,
+                IsAudioTrackExpanded = true,
+                IsAudioTrackLocked = true
             },
             EncodedAudio = [1, 2, 3, 4],
             EncodedIllustration = [5, 6, 7, 8]
@@ -43,7 +54,6 @@ public class ProjectManagerTests
 
             Project loadedProject = projectManager.LoadProject(path);
 
-            Assert.AreEqual(project.Chart.Offset, loadedProject.Chart.Offset);
             Assert.AreEqual(project.Chart.Duration, loadedProject.Chart.Duration);
             Assert.AreEqual(project.Chart.SoneName, loadedProject.Chart.SoneName);
             Assert.AreEqual(project.Chart.formatVersion, loadedProject.Chart.formatVersion);
@@ -54,7 +64,16 @@ public class ProjectManagerTests
             Assert.AreEqual(project.Chart.Charter, loadedProject.Chart.Charter);
             Assert.AreEqual(project.Chart.Illustrator, loadedProject.Chart.Illustrator);
             Assert.AreEqual(project.Chart.InitialBpm, loadedProject.Chart.InitialBpm);
-            Assert.AreEqual(project.Chart.AudioVolume, loadedProject.Chart.AudioVolume);
+            Assert.AreEqual(project.Metadata.AudioOffsetTicks, loadedProject.Metadata.AudioOffsetTicks);
+            Assert.AreEqual(project.Metadata.AudioVolume, loadedProject.Metadata.AudioVolume);
+            Assert.AreEqual(project.Metadata.PlayheadTimeSeconds, loadedProject.Metadata.PlayheadTimeSeconds);
+            Assert.AreEqual(project.Metadata.CurrentHorizontalScrollOffset, loadedProject.Metadata.CurrentHorizontalScrollOffset);
+            Assert.AreEqual(project.Metadata.ZoomScale, loadedProject.Metadata.ZoomScale);
+            Assert.AreEqual(project.Metadata.TotalDurationTicks, loadedProject.Metadata.TotalDurationTicks);
+            Assert.AreEqual(project.Metadata.WorkspaceStartTick, loadedProject.Metadata.WorkspaceStartTick);
+            Assert.AreEqual(project.Metadata.WorkspaceEndTick, loadedProject.Metadata.WorkspaceEndTick);
+            Assert.AreEqual(project.Metadata.IsAudioTrackExpanded, loadedProject.Metadata.IsAudioTrackExpanded);
+            Assert.AreEqual(project.Metadata.IsAudioTrackLocked, loadedProject.Metadata.IsAudioTrackLocked);
             CollectionAssert.AreEqual(project.EncodedAudio, loadedProject.EncodedAudio);
             CollectionAssert.AreEqual(project.EncodedIllustration, loadedProject.EncodedIllustration);
         }
@@ -111,6 +130,38 @@ public class ProjectManagerTests
             }
 
             Assert.ThrowsExactly<InvalidDataException>(() => projectManager.LoadProject(path));
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
+    [TestMethod]
+    public void LoadProject_LegacyChartMetadata_FallsBackToLegacyFields()
+    {
+        var projectManager = new ProjectManager();
+        string path = CreateTemporaryProjectPath();
+
+        try
+        {
+            using (var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write))
+            using (var archive = new ZipArchive(fileStream, ZipArchiveMode.Create))
+            {
+                using (var chartStream = archive.CreateEntry("chart.json").Open())
+                using (var writer = new StreamWriter(chartStream))
+                {
+                    writer.Write("{\"formatVersion\":\"1.0\",\"Duration\":2048,\"InitialBpm\":160,\"Offset\":256,\"AudioVolume\":66}");
+                }
+            }
+
+            Project loadedProject = projectManager.LoadProject(path);
+
+            Assert.AreEqual(2048, loadedProject.Chart.Duration);
+            Assert.AreEqual(160d, loadedProject.Chart.InitialBpm);
+            Assert.AreEqual(256, loadedProject.Metadata.AudioOffsetTicks);
+            Assert.AreEqual(66d, loadedProject.Metadata.AudioVolume);
+            Assert.AreEqual(2048, loadedProject.Metadata.TotalDurationTicks);
         }
         finally
         {

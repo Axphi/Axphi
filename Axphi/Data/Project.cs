@@ -14,6 +14,11 @@ namespace Axphi.Data
         public Chart Chart { get; set; } = new Chart();
 
         /// <summary>
+        /// 工程元信息
+        /// </summary>
+        public ProjectMetadata Metadata { get; set; } = new ProjectMetadata();
+
+        /// <summary>
         /// 音频
         /// </summary>
         public byte[]? EncodedAudio { get; set; }

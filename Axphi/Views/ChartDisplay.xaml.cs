@@ -287,7 +287,7 @@ namespace Axphi.Views
                 // ===================================================
                 // ================= 🌟 新增：智能音频启停控制器 =================
                 // 算出音频图层放在了宇宙的哪个位置（Offset的物理秒数）
-                double offsetSeconds = TimeTickConverter.TickToTime(chart.Offset, chart.BpmKeyFrames, chart.InitialBpm);
+                double offsetSeconds = TimeTickConverter.TickToTime(vm.Timeline.AudioOffsetTicks, chart.BpmKeyFrames, chart.InitialBpm);
                 // 算出当前宇宙时间减去音频位置，得到“音频文件自己该播哪一秒”
                 double targetAudioSeconds = currSeconds - offsetSeconds;
 
@@ -297,7 +297,7 @@ namespace Axphi.Views
 
                     // ================= 🌟 实时同步真实音量！ =================
                     // AudioFileReader 的 Volume 是个 0~1 的浮点数，我们把百分比除以 100 喂给它
-                    _musicReader.Volume = (float)Math.Max(0, chart.AudioVolume / 100.0);
+                    _musicReader.Volume = (float)Math.Max(0, vm.Timeline.AudioVolume / 100.0);
 
 
 
@@ -441,7 +441,7 @@ namespace Axphi.Views
             }
 
             var chart = vm.ProjectManager.EditingProject.Chart;
-            double offsetSeconds = TimeTickConverter.TickToTime(chart.Offset, chart.BpmKeyFrames, chart.InitialBpm);
+            double offsetSeconds = TimeTickConverter.TickToTime(vm.Timeline.AudioOffsetTicks, chart.BpmKeyFrames, chart.InitialBpm);
             double targetAudioSeconds = chartTime.TotalSeconds - offsetSeconds;
 
             if (targetAudioSeconds < 0 || targetAudioSeconds >= _musicReader.TotalTime.TotalSeconds)

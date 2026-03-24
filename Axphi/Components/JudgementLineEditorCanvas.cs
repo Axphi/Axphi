@@ -369,7 +369,7 @@ namespace Axphi.Components
             }
 
             double seconds = TimeTickConverter.TickToTime(absoluteTick, chart.BpmKeyFrames, chart.InitialBpm);
-            double offsetSeconds = TimeTickConverter.TickToTime(chart.Offset, chart.BpmKeyFrames, chart.InitialBpm);
+            double offsetSeconds = TimeTickConverter.TickToTime(editor.Timeline.AudioOffsetTicks, chart.BpmKeyFrames, chart.InitialBpm);
             double audioSeconds = seconds - offsetSeconds;
             if (audioSeconds < 0 || audioSeconds > duration)
             {

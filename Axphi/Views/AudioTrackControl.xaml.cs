@@ -60,6 +60,12 @@ namespace Axphi.Views
         {
             if (this.DataContext is AudioTrackViewModel vm)
             {
+                if (vm.IsDragLocked)
+                {
+                    e.Handled = true;
+                    return;
+                }
+
                 _layerLastMousePos = Mouse.GetPosition(this);
                 vm.OnLayerDragStarted();
             }
@@ -68,6 +74,12 @@ namespace Axphi.Views
 
         private void AudioThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
         {
+            if (this.DataContext is AudioTrackViewModel lockedVm && lockedVm.IsDragLocked)
+            {
+                e.Handled = true;
+                return;
+            }
+
             Point currentPos = Mouse.GetPosition(this);
             double stableDeltaX = currentPos.X - _layerLastMousePos.X;
             _layerLastMousePos = currentPos;
@@ -83,6 +95,12 @@ namespace Axphi.Views
         {
             if (this.DataContext is AudioTrackViewModel vm)
             {
+                if (vm.IsDragLocked)
+                {
+                    e.Handled = true;
+                    return;
+                }
+
                 vm.OnLayerDragCompleted();
             }
             e.Handled = true;

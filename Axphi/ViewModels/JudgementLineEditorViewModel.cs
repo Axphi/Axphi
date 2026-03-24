@@ -318,7 +318,7 @@ namespace Axphi.ViewModels
             }
 
             int rawTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
-            int currentTick = _timeline.GetCurrentTick();
+            double currentTick = _timeline.GetExactTick();
             double centerY = viewportSize.Height / 2.0 + PanY;
             const double snapThresholdPixels = 14.0;
 
@@ -373,7 +373,7 @@ namespace Axphi.ViewModels
             double currentSpeed = ActiveTrack.Data.InitialSpeed;
 
             EasingUtils.CalculateObjectSingleTransform(
-                _timeline.GetCurrentTick(),
+                _timeline.GetExactTick(),
                 _timeline.CurrentChart.KeyFrameEasingDirection,
                 ActiveTrack.Data.InitialSpeed,
                 ActiveTrack.Data.SpeedKeyFrames,

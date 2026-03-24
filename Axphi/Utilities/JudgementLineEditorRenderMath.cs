@@ -34,7 +34,7 @@ namespace Axphi.Utilities
             return new ViewMetrics(clientWidth, clientHeight, pixelsPerChartUnit, baseVerticalFlowPixelsPerSecond, notePixelWidth);
         }
 
-        public static double CalculateNoteY(TimelineViewModel timeline, TrackViewModel track, NoteViewModel note, int currentTick, Size viewportSize, double viewZoom, double centerY)
+        public static double CalculateNoteY(TimelineViewModel timeline, TrackViewModel track, NoteViewModel note, double currentTick, Size viewportSize, double viewZoom, double centerY)
         {
             var metrics = CalculateMetrics(viewportSize, viewZoom);
             double noteSpeedMultiplier = note.Model.CustomSpeed ?? 1.0;
@@ -43,7 +43,7 @@ namespace Axphi.Utilities
             return centerY + pixelOffsetY + pixelDistance;
         }
 
-        public static double CalculateHoverY(TimelineViewModel timeline, TrackViewModel track, int currentTick, int hitTick, Size viewportSize, double viewZoom, double centerY)
+        public static double CalculateHoverY(TimelineViewModel timeline, TrackViewModel track, double currentTick, double hitTick, Size viewportSize, double viewZoom, double centerY)
         {
             var metrics = CalculateMetrics(viewportSize, viewZoom);
             double pixelDistance = CalculateTravelDistance(timeline.CurrentChart, track.Data, currentTick, hitTick, 1.0, metrics);
@@ -66,7 +66,7 @@ namespace Axphi.Utilities
         {
             double centerY = viewportSize.Height / 2.0 + panY;
             double targetOffset = viewportY - centerY;
-            int currentTick = timeline.GetCurrentTick();
+            double currentTick = timeline.GetExactTick();
             int startTick = Math.Max(track.Data.StartTick, 0);
             int endTick = Math.Max(startTick, track.Data.StartTick + track.Data.DurationTicks);
 
@@ -119,7 +119,7 @@ namespace Axphi.Utilities
             return low + ((high - low) * interpolation);
         }
 
-        private static double CalculateTravelDistance(Chart chart, JudgementLine line, int startTick, int endTick, double noteSpeedMultiplier, ViewMetrics metrics)
+        private static double CalculateTravelDistance(Chart chart, JudgementLine line, double startTick, double endTick, double noteSpeedMultiplier, ViewMetrics metrics)
         {
             if (line.SpeedMode == "Realtime")
             {
@@ -142,27 +142,27 @@ namespace Axphi.Utilities
             return -CalculateIntegralDistance(startTick, endTick, line, chart, noteSpeedMultiplier, metrics.BaseVerticalFlowPixelsPerSecond);
         }
 
-        private static double CalculateIntegralDistance(int startTick, int endTick, JudgementLine line, Chart chart, double noteSpeedMultiplier, double baseVerticalFlowPixelsPerSecond)
+        private static double CalculateIntegralDistance(double startTick, double endTick, JudgementLine line, Chart chart, double noteSpeedMultiplier, double baseVerticalFlowPixelsPerSecond)
         {
-            if (startTick == endTick)
+            if (Math.Abs(startTick - endTick) < double.Epsilon)
             {
                 return 0;
             }
 
             int steps = 150;
             double totalDistance = 0;
-            int tMin = Math.Min(startTick, endTick);
-            int tMax = Math.Max(startTick, endTick);
+            double tMin = Math.Min(startTick, endTick);
+            double tMax = Math.Max(startTick, endTick);
             double stepTick = (double)(tMax - tMin) / steps;
 
             for (int index = 0; index < steps; index++)
             {
-                int t1 = (int)Math.Round(tMin + index * stepTick);
-                int t2 = (int)Math.Round(tMin + (index + 1) * stepTick);
+                double t1 = tMin + index * stepTick;
+                double t2 = tMin + (index + 1) * stepTick;
 
                 double sec1 = TimeTickConverter.TickToTime(t1, chart.BpmKeyFrames, chart.InitialBpm);
                 double sec2 = TimeTickConverter.TickToTime(t2, chart.BpmKeyFrames, chart.InitialBpm);
-                int midTick = (t1 + t2) / 2;
+                double midTick = (t1 + t2) / 2.0;
 
                 EasingUtils.CalculateObjectSingleTransform(
                     midTick,

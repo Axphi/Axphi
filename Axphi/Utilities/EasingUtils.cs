@@ -13,7 +13,7 @@ namespace Axphi.Utilities
     internal static class EasingUtils
     {
         private static void SelectTransitionKeyFrames<T>(
-            int time, IReadOnlyList<KeyFrame<T>> keyFrames,
+            double time, IReadOnlyList<KeyFrame<T>> keyFrames,
             out KeyFrame<T>? firstKeyFrame, out KeyFrame<T>? secondKeyFrame, out double normalizedTime)
             where T : struct
         {
@@ -53,10 +53,10 @@ namespace Axphi.Utilities
                 secondKeyFrame = keyFrames[left];
 
                 // 保持与原逻辑一致：如果 firstKeyFrame 为 null，默认 lastTime 为 0
-                int lastTime = left > 0 ? keyFrames[left - 1].Time : 0;
+                double lastTime = left > 0 ? keyFrames[left - 1].Time : 0;
 
-                int elapsed = time - lastTime;
-                int total = keyFrames[left].Time - lastTime;
+                double elapsed = time - lastTime;
+                double total = keyFrames[left].Time - lastTime;
 
                 // [修改 4 - 保持不变] 必须将 int 转为 double 再除，加入 total > 0 的判断
                 normalizedTime = total > 0 ? (double)elapsed / total : 1.0;
@@ -85,6 +85,17 @@ namespace Axphi.Utilities
 
         public static void CalculateObjectSingleTransform<T>(
             int time,
+            KeyFrameEasingDirection easingDirection,
+            T initialValue, IReadOnlyList<KeyFrame<T>> keyFrames,
+            Func<T, T, double, T> lerpFunction,
+            out T finalValue)
+            where T : struct
+        {
+            CalculateObjectSingleTransform((double)time, easingDirection, initialValue, keyFrames, lerpFunction, out finalValue);
+        }
+
+        public static void CalculateObjectSingleTransform<T>(
+            double time,
             KeyFrameEasingDirection easingDirection,
             T initialValue, IReadOnlyList<KeyFrame<T>> keyFrames,
             Func<T, T, double, T> lerpFunction,
@@ -143,6 +154,15 @@ namespace Axphi.Utilities
         
         public static void CalculateObjectTransform(
             int time,
+            KeyFrameEasingDirection easingDirection,
+            StandardAnimatableProperties properties,
+            out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+        {
+            CalculateObjectTransform((double)time, easingDirection, properties, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
+        }
+
+        public static void CalculateObjectTransform(
+            double time,
             KeyFrameEasingDirection easingDirection,
             StandardAnimatableProperties properties,
             out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)

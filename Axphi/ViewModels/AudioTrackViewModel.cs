@@ -53,6 +53,9 @@ namespace Axphi.ViewModels
         [NotifyPropertyChangedFor(nameof(IsLayerHighlighted))]
         private bool _isLayerSelected;
 
+        [ObservableProperty]
+        private bool _isDragLocked;
+
         public bool IsLayerHighlighted => IsLayerSelected;
 
         private double _layerVirtualPixelX;
@@ -134,6 +137,11 @@ namespace Axphi.ViewModels
 
         public void OnLayerDragStarted()
         {
+            if (IsDragLocked)
+            {
+                return;
+            }
+
             if (!IsLayerSelected)
             {
                 HandleLayerPointerDown();
@@ -149,6 +157,11 @@ namespace Axphi.ViewModels
 
         public void OnLayerDragDelta(double horizontalChange)
         {
+            if (IsDragLocked)
+            {
+                return;
+            }
+
             double nextVirtualPixelX = _layerVirtualPixelX + horizontalChange;
 
             double exactTick = _timeline.PixelToTick(nextVirtualPixelX);
@@ -165,6 +178,11 @@ namespace Axphi.ViewModels
 
         public void OnLayerDragCompleted()
         {
+            if (IsDragLocked)
+            {
+                return;
+            }
+
             if (IsLayerSelected)
             {
                 WeakReferenceMessenger.Default.Send(new LayersDragCompletedMessage(this));

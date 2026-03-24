@@ -236,8 +236,9 @@ namespace Axphi.Components
             var realTime = Time;
             var renderInfo = CalculateRenderInfo();
 
-            // 2. 将现实时间转换为底层逻辑运算用的 Tick (int)
-            int currentTick = CalculateCurrentTick(realTime, chart);
+            // 2. 将现实时间转换为底层逻辑运算用的精确 Tick，避免低 BPM 时画面被整数 Tick 量化成低帧率
+            double currentTick = CalculateCurrentTick(realTime, chart);
+            int currentDiscreteTick = (int)Math.Round(currentTick, MidpointRounding.AwayFromZero);
 
 
 
@@ -249,7 +250,7 @@ namespace Axphi.Components
             //RenderProgress(drawingContext, renderInfo, time / chart.Duration);
 
             // 4. 进度条计算，注意要强制转换为 double，防止整数除法结果为 0
-            double progress = chart.Duration == 0 ? 0 : (double)currentTick / chart.Duration;
+            double progress = chart.Duration == 0 ? 0 : currentTick / chart.Duration;
             RenderProgress(drawingContext, renderInfo, progress);
 
             var transformToCenter = new TranslateTransform(renderInfo.CanvasWidth / 2, renderInfo.CanvasHeight / 2);
@@ -282,8 +283,8 @@ namespace Axphi.Components
 
 
             // ================= 新增：2. 最后在最上层画独立的击打特效 =================
-            double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, chart.InitialBpm);
-            RenderHitEffects(drawingContext, renderInfo, chart, currentTick, currentSeconds);
+            double currentSeconds = realTime.TotalSeconds;
+            RenderHitEffects(drawingContext, renderInfo, chart, currentDiscreteTick, currentSeconds);
             // =====================================================================
 
 
@@ -293,14 +294,9 @@ namespace Axphi.Components
         /// <summary>
         /// 将播放器的 TimeSpan 物理时间实时换算为 谱面系统的 Tick (128分音符数量)
         /// </summary>
-        private static int CalculateCurrentTick(TimeSpan realTime, Chart chart)
+        private static double CalculateCurrentTick(TimeSpan realTime, Chart chart)
         {
-            // 积分计算
-            double exactTick = TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, chart.InitialBpm);
-            // double absoluteTick = exactTick + chart.Offset;
-
-            // 保持全宇宙统一的四舍五入！
-            return (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
+            return TimeTickConverter.TimeToTick(realTime.TotalSeconds, chart.BpmKeyFrames, chart.InitialBpm);
         }
 
         private static void RenderProgress(DrawingContext drawingContext, RenderInfo renderInfo, double progress)
@@ -324,9 +320,9 @@ namespace Axphi.Components
             return BaseVerticalFlowPixelsPerSecondAt1080 * (renderInfo.ClientHeight / 1080.0);
         }
 
-        private static double CalculateIntegralDistance(int startTick, int endTick, JudgementLine line, Chart chart, double noteSpeedMultiplier, RenderInfo renderInfo)
+        private static double CalculateIntegralDistance(double startTick, double endTick, JudgementLine line, Chart chart, double noteSpeedMultiplier, RenderInfo renderInfo)
         {
-            if (startTick == endTick) return 0;
+            if (Math.Abs(startTick - endTick) < double.Epsilon) return 0;
 
             int steps = 150; // 150 段微积分切片，足以在 60fps 下骗过人类的眼睛, 你也可以根据性能需求调整这个数字，切得越细越准但越吃 CPU, 反之亦然, 150 是个比较稳妥的默认值, 既能保证大部分情况下的视觉效果，又不会对性能造成过大压力,  你可以在测试时尝试不同的切片数量，找到适合你项目的最佳平衡点, 甚至可以根据当前的帧率动态调整切片数量（帧率高时增加切片，帧率低时减少切片），以实现更智能的性能优化。
             // 注意：切片数量必须足够大，才能在速度变化剧烈的情况下保持视觉平滑，否则可能会出现明显的阶梯状跳跃感，尤其是在有急速加减速的段落。
@@ -342,22 +338,22 @@ namespace Axphi.Components
 
             double totalDistance = 0;
 
-            int tMin = Math.Min(startTick, endTick);
-            int tMax = Math.Max(startTick, endTick);
+            double tMin = Math.Min(startTick, endTick);
+            double tMax = Math.Max(startTick, endTick);
 
             double stepTick = (double)(tMax - tMin) / steps;
 
             for (int i = 0; i < steps; i++)
             {
                 // 1. 切割出极小的时间片段
-                int t1 = (int)Math.Round(tMin + i * stepTick);
-                int t2 = (int)Math.Round(tMin + (i + 1) * stepTick);
+                double t1 = tMin + i * stepTick;
+                double t2 = tMin + (i + 1) * stepTick;
 
                 double sec1 = TimeTickConverter.TickToTime(t1, chart.BpmKeyFrames, chart.InitialBpm);
                 double sec2 = TimeTickConverter.TickToTime(t2, chart.BpmKeyFrames, chart.InitialBpm);
 
                 // 2. 抓取这个时间片段【正中间】的那一瞬间的速度（直接白嫖你写好的神兽方法）
-                int midTick = (t1 + t2) / 2;
+                double midTick = (t1 + t2) / 2.0;
                 EasingUtils.CalculateObjectSingleTransform(
                     midTick,
                     chart.KeyFrameEasingDirection,
@@ -375,7 +371,7 @@ namespace Axphi.Components
 
             return startTick <= endTick ? pixelDistance : -pixelDistance;
         }
-        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, int currentTick, bool drawLine, bool drawNotes, HashSet<int>? multiHitTicks)
+        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, double currentTick, bool drawLine, bool drawNotes, HashSet<int>? multiHitTicks)
         {
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
@@ -418,9 +414,10 @@ namespace Axphi.Components
                 // 画家算法：先画的在底层，后画的在顶层。
                 // 我们希望的顶层显示顺序是 Drag > Flick > Tap > Hold
                 // 所以渲染顺序必须是 Hold(0) -> Tap(1) -> Flick(2) -> Drag(3)
+                int currentDiscreteTick = (int)Math.Round(currentTick, MidpointRounding.AwayFromZero);
                 var sortedNotes = notes.OrderBy(note =>
                 {
-                    var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentTick, note.InitialKind);
+                    var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentDiscreteTick, note.InitialKind);
                     return currentKind switch
                     {
                         NoteKind.Hold => 0,
@@ -441,15 +438,16 @@ namespace Axphi.Components
             drawingContext.Pop();
         }
 
-        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, int currentTick, JudgementLine line, bool isMultiHit)
+        private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, double currentTick, JudgementLine line, bool isMultiHit)
         {
+            int currentDiscreteTick = (int)Math.Round(currentTick, MidpointRounding.AwayFromZero);
             var ticksFromNow = note.HitTime - currentTick;
 
             // 绝对值 > 1000 Tick 就不渲染，优化性能
             if (Math.Abs(ticksFromNow) > 1000) return;
 
             // ================= 1. 提前提取音符类型 =================
-            var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentTick, note.InitialKind);
+            var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentDiscreteTick, note.InitialKind);
 
             // ================= 2. 视觉消失引擎 =================
             // Tap, Drag, Flick：只要越过判定线，直接消失！

@@ -26,6 +26,9 @@ namespace Axphi.Views
         private Vector _dragAnchorOffset;
         private Point _dragStartPoint;
         private Rect _currentSelectionRect;
+        private bool _pendingSingleSelectOnRelease;
+        private bool _didDragDuringNoteInteraction;
+        private Point _noteInteractionStartPoint;
 
         public JudgementLineEditorView()
         {
@@ -347,6 +350,9 @@ namespace Axphi.Views
         private void BeginNoteInteraction(JudgementLineEditorViewModel vm, NoteViewModel note, Axphi.Components.JudgementLineEditorCanvas.HitTargetKind targetKind, Point pointerPoint, Point anchorPoint)
         {
             WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _pendingSingleSelectOnRelease = false;
+            _didDragDuringNoteInteraction = false;
+            _noteInteractionStartPoint = pointerPoint;
 
             if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
             {
@@ -358,11 +364,22 @@ namespace Axphi.Views
             }
             else
             {
-                foreach (var n in vm.ActiveTrack?.UINotes ?? Enumerable.Empty<NoteViewModel>())
+                var allNotes = vm.ActiveTrack?.UINotes ?? Enumerable.Empty<NoteViewModel>();
+                int selectedCount = allNotes.Count(n => n.IsSelected);
+
+                if (note.IsSelected && selectedCount > 1)
                 {
-                    n.IsSelected = false;
+                    // 无修饰键点中已多选中的 note：先不立刻折叠，等鼠标抬起且未拖拽时再折叠为单选。
+                    _pendingSingleSelectOnRelease = true;
                 }
-                note.IsSelected = true;
+                else
+                {
+                    foreach (var n in allNotes)
+                    {
+                        n.IsSelected = false;
+                    }
+                    note.IsSelected = true;
+                }
             }
 
             if (!note.IsSelected)
@@ -404,6 +421,15 @@ namespace Axphi.Views
             if (_dragNote == null)
             {
                 return;
+            }
+
+            if (!_didDragDuringNoteInteraction)
+            {
+                Vector pointerDelta = pointerPoint - _noteInteractionStartPoint;
+                if (Math.Abs(pointerDelta.X) >= 2 || Math.Abs(pointerDelta.Y) >= 2)
+                {
+                    _didDragDuringNoteInteraction = true;
+                }
             }
 
             var metrics = JudgementLineEditorRenderMath.CalculateMetrics(EditorCanvas.RenderSize, vm.ViewZoom);
@@ -471,10 +497,20 @@ namespace Axphi.Views
                 _currentSelectionRect = Rect.Empty;
                 // Don't select anything else here, as Box Select logic ran during Move.
             }
+            else if (_pendingSingleSelectOnRelease && !_didDragDuringNoteInteraction && _dragNote != null && DataContext is JudgementLineEditorViewModel vm)
+            {
+                foreach (var note in vm.ActiveTrack?.UINotes ?? Enumerable.Empty<NoteViewModel>())
+                {
+                    note.IsSelected = false;
+                }
+                _dragNote.IsSelected = true;
+            }
 
             EditorCanvas.ReleaseMouseCapture();
             _dragMode = EditorDragMode.None;
             _dragNote = null;
+            _pendingSingleSelectOnRelease = false;
+            _didDragDuringNoteInteraction = false;
             WeakReferenceMessenger.Default.Send(new NotesNeedSortMessage());
             EditorCanvas.Cursor = Cursors.Arrow;
             EditorCanvas.InvalidateVisual();

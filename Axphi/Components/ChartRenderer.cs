@@ -753,36 +753,63 @@ namespace Axphi.Components
                     {
                         double elapsedSeconds = currentSeconds - vTime;
 
-                        // 将这个虚拟秒数反推回当时的 Tick，用来查询过去那一瞬间的坐标！
-                        int vTick = (int)Math.Round(TimeTickConverter.TimeToTick(vTime, chart.BpmKeyFrames, chart.InitialBpm));
+                        // 将这个虚拟秒数反推回当时的精确 Tick，用于获取命中瞬间的历史变换。
+                        double vTick = TimeTickConverter.TimeToTick(vTime, chart.BpmKeyFrames, chart.InitialBpm);
 
-                        // 获取判定线在【这一个虚拟打击瞬间】的历史位置和旋转
+                        // 使用与音符渲染一致的判定线完整变换链，确保旋转后坐标严格一致。
                         EasingUtils.CalculateObjectTransform(
                             vTick, chart.KeyFrameEasingDirection,
                             line.AnimatableProperties,
-                            out _, out var lineOffset, out _, out _, out _);
+                            out var lineAnchor, out var lineOffset, out var lineScale, out var lineRotationAngle, out _);
 
                         var linePixelOffset = new Vector(
                             renderInfo.ChartUnitToPixel(lineOffset.X),
                             renderInfo.ChartUnitToPixel(lineOffset.Y));
+                        var linePixelAnchor = new Vector(
+                            renderInfo.ChartUnitToPixel(lineAnchor.X),
+                            -renderInfo.ChartUnitToPixel(lineAnchor.Y));
 
-                        var lineTransform = new TranslateTransform(linePixelOffset.X, -linePixelOffset.Y);
+                        var lineTransform = new TransformGroup()
+                        {
+                            Children =
+                            {
+                                new TranslateTransform(-linePixelAnchor.X, -linePixelAnchor.Y),
+                                new ScaleTransform(lineScale.X, lineScale.Y),
+                                new RotateTransform(-lineRotationAngle),
+                                new TranslateTransform(linePixelAnchor.X, linePixelAnchor.Y),
+                                new TranslateTransform(linePixelOffset.X, -linePixelOffset.Y),
+                            }
+                        };
 
-                        // 获取音符在【这一个虚拟打击瞬间】相对判定线的历史偏移
+                        // 使用与音符渲染一致的音符完整变换链，确保 offset/anchor/rotation 对命中特效生效。
                         EasingUtils.CalculateObjectTransform(
                             vTick, chart.KeyFrameEasingDirection,
                             note.AnimatableProperties,
-                            out _, out var noteOffset, out _, out _, out _);
+                            out var noteAnchor, out var noteOffset, out var noteScale, out var noteRotationAngle, out _);
 
                         var notePixelOffset = new Vector(
                             renderInfo.ChartUnitToPixel(noteOffset.X),
                             renderInfo.ChartUnitToPixel(noteOffset.Y));
+                        var notePixelAnchor = new Vector(
+                            renderInfo.ChartUnitToPixel(noteAnchor.X),
+                            renderInfo.ChartUnitToPixel(noteAnchor.Y));
 
-                        var noteTransform = new TranslateTransform(notePixelOffset.X, notePixelOffset.Y);
+                        var noteTransform = new TransformGroup()
+                        {
+                            Children =
+                            {
+                                new TranslateTransform(-notePixelAnchor.X, -notePixelAnchor.Y),
+                                new ScaleTransform(noteScale.X, noteScale.Y),
+                                new RotateTransform(noteRotationAngle),
+                                new TranslateTransform(notePixelAnchor.X, notePixelAnchor.Y),
+                                new TranslateTransform(notePixelOffset.X, notePixelOffset.Y),
+                            }
+                        };
 
                         // ================= 开始绘制 =================
-                        drawingContext.PushTransform(lineTransform);
-                        drawingContext.PushTransform(noteTransform);
+                        // 命中点跟随历史变换，但特效始终保持屏幕正向（不继承任何旋转）。
+                        Point noteLocalHitPoint = noteTransform.Transform(new Point(0, 0));
+                        Point fxCenter = lineTransform.Transform(noteLocalHitPoint);
 
                         double tick = elapsedSeconds / fxDurationSeconds;
 
@@ -795,7 +822,7 @@ namespace Axphi.Components
                         {
                             double fxSize = 256.0 * 1.0 * noteScaleRatio * 6.0;
                             drawingContext.PushOpacityMask(new ImageBrush(frame));
-                            drawingContext.DrawRectangle(_perfectFxBrush, null, new Rect(-fxSize / 2, -fxSize / 2, fxSize, fxSize));
+                            drawingContext.DrawRectangle(_perfectFxBrush, null, new Rect(fxCenter.X - fxSize / 2, fxCenter.Y - fxSize / 2, fxSize, fxSize));
                             drawingContext.Pop();
                         }
 
@@ -822,7 +849,7 @@ namespace Axphi.Components
                             byte alphaByte = (byte)Math.Clamp(particleAlpha * 255, 0, 255);
                             var particleBrush = new SolidColorBrush(Color.FromArgb(alphaByte, 255, 236, 160));
 
-                            drawingContext.PushTransform(new TranslateTransform(px, py));
+                            drawingContext.PushTransform(new TranslateTransform(fxCenter.X + px, fxCenter.Y + py));
                             drawingContext.PushTransform(new RotateTransform(pRot));
 
                             drawingContext.DrawRectangle(particleBrush, null, new Rect(-particleSize / 2, -particleSize / 2, particleSize, particleSize));
@@ -830,9 +857,6 @@ namespace Axphi.Components
                             drawingContext.Pop();
                             drawingContext.Pop();
                         }
-
-                        drawingContext.Pop(); // noteTransform
-                        drawingContext.Pop(); // lineTransform
                     }
                 }
             }

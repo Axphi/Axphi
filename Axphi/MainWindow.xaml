@@ -201,20 +201,19 @@
 
 
                 <!--  时间线区  -->
-                                        <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0"
+                <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0"
                       x:Name="TimelineMainGrid"
                       PreviewMouseLeftButtonDown="TimelineMainGrid_PreviewMouseLeftButtonDown"
                       PreviewMouseMove="TimelineMainGrid_PreviewMouseMove"
                       PreviewMouseLeftButtonUp="TimelineMainGrid_PreviewMouseLeftButtonUp"
-                      
                       PreviewMouseDown="TimelineMainGrid_PreviewMouseDown"
-                                            PreviewMouseUp="TimelineMainGrid_PreviewMouseUp"
-                                            LayoutUpdated="TimelineMainGrid_LayoutUpdated"
+                      PreviewMouseUp="TimelineMainGrid_PreviewMouseUp"
+                      LayoutUpdated="TimelineMainGrid_LayoutUpdated"
                       SizeChanged="TimelineMainGrid_SizeChanged">
                     <Grid.ColumnDefinitions>
-                                                                                                <ColumnDefinition x:Name="TimelineLeftColumnDefinition" Width="1*" MinWidth="180" />
-                                                <ColumnDefinition Width="6" />
-                                                <ColumnDefinition Width="2.8*" MinWidth="320" />
+                        <ColumnDefinition x:Name="TimelineLeftColumnDefinition" Width="1*" MinWidth="180" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="2.8*" MinWidth="320" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
@@ -444,16 +443,16 @@
 
                     <!--  图层全局垂直滚动条  -->
                     <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"
-                                         Grid.Row="2" Grid.Column="3" Width="12" Margin="0,0,0,0"
+                               Grid.Row="2" Grid.Column="3" Width="12" Margin="0,0,0,0"
                                Orientation="Vertical" HorizontalAlignment="Right"
                                Minimum="0"
                                ValueChanged="GlobalVerticalScrollBar_ValueChanged" />
 
                     <GridSplitter Grid.Row="0"
                                   Grid.RowSpan="5"
-                                             Grid.Column="1"
-                                             HorizontalAlignment="Stretch"
-                                             Width="6"
+                                  Grid.Column="1"
+                                  HorizontalAlignment="Stretch"
+                                  Width="6"
                                   ResizeDirection="Columns"
                                   ResizeBehavior="PreviousAndNext"
                                   ShowsPreview="False"
@@ -470,9 +469,9 @@
                     <StackPanel Margin="10">
                         <StackPanel Orientation="Horizontal">
                             <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import Music" Padding="15,5" />
-                            <ToggleButton IsChecked="{Binding Timeline.IsMetronomeEnabled}" 
-                                          Content="Metronome (节拍器)" 
-                                          Margin="10,0,0,0" Padding="15,5" 
+                            <ToggleButton IsChecked="{Binding Timeline.IsMetronomeEnabled}"
+                                          Content="Metronome (节拍器)"
+                                          Margin="10,0,0,0" Padding="15,5"
                                           Background="#333" Foreground="#d6d6d6" />
                         </StackPanel>
 

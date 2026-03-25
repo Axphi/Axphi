@@ -283,10 +283,38 @@ namespace Axphi.Views
             }
 
             Point point = e.GetPosition(EditorCanvas);
-            if (vm.UpdateHoverPreview(point, EditorCanvas.RenderSize))
+            bool hoverPreviewChanged = vm.UpdateHoverPreview(point, EditorCanvas.RenderSize);
+            if (vm.HasHoverPreview)
+            {
+                EnsureEditorKeyboardFocusForHover();
+            }
+
+            if (hoverPreviewChanged)
             {
                 EditorCanvas.InvalidateVisual();
             }
+        }
+
+        private void EnsureEditorKeyboardFocusForHover()
+        {
+            if (EditorRoot.IsKeyboardFocusWithin)
+            {
+                return;
+            }
+
+            if (Keyboard.FocusedElement is TextBox or PasswordBox)
+            {
+                return;
+            }
+
+            if (Keyboard.FocusedElement is DependencyObject focusedObject
+                && FindVisualParent<ComboBox>(focusedObject) is ComboBox comboBox
+                && comboBox.IsKeyboardFocusWithin)
+            {
+                return;
+            }
+
+            FocusEditorCanvas();
         }
 
         private void HandleCanvasLeftButtonDown(JudgementLineEditorViewModel vm, Point point)

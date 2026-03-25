@@ -214,7 +214,7 @@ namespace Axphi.Components
                 nameof(ShowAuxiliaryUi),
                 typeof(bool),
                 typeof(ChartRenderer),
-                new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
+                new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
 
         public static readonly DependencyProperty ShowNoteCentersProperty =
             DependencyProperty.Register(

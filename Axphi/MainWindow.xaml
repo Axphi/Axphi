@@ -169,6 +169,8 @@
                     </Grid>
                 </comp:TabPane>
 
+
+                <!--  渲染设置  -->
                 <comp:TabPane
                     Grid.Row="0"
                     Grid.Column="4"

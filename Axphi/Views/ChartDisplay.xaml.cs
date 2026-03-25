@@ -28,7 +28,7 @@ namespace Axphi.Views
                 nameof(ShowAuxiliaryUi),
                 typeof(bool),
                 typeof(ChartDisplay),
-                new PropertyMetadata(true));
+                new PropertyMetadata(false));
 
         public bool ShowNoteCenters
         {

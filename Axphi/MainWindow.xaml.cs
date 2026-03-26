@@ -979,7 +979,7 @@ public partial class MainWindow : Window
             }
         }
 
-        if (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.None && !IsTextInputFocused())
+        if (IsPlainXKeyPressed(e) && Keyboard.Modifiers == ModifierKeys.None && !IsTextInputFocused())
         {
             if (DataContext is MainViewModel vm && vm.Timeline.DeleteSelectedKeyframesCommand.CanExecute(null))
             {
@@ -990,6 +990,22 @@ public partial class MainWindow : Window
         }
 
         base.OnPreviewKeyDown(e);
+    }
+
+    private static bool IsPlainXKeyPressed(KeyEventArgs e)
+    {
+        if (e.Key == Key.X || e.ImeProcessedKey == Key.X || e.SystemKey == Key.X || e.DeadCharProcessedKey == Key.X)
+        {
+            return true;
+        }
+
+        // IME 某些状态下会把 Key 折叠成 ImeProcessed/None，物理键状态作为兜底。
+        if ((e.Key == Key.ImeProcessed || e.Key == Key.None || e.Key == Key.DeadCharProcessed) && Keyboard.IsKeyDown(Key.X))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool IsTextInputFocused()

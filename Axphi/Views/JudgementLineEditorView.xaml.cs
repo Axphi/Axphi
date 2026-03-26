@@ -40,6 +40,20 @@ namespace Axphi.Views
         {
             FocusEditorCanvas();
         }
+        private static bool IsPlainXKeyPressed(KeyEventArgs e)
+        {
+            if (e.Key == Key.X || e.ImeProcessedKey == Key.X || e.SystemKey == Key.X || e.DeadCharProcessedKey == Key.X)
+            {
+                return true;
+            }
+
+            if ((e.Key == Key.ImeProcessed || e.Key == Key.None || e.Key == Key.DeadCharProcessed) && Keyboard.IsKeyDown(Key.X))
+            {
+                return true;
+            }
+
+            return false;
+        }
 
         private void EditorCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -189,7 +203,8 @@ namespace Axphi.Views
                 return;
             }
 
-            if ((e.Key == Key.Delete || (e.Key == Key.X && Keyboard.Modifiers == ModifierKeys.None)) && vm.IsVisible)
+            bool isPlainX = e.Key == Key.X || e.ImeProcessedKey == Key.X;
+            if ((e.Key == Key.Delete || (isPlainX && Keyboard.Modifiers == ModifierKeys.None)) && vm.IsVisible)
             {
                 bool hasSelectedNotes = vm.ActiveTrack?.UINotes.Any(note => note.IsSelected) == true;
                 if (hasSelectedNotes)

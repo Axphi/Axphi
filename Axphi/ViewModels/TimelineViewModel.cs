@@ -81,6 +81,7 @@ namespace Axphi.ViewModels
         // 【新增】保存全局数据源的引用
         private readonly ProjectManager _projectManager;
         private readonly List<KeyframeClipboardItem> _keyframeClipboard = new();
+        private readonly List<JudgementLine> _judgementLineClipboard = new();
         private readonly SnapshotHistory<string> _history = new(200);
         private readonly DispatcherTimer _historyCommitTimer = new()
         {
@@ -776,6 +777,7 @@ namespace Axphi.ViewModels
         {
             CopySelectedKeyframesCommand.NotifyCanExecuteChanged();
             PasteCopiedKeyframesCommand.NotifyCanExecuteChanged();
+            DuplicateSelectedLayersCommand.NotifyCanExecuteChanged();
         }
 
         private static int GetNoteOwnKeyframeCount(NoteViewModel note)
@@ -794,6 +796,26 @@ namespace Axphi.ViewModels
                 ?? new Note();
             clonedNote.ID = Guid.NewGuid().ToString();
             return clonedNote;
+        }
+
+        private JudgementLine CloneJudgementLine(JudgementLine line)
+        {
+            var clonedLine = JsonSerializer.Deserialize<JudgementLine>(JsonSerializer.Serialize(line, HistoryJsonSerializerOptions), HistoryJsonSerializerOptions)
+                ?? new JudgementLine();
+
+            clonedLine.ID = Guid.NewGuid().ToString();
+            clonedLine.Notes ??= new List<Note>();
+            foreach (var note in clonedLine.Notes)
+            {
+                note.ID = Guid.NewGuid().ToString();
+            }
+
+            return clonedLine;
+        }
+
+        private List<TrackViewModel> GetSelectedJudgementLineTracks()
+        {
+            return Tracks.Where(track => track.IsLayerSelected).ToList();
         }
 
         private int GetSelectedKeyframeCount()
@@ -835,13 +857,53 @@ namespace Axphi.ViewModels
             return count;
         }
 
-        private bool CanCopySelectedKeyframes() => GetSelectedKeyframeCount() > 0;
+        private bool CanCopySelectedKeyframes() => GetSelectedKeyframeCount() > 0 || GetSelectedJudgementLineTracks().Count > 0;
 
-        private bool CanPasteCopiedKeyframes() => _keyframeClipboard.Count > 0;
+        private bool CanPasteCopiedKeyframes() => _keyframeClipboard.Count > 0 || _judgementLineClipboard.Count > 0;
+
+        private bool CanDuplicateSelectedLayers() => GetSelectedJudgementLineTracks().Count > 0;
+
+        [RelayCommand(CanExecute = nameof(CanDuplicateSelectedLayers))]
+        private void DuplicateSelectedLayers()
+        {
+            var selectedTracks = GetSelectedJudgementLineTracks();
+            if (selectedTracks.Count == 0)
+            {
+                return;
+            }
+
+            _keyframeClipboard.Clear();
+            _judgementLineClipboard.Clear();
+            foreach (var track in selectedTracks)
+            {
+                _judgementLineClipboard.Add(CloneJudgementLine(track.Data));
+            }
+
+            PasteCopiedJudgementLines();
+            NotifyKeyframeClipboardCommandsStateChanged();
+        }
 
         [RelayCommand(CanExecute = nameof(CanCopySelectedKeyframes))]
         private void CopySelectedKeyframes()
         {
+            if (ActiveSelectionContext == TimelineSelectionContext.Layers)
+            {
+                var selectedTracks = GetSelectedJudgementLineTracks();
+                if (selectedTracks.Count > 0)
+                {
+                    _keyframeClipboard.Clear();
+                    _judgementLineClipboard.Clear();
+                    foreach (var track in selectedTracks)
+                    {
+                        _judgementLineClipboard.Add(CloneJudgementLine(track.Data));
+                    }
+
+                    NotifyKeyframeClipboardCommandsStateChanged();
+                    return;
+                }
+            }
+
+            _judgementLineClipboard.Clear();
             _keyframeClipboard.Clear();
             var copiedKeys = new HashSet<string>();
 
@@ -940,6 +1002,12 @@ namespace Axphi.ViewModels
         [RelayCommand(CanExecute = nameof(CanPasteCopiedKeyframes))]
         private void PasteCopiedKeyframes()
         {
+            if (_judgementLineClipboard.Count > 0)
+            {
+                PasteCopiedJudgementLines();
+                return;
+            }
+
             if (_keyframeClipboard.Count == 0)
             {
                 return;
@@ -1003,6 +1071,44 @@ namespace Axphi.ViewModels
                 {
                     note.SyncValuesToTime(currentTick, easingDirection);
                 }
+            }
+        }
+
+        private void PasteCopiedJudgementLines()
+        {
+            if (_judgementLineClipboard.Count == 0)
+            {
+                return;
+            }
+
+            EnterLayerSelectionContext();
+            ClearLayerSelection();
+
+            foreach (var copiedLine in _judgementLineClipboard)
+            {
+                var clonedLine = CloneJudgementLine(copiedLine);
+                CurrentChart.JudgementLines.Add(clonedLine);
+
+                var newTrackVM = new TrackViewModel(clonedLine, $"判定线图层 {Tracks.Count + 1}", this)
+                {
+                    IsLayerSelected = true
+                };
+                Tracks.Add(newTrackVM);
+            }
+
+            ActiveSelectionContext = TimelineSelectionContext.Layers;
+            ReindexTrackNames();
+            RefreshLayerSelectionVisuals();
+            NotifyKeyframeClipboardCommandsStateChanged();
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            AudioTrack?.UpdatePixels();
+
+            int currentTick = GetCurrentTick();
+            var easingDirection = CurrentChart.KeyFrameEasingDirection;
+            BpmTrack?.SyncValuesToTime(currentTick);
+            foreach (var track in Tracks)
+            {
+                track.SyncValuesToTime(currentTick, easingDirection);
             }
         }
 
@@ -1334,6 +1440,8 @@ namespace Axphi.ViewModels
             {
                 track.HasSelectedChildren = TrackHasSelectedChildren(track);
             }
+
+            NotifyKeyframeClipboardCommandsStateChanged();
         }
 
         private bool TrackHasSelectedChildren(TrackViewModel track)

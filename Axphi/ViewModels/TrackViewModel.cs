@@ -844,6 +844,11 @@ namespace Axphi.ViewModels
         [NotifyPropertyChangedFor(nameof(IsLayerHighlighted))]
         private bool _isLayerSelected;
 
+        partial void OnIsLayerSelectedChanged(bool value)
+        {
+            _timeline.RefreshLayerSelectionVisuals();
+        }
+
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsLayerHighlighted))]
         private bool _hasSelectedChildren;

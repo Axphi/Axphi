@@ -92,6 +92,7 @@
     </Window.Resources>
 
     <Window.InputBindings>
+        <KeyBinding Modifiers="Control" Key="D" Command="{Binding Timeline.DuplicateSelectedLayersCommand}" />
         <KeyBinding Modifiers="Control" Key="C" Command="{Binding Timeline.CopySelectedKeyframesCommand}" />
         <KeyBinding Modifiers="Control" Key="V" Command="{Binding Timeline.PasteCopiedKeyframesCommand}" />
         <KeyBinding Modifiers="Control" Key="S" Command="{Binding FileActions.SaveChartCommand}" />

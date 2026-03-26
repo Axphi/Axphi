@@ -280,14 +280,7 @@ namespace Axphi.ViewModels
                 return false;
             }
 
-            var metrics = JudgementLineEditorRenderMath.CalculateMetrics(viewportSize, ViewZoom);
-            double centerX = viewportSize.Width / 2.0 + PanX;
-
-            double chartX = (viewportPoint.X - centerX) / metrics.PixelsPerChartUnit;
-            double divisionWidth = 16.0 / HorizontalDivisions;
-            int snappedDivisionIndex = (int)Math.Round((chartX + 8.0) / divisionWidth, MidpointRounding.AwayFromZero);
-            snappedDivisionIndex = Math.Clamp(snappedDivisionIndex, 0, HorizontalDivisions);
-            snappedChartX = -8.0 + snappedDivisionIndex * divisionWidth;
+            snappedChartX = ResolveEditorChartX(viewportPoint.X, viewportSize, snap: true);
 
             double exactTick = JudgementLineEditorRenderMath.ResolveExactTickFromY(_timeline, ActiveTrack, viewportPoint.Y, viewportSize, ViewZoom, PanY);
             hitTick = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)
@@ -308,6 +301,29 @@ namespace Axphi.ViewModels
             return snap
                 ? SnapEditorTick(exactTick, viewportY, viewportSize)
                 : (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
+        }
+
+        public double ResolveEditorChartX(double viewportX, Size viewportSize, bool snap)
+        {
+            if (ActiveTrack == null)
+            {
+                return 0;
+            }
+
+            var metrics = JudgementLineEditorRenderMath.CalculateMetrics(viewportSize, ViewZoom);
+            double centerX = viewportSize.Width / 2.0 + PanX;
+            double chartX = (viewportX - centerX) / metrics.PixelsPerChartUnit;
+            chartX = Math.Clamp(chartX, -8.0, 8.0);
+
+            return snap ? SnapEditorChartX(chartX) : chartX;
+        }
+
+        private double SnapEditorChartX(double chartX)
+        {
+            double divisionWidth = 16.0 / HorizontalDivisions;
+            int snappedDivisionIndex = (int)Math.Round((chartX + 8.0) / divisionWidth, MidpointRounding.AwayFromZero);
+            snappedDivisionIndex = Math.Clamp(snappedDivisionIndex, 0, HorizontalDivisions);
+            return -8.0 + snappedDivisionIndex * divisionWidth;
         }
 
         private int SnapEditorTick(double exactTick, double viewportY, Size viewportSize)

@@ -484,15 +484,15 @@ namespace Axphi.Views
             }
 
             var metrics = JudgementLineEditorRenderMath.CalculateMetrics(EditorCanvas.RenderSize, vm.ViewZoom);
-            double centerX = EditorCanvas.RenderSize.Width / 2.0 + vm.PanX;
             double desiredAnchorX = pointerPoint.X - _dragAnchorOffset.X;
             double desiredAnchorY = pointerPoint.Y - _dragAnchorOffset.Y;
+            bool shouldSnap = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
 
             if (_dragMode == EditorDragMode.MoveNote)
             {
-                double targetOffsetX = Math.Clamp((desiredAnchorX - centerX) / metrics.PixelsPerChartUnit, -8.0, 8.0);
+                double targetOffsetX = vm.ResolveEditorChartX(desiredAnchorX, EditorCanvas.RenderSize, shouldSnap);
                 double tickResolveY = desiredAnchorY - (_dragNote.CurrentOffsetY * metrics.PixelsPerChartUnit);
-                int targetHitTick = vm.ResolveEditorTick(tickResolveY, EditorCanvas.RenderSize, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+                int targetHitTick = vm.ResolveEditorTick(tickResolveY, EditorCanvas.RenderSize, shouldSnap);
 
                 double deltaX = targetOffsetX - _dragNote.CurrentOffsetX;
                 int deltaTick = targetHitTick - _dragNote.HitTime;
@@ -525,7 +525,7 @@ namespace Axphi.Views
             if (_dragMode == EditorDragMode.ResizeHoldTail)
             {
                 double tickResolveY = desiredAnchorY - (_dragNote.CurrentOffsetY * metrics.PixelsPerChartUnit);
-                int endTick = vm.ResolveEditorTick(tickResolveY, EditorCanvas.RenderSize, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+                int endTick = vm.ResolveEditorTick(tickResolveY, EditorCanvas.RenderSize, shouldSnap);
 
                 _dragNote.HoldDuration = Math.Max(1, endTick - _dragNote.HitTime);
             }

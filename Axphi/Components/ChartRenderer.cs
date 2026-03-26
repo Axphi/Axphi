@@ -66,12 +66,16 @@ namespace Axphi.Components
         private static readonly ImageBrush _brushHoldTailMultiHit;
         private static readonly ImageBrush _brushHoldBodyMultiHit;
         private static readonly ImageBrush _brushHoldHeadMultiHit;
+        private static readonly ImageBrush _brushHoldTopPaddingMultiHit;
+        private static readonly ImageBrush _brushHoldBottomGlowMultiHit;
         private const double BaseNoteTextureWidthPixels = 989.0;
-        private const double HoldSegmentOverlapPixels = 1.0;
         private const double HoldHeadPixels = 50.0;
         private const double HoldTailPixels = 50.0;
-        private const double HoldHighlightHeadPixels = 100.0;
-        private const double HoldHighlightTailPixels = 100.0;
+        private const double HoldHighlightTopPaddingPixels = 48.0;
+        private const double HoldHighlightTailPixels = 50.0;
+        private const double HoldHighlightHeadPixels = 50.0;
+        private const double HoldHighlightBottomGlowPixels = 49.0;
+        private const double HoldSliceInsetPixels = 0.5;
 
 
         // 3. 用静态构造函数初始化切图
@@ -81,21 +85,9 @@ namespace Axphi.Components
 
             double holdHeight = Math.Max(1.0, imgHold.PixelHeight);
             double holdBodyPixels = Math.Max(1.0, holdHeight - HoldHeadPixels - HoldTailPixels);
-            _brushHoldHead = new ImageBrush(imgHold)
-            {
-                Viewbox = new Rect(0, (holdHeight - HoldHeadPixels) / holdHeight, 1, HoldHeadPixels / holdHeight),
-                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
-            };
-            _brushHoldBody = new ImageBrush(imgHold)
-            {
-                Viewbox = new Rect(0, HoldHeadPixels / holdHeight, 1, holdBodyPixels / holdHeight),
-                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
-            };
-            _brushHoldTail = new ImageBrush(imgHold)
-            {
-                Viewbox = new Rect(0, 0, 1, HoldTailPixels / holdHeight),
-                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
-            };
+            _brushHoldHead = CreateHoldSliceBrush(imgHold, holdHeight - HoldHeadPixels, HoldHeadPixels);
+            _brushHoldBody = CreateHoldSliceBrush(imgHold, HoldTailPixels, holdBodyPixels);
+            _brushHoldTail = CreateHoldSliceBrush(imgHold, 0, HoldTailPixels);
 
             // 冻结画刷以获得极限渲染性能
             _brushHoldTail.Freeze();
@@ -103,25 +95,21 @@ namespace Axphi.Components
             _brushHoldHead.Freeze();
 
             double mhHeight = Math.Max(1.0, _imgHoldMultiHit.PixelHeight);
-            double mhBodyPixels = Math.Max(1.0, mhHeight - HoldHighlightHeadPixels - HoldHighlightTailPixels);
-            _brushHoldHeadMultiHit = new ImageBrush(_imgHoldMultiHit)
-            {
-                Viewbox = new Rect(0, (mhHeight - HoldHighlightHeadPixels) / mhHeight, 1, HoldHighlightHeadPixels / mhHeight),
-                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
-            };
-            _brushHoldBodyMultiHit = new ImageBrush(_imgHoldMultiHit)
-            {
-                Viewbox = new Rect(0, HoldHighlightHeadPixels / mhHeight, 1, mhBodyPixels / mhHeight),
-                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
-            };
-            _brushHoldTailMultiHit = new ImageBrush(_imgHoldMultiHit)
-            {
-                Viewbox = new Rect(0, 0, 1, HoldHighlightTailPixels / mhHeight),
-                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
-            };
+            double mhBodyPixels = Math.Max(1.0, mhHeight - HoldHighlightTopPaddingPixels - HoldHighlightTailPixels - HoldHighlightHeadPixels - HoldHighlightBottomGlowPixels);
+            double mhTailY = HoldHighlightTopPaddingPixels;
+            double mhBodyY = mhTailY + HoldHighlightTailPixels;
+            double mhHeadY = mhBodyY + mhBodyPixels;
+            double mhGlowY = mhHeadY + HoldHighlightHeadPixels;
+            _brushHoldTopPaddingMultiHit = CreateHoldSliceBrush(_imgHoldMultiHit, 0, HoldHighlightTopPaddingPixels);
+            _brushHoldTailMultiHit = CreateHoldSliceBrush(_imgHoldMultiHit, mhTailY, HoldHighlightTailPixels);
+            _brushHoldHeadMultiHit = CreateHoldSliceBrush(_imgHoldMultiHit, mhHeadY, HoldHighlightHeadPixels);
+            _brushHoldBodyMultiHit = CreateHoldSliceBrush(_imgHoldMultiHit, mhBodyY, mhBodyPixels);
+            _brushHoldBottomGlowMultiHit = CreateHoldSliceBrush(_imgHoldMultiHit, mhGlowY, HoldHighlightBottomGlowPixels);
+            _brushHoldTopPaddingMultiHit.Freeze();
             _brushHoldHeadMultiHit.Freeze();
             _brushHoldBodyMultiHit.Freeze();
             _brushHoldTailMultiHit.Freeze();
+            _brushHoldBottomGlowMultiHit.Freeze();
 
             if (_imgAnchor.CanFreeze)
             {
@@ -608,23 +596,36 @@ namespace Axphi.Components
 
                 double notePixelWidth = GetRenderedNotePixelWidth(renderInfo.ChartUnitToPixel(1.95), currentKind, useMultiHitResource);
                 double sourceWidth = GetTexturePixelWidth(currentKind, useMultiHitResource);
+                double topPaddingPixels = useMultiHitResource ? HoldHighlightTopPaddingPixels : 0.0;
                 double headPixels = useMultiHitResource ? HoldHighlightHeadPixels : HoldHeadPixels;
                 double tailPixels = useMultiHitResource ? HoldHighlightTailPixels : HoldTailPixels;
+                double bottomGlowPixels = useMultiHitResource ? HoldHighlightBottomGlowPixels : 0.0;
+                double topPaddingHeight = notePixelWidth * (topPaddingPixels / sourceWidth);
                 double headHeight = notePixelWidth * (headPixels / sourceWidth);
                 double tailHeight = notePixelWidth * (tailPixels / sourceWidth);
-                if (holdPixelLength < tailHeight) holdPixelLength = tailHeight;
+                double bottomGlowHeight = notePixelWidth * (bottomGlowPixels / sourceWidth);
+                if (holdPixelLength < headHeight + tailHeight) holdPixelLength = headHeight + tailHeight;
 
-                double bodyHeight = Math.Max(0, holdPixelLength - tailHeight);
-                double overlap = HoldSegmentOverlapPixels;
-                Rect headRect = new Rect(-notePixelWidth / 2, -overlap, notePixelWidth, headHeight + overlap);
-                Rect tailRect = new Rect(-notePixelWidth / 2, -holdPixelLength, notePixelWidth, tailHeight + overlap);
-                Rect bodyRect = new Rect(-notePixelWidth / 2, -bodyHeight, notePixelWidth, bodyHeight);
+                double bodyHeight = Math.Max(0, holdPixelLength - headHeight - tailHeight);
+                Rect headRect = new Rect(-notePixelWidth / 2, -headHeight, notePixelWidth, headHeight);
+                Rect bodyRect = new Rect(-notePixelWidth / 2, -(headHeight + bodyHeight), notePixelWidth, bodyHeight);
+                Rect tailRect = new Rect(-notePixelWidth / 2, -(headHeight + bodyHeight + tailHeight), notePixelWidth, tailHeight);
+                Rect topPaddingRect = new Rect(-notePixelWidth / 2, -(headHeight + bodyHeight + tailHeight + topPaddingHeight), notePixelWidth, topPaddingHeight);
+                Rect bottomGlowRect = new Rect(-notePixelWidth / 2, 0, notePixelWidth, bottomGlowHeight);
 
                 if (isFlipped) drawingContext.PushTransform(new ScaleTransform(1, -1));
 
+                if (useMultiHitResource && topPaddingHeight > 0)
+                {
+                    drawingContext.DrawRectangle(_brushHoldTopPaddingMultiHit, null, topPaddingRect);
+                }
                 drawingContext.DrawRectangle(useMultiHitResource ? _brushHoldBodyMultiHit : _brushHoldBody, null, bodyRect);
                 drawingContext.DrawRectangle(useMultiHitResource ? _brushHoldTailMultiHit : _brushHoldTail, null, tailRect);
                 drawingContext.DrawRectangle(useMultiHitResource ? _brushHoldHeadMultiHit : _brushHoldHead, null, headRect);
+                if (useMultiHitResource && bottomGlowHeight > 0)
+                {
+                    drawingContext.DrawRectangle(_brushHoldBottomGlowMultiHit, null, bottomGlowRect);
+                }
 
                 if (isFlipped) drawingContext.Pop();
             }
@@ -687,12 +688,27 @@ namespace Axphi.Components
             {
                 NoteKind.Tap => isMultiHit ? _imgTapMultiHit : _imgTap,
                 NoteKind.Drag => isMultiHit ? _imgDragMultiHit : _imgDrag,
-                NoteKind.Hold => _imgHoldHead,
+                NoteKind.Hold => isMultiHit ? _imgHoldMultiHit : _imgHoldHead,
                 NoteKind.Flick => isMultiHit ? _imgFlickMultiHit : _imgFlick,
                 _ => isMultiHit ? _imgTapMultiHit : _imgTap,
             };
 
             return Math.Max(1.0, image.PixelWidth);
+        }
+
+        private static ImageBrush CreateHoldSliceBrush(BitmapImage image, double yPixels, double heightPixels)
+        {
+            double totalHeight = Math.Max(1.0, image.PixelHeight);
+            double safeHeight = Math.Max(1.0, heightPixels);
+            double inset = Math.Min(HoldSliceInsetPixels, Math.Max(0, safeHeight * 0.5 - 0.01));
+            double y = Math.Clamp(yPixels + inset, 0, totalHeight - 0.01);
+            double h = Math.Clamp(safeHeight - inset * 2.0, 0.01, totalHeight - y);
+
+            return new ImageBrush(image)
+            {
+                Viewbox = new Rect(0, y / totalHeight, 1, h / totalHeight),
+                ViewboxUnits = BrushMappingMode.RelativeToBoundingBox
+            };
         }
 
         private static void RenderHitEffects(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, int currentTick, double currentSeconds)

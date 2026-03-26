@@ -15,6 +15,11 @@ namespace Axphi.ViewModels
 {
     public partial class TrackViewModel : ObservableObject
     {
+        public sealed record ParentLineOption(string? LineId, string DisplayName)
+        {
+            public override string ToString() => DisplayName;
+        }
+
         public override string ToString() => TrackName;
 
         // 1. 保留原来的字段，这样你下面的代码（比如 _timeline.GetCurrentTick()）都不用改！
@@ -58,7 +63,11 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private string _trackName; // 轨道的名字，比如 "判定线 1"
 
-        public IEnumerable<TrackViewModel> AvailableParentTracks => _timeline.Tracks.Where(track => !ReferenceEquals(track, this));
+        public IEnumerable<ParentLineOption> ParentLineOptions =>
+            new[] { new ParentLineOption(null, "无") }
+            .Concat(_timeline.Tracks
+                .Where(track => !ReferenceEquals(track, this))
+                .Select(track => new ParentLineOption(track.Data.ID, track.TrackName)));
 
         public string? ParentLineId
         {
@@ -1001,7 +1010,7 @@ namespace Axphi.ViewModels
         public void NotifyParentBindingChanged()
         {
             OnPropertyChanged(nameof(ParentLineId));
-            OnPropertyChanged(nameof(AvailableParentTracks));
+            OnPropertyChanged(nameof(ParentLineOptions));
         }
     }
 

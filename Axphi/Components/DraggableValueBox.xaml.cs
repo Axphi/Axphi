@@ -405,6 +405,25 @@ public partial class DraggableValueBox : UserControl
 
         // 确认数据已经安全送到大管家手里了，再安全地折叠隐藏输入框
         IsEditable = false;
+        RestoreFocusAfterEdit();
+    }
+
+    private void RestoreFocusAfterEdit()
+    {
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (Keyboard.FocusedElement == EditBox)
+            {
+                Keyboard.ClearFocus();
+            }
+
+            _parentWindow ??= Window.GetWindow(this);
+            if (_parentWindow != null && !_parentWindow.IsKeyboardFocusWithin)
+            {
+                _parentWindow.Focus();
+                Keyboard.Focus(_parentWindow);
+            }
+        }), System.Windows.Threading.DispatcherPriority.Input);
     }
 
     //private void FinishEdit()

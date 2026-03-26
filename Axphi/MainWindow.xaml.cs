@@ -958,8 +958,8 @@ public partial class MainWindow : Window
         // 2. 🌟 核心修复：全局拦截空格键，强制接管播放/暂停！
         if (e.Key == Key.Space)
         {
-            // 防御性设计：如果焦点在输入框 (TextBox) 里，千万别拦截，让用户能正常打字！
-            if (Keyboard.FocusedElement is TextBox)
+            // 防御性设计：如果焦点在输入控件里，千万别拦截，让用户能正常输入。
+            if (IsTextInputFocused())
             {
                 base.OnPreviewKeyDown(e);
                 return;

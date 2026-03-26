@@ -242,6 +242,13 @@ namespace Axphi.Views
         {
             if (DataContext is TrackViewModel trackVM)
             {
+                if (e.ClickCount == 2)
+                {
+                    trackVM.EnterJudgementLineEditorCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                }
+
                 trackVM.HandleLayerPointerDown();
             }
         }
@@ -250,6 +257,12 @@ namespace Axphi.Views
         {
             if (DataContext is TrackViewModel trackVM)
             {
+                if (e.ClickCount == 2)
+                {
+                    e.Handled = true;
+                    return;
+                }
+
                 trackVM.HandleLayerPointerUp();
             }
         }
@@ -258,6 +271,13 @@ namespace Axphi.Views
         {
             if (DataContext is TrackViewModel trackVM)
             {
+                if (e.ClickCount == 2)
+                {
+                    trackVM.EnterJudgementLineEditorCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                }
+
                 trackVM.HandleLayerPointerDown();
             }
         }
@@ -266,6 +286,12 @@ namespace Axphi.Views
         {
             if (DataContext is TrackViewModel trackVM)
             {
+                if (e.ClickCount == 2)
+                {
+                    e.Handled = true;
+                    return;
+                }
+
                 trackVM.HandleLayerPointerUp();
             }
         }

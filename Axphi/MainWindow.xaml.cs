@@ -1128,6 +1128,10 @@ public partial class MainWindow : Window
         }
 
         Resources["TimelineLeftPanelWidth"] = new GridLength(width);
+        if (Application.Current != null)
+        {
+            Application.Current.Resources["TimelineLeftPanelWidth"] = new GridLength(width);
+        }
         _lastTimelineLeftPanelWidth = width;
     }
 

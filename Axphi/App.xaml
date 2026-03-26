@@ -4,6 +4,8 @@
              xmlns:ws="https://schemas.elecho.dev/wpfsuite"
              xmlns:local="clr-namespace:Axphi">
     <Application.Resources>
+        <GridLength x:Key="TimelineLeftPanelWidth">180</GridLength>
+
         <Style TargetType="{x:Type ws:Menu}">
             <Setter Property="Background" Value="#1f1f1f"/>
             <Setter Property="Foreground" Value="#d6d6d6"/>

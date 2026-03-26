@@ -58,7 +58,7 @@
                                             <Rectangle x:Name="KeyframeRect" Width="10" Height="10" Fill="#FF4444" Stroke="#555" StrokeThickness="1">
                                                 <Rectangle.RenderTransform>
                                                     <TransformGroup>
-                                                        <RotateTransform Angle="45" CenterX="5" CenterY="5" />
+                                                        <RotateTransform Angle="0" CenterX="5" CenterY="5" />
                                                         <TranslateTransform X="-5" Y="7" />
                                                     </TransformGroup>
                                                 </Rectangle.RenderTransform>

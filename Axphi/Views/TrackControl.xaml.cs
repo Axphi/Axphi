@@ -106,6 +106,38 @@ namespace Axphi.Views
             }
         }
 
+        private void KeyframeThumb_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement fe || fe.DataContext == null)
+            {
+                return;
+            }
+
+            if (IsInNoteKeyframeEditorPanel(fe))
+            {
+                return;
+            }
+
+            dynamic wrapper = fe.DataContext;
+            wrapper.OnRightClick();
+            e.Handled = true;
+        }
+
+        private static bool IsInNoteKeyframeEditorPanel(DependencyObject current)
+        {
+            while (current != null)
+            {
+                if (current is FrameworkElement element && element.Name == "NoteKeyframeEditorPanel")
+                {
+                    return true;
+                }
+
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            return false;
+        }
+
         private void NoteThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
             _trackLastMousePos = Mouse.GetPosition(this);

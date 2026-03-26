@@ -138,6 +138,13 @@ namespace Axphi.Utilities
 
             var start = firstKeyFrame?.Value ?? initialValue;
 
+            // 定格关键帧：该关键帧之后到下一个关键帧前保持常量，不参与插值。
+            if (firstKeyFrame?.IsFreezeKeyframe == true)
+            {
+                finalValue = start;
+                return;
+            }
+
             // 先把 finalValue 稳稳地定在这个基础值上！
             // 这样即使后面是 null 进不去 if，它也会保持最后一个帧的状态，而不是回弹！
             // 此处 if 应该永远为真分支

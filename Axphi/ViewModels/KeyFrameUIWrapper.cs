@@ -25,6 +25,21 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private double _pixelX;
 
+        public bool IsFreezeKeyframe
+        {
+            get => Model.IsFreezeKeyframe;
+            set
+            {
+                if (Model.IsFreezeKeyframe == value)
+                {
+                    return;
+                }
+
+                Model.IsFreezeKeyframe = value;
+                OnPropertyChanged(nameof(IsFreezeKeyframe));
+            }
+        }
+
 
 
         public KeyFrameUIWrapper(KeyFrame<T> model, TimelineViewModel timeline)
@@ -141,6 +156,30 @@ namespace Axphi.ViewModels
             // 自己收尾（传 true，表示我是被鼠标直接捏住的那个“带头大哥”）
             ReceiveDragCompleted(true);
 
+        }
+
+        public void OnRightClick()
+        {
+            if (!_timeline.IsTrackLevelKeyframeWrapperSelected(this))
+            {
+                return;
+            }
+
+            _timeline.EnterSubItemSelectionContext(this);
+            SelectionHelper.HandleSelection("Keyframes", this, IsSelected, value => IsSelected = value);
+            _timeline.ClearNoteSelection();
+
+            if (_timeline.GetSelectedTrackLevelKeyframeCount() <= 0)
+            {
+                _timeline.RefreshLayerSelectionVisuals();
+                return;
+            }
+
+            bool targetFreezeState = !IsFreezeKeyframe;
+            _timeline.SetFreezeStateForSelectedTrackLevelKeyframes(targetFreezeState);
+
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _timeline.RefreshLayerSelectionVisuals();
         }
 
         // ================= 拖拽接收端 (处理实际的数值变化) =================

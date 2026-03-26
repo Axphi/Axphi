@@ -208,7 +208,8 @@ public class ProjectManagerTests
                                     new OffsetKeyFrame
                                     {
                                         Time = 64,
-                                        Value = new Vector(-3.25, 4.5)
+                                        Value = new Vector(-3.25, 4.5),
+                                        IsFreezeKeyframe = true
                                     }
                                 }
                             },
@@ -261,6 +262,7 @@ public class ProjectManagerTests
             Assert.AreEqual(new Vector(1.5, -2.5), loadedLine.AnimatableProperties.Offset.InitialValue);
             Assert.AreEqual(1, loadedLine.AnimatableProperties.Offset.KeyFrames.Count);
             Assert.AreEqual(new Vector(-3.25, 4.5), loadedLine.AnimatableProperties.Offset.KeyFrames[0].Value);
+            Assert.IsTrue(loadedLine.AnimatableProperties.Offset.KeyFrames[0].IsFreezeKeyframe);
             Assert.AreEqual(12.5, loadedLine.AnimatableProperties.Rotation.InitialValue);
 
             Assert.AreEqual(new Vector(2.25, 0.75), loadedNote.AnimatableProperties.Offset.InitialValue);

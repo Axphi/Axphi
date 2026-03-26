@@ -76,7 +76,8 @@ namespace Axphi.ViewModels
             object? Owner,
             int Time,
             object Value,
-            BezierEasing Easing);
+            BezierEasing Easing,
+            bool IsFreezeKeyframe);
 
         // 【新增】保存全局数据源的引用
         private readonly ProjectManager _projectManager;
@@ -359,6 +360,46 @@ namespace Axphi.ViewModels
         {
             ClearLayerSelection();
             ActiveSelectionContext = TimelineSelectionContext.SubItems;
+        }
+
+        public bool IsTrackLevelKeyframeWrapperSelected(object wrapper)
+        {
+            return Tracks.Any(track =>
+                track.UIAnchorKeyframes.Any(k => ReferenceEquals(k, wrapper)) ||
+                track.UIOffsetKeyframes.Any(k => ReferenceEquals(k, wrapper)) ||
+                track.UIScaleKeyframes.Any(k => ReferenceEquals(k, wrapper)) ||
+                track.UIRotationKeyframes.Any(k => ReferenceEquals(k, wrapper)) ||
+                track.UIOpacityKeyframes.Any(k => ReferenceEquals(k, wrapper)) ||
+                track.UISpeedKeyframes.Any(k => ReferenceEquals(k, wrapper)));
+        }
+
+        public int GetSelectedTrackLevelKeyframeCount()
+        {
+            int count = 0;
+            foreach (var track in Tracks)
+            {
+                count += track.UIAnchorKeyframes.Count(k => k.IsSelected);
+                count += track.UIOffsetKeyframes.Count(k => k.IsSelected);
+                count += track.UIScaleKeyframes.Count(k => k.IsSelected);
+                count += track.UIRotationKeyframes.Count(k => k.IsSelected);
+                count += track.UIOpacityKeyframes.Count(k => k.IsSelected);
+                count += track.UISpeedKeyframes.Count(k => k.IsSelected);
+            }
+
+            return count;
+        }
+
+        public void SetFreezeStateForSelectedTrackLevelKeyframes(bool isFreeze)
+        {
+            foreach (var track in Tracks)
+            {
+                foreach (var keyframe in track.UIAnchorKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
+                foreach (var keyframe in track.UIOffsetKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
+                foreach (var keyframe in track.UIScaleKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
+                foreach (var keyframe in track.UIRotationKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
+                foreach (var keyframe in track.UIOpacityKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
+                foreach (var keyframe in track.UISpeedKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
+            }
         }
 
         public void RefreshNoteSelectionState(TrackViewModel? preferredOwner = null, NoteViewModel? preferredSingle = null)
@@ -907,12 +948,12 @@ namespace Axphi.ViewModels
             _keyframeClipboard.Clear();
             var copiedKeys = new HashSet<string>();
 
-            void AddClipboardItem(KeyframeClipboardTarget target, object? owner, int time, object value, BezierEasing easing, string? uniqueKey = null)
+            void AddClipboardItem(KeyframeClipboardTarget target, object? owner, int time, object value, BezierEasing easing, bool isFreezeKeyframe = false, string? uniqueKey = null)
             {
                 string key = uniqueKey ?? $"{target}|{owner?.GetHashCode() ?? 0}|{time}";
                 if (copiedKeys.Add(key))
                 {
-                    _keyframeClipboard.Add(new KeyframeClipboardItem(target, owner, time, value, easing));
+                    _keyframeClipboard.Add(new KeyframeClipboardItem(target, owner, time, value, easing, isFreezeKeyframe));
                 }
             }
 
@@ -920,29 +961,29 @@ namespace Axphi.ViewModels
             {
                 foreach (var wrapper in BpmTrack.UIBpmKeyframes.Where(k => k.IsSelected))
                 {
-                    AddClipboardItem(KeyframeClipboardTarget.Bpm, null, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                    AddClipboardItem(KeyframeClipboardTarget.Bpm, null, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
                 }
             }
 
             foreach (var track in Tracks)
             {
                 foreach (var wrapper in track.UIAnchorKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackAnchor, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                    AddClipboardItem(KeyframeClipboardTarget.TrackAnchor, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                 foreach (var wrapper in track.UIOffsetKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackOffset, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                    AddClipboardItem(KeyframeClipboardTarget.TrackOffset, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                 foreach (var wrapper in track.UIScaleKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackScale, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                    AddClipboardItem(KeyframeClipboardTarget.TrackScale, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                 foreach (var wrapper in track.UIRotationKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackRotation, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                    AddClipboardItem(KeyframeClipboardTarget.TrackRotation, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                 foreach (var wrapper in track.UIOpacityKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackOpacity, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                    AddClipboardItem(KeyframeClipboardTarget.TrackOpacity, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                 foreach (var wrapper in track.UISpeedKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackSpeed, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                    AddClipboardItem(KeyframeClipboardTarget.TrackSpeed, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                 foreach (var note in track.UINotes)
                 {
@@ -954,7 +995,7 @@ namespace Axphi.ViewModels
                             note.HitTime,
                             CloneNote(note.Model),
                             default,
-                            $"{KeyframeClipboardTarget.NoteBody}|{track.GetHashCode()}|{note.Model.ID}");
+                            uniqueKey: $"{KeyframeClipboardTarget.NoteBody}|{track.GetHashCode()}|{note.Model.ID}");
                         continue;
                     }
 
@@ -962,37 +1003,37 @@ namespace Axphi.ViewModels
                         ? note.UIOffsetKeyframes
                         : note.UIOffsetKeyframes.Where(k => k.IsSelected);
                     foreach (var wrapper in offsetWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteOffset, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                        AddClipboardItem(KeyframeClipboardTarget.NoteOffset, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                     IEnumerable<KeyFrameUIWrapper<System.Windows.Vector>> anchorWrappers = note.IsSelected
                         ? note.UIAnchorKeyframes
                         : note.UIAnchorKeyframes.Where(k => k.IsSelected);
                     foreach (var wrapper in anchorWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteAnchor, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                        AddClipboardItem(KeyframeClipboardTarget.NoteAnchor, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                     IEnumerable<KeyFrameUIWrapper<System.Windows.Vector>> scaleWrappers = note.IsSelected
                         ? note.UIScaleKeyframes
                         : note.UIScaleKeyframes.Where(k => k.IsSelected);
                     foreach (var wrapper in scaleWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteScale, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                        AddClipboardItem(KeyframeClipboardTarget.NoteScale, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                     IEnumerable<KeyFrameUIWrapper<double>> rotationWrappers = note.IsSelected
                         ? note.UIRotationKeyframes
                         : note.UIRotationKeyframes.Where(k => k.IsSelected);
                     foreach (var wrapper in rotationWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteRotation, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                        AddClipboardItem(KeyframeClipboardTarget.NoteRotation, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                     IEnumerable<KeyFrameUIWrapper<double>> opacityWrappers = note.IsSelected
                         ? note.UIOpacityKeyframes
                         : note.UIOpacityKeyframes.Where(k => k.IsSelected);
                     foreach (var wrapper in opacityWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteOpacity, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                        AddClipboardItem(KeyframeClipboardTarget.NoteOpacity, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
 
                     IEnumerable<KeyFrameUIWrapper<NoteKind>> kindWrappers = note.IsSelected
                         ? note.UINoteKindKeyframes
                         : note.UINoteKindKeyframes.Where(k => k.IsSelected);
                     foreach (var wrapper in kindWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteKind, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing);
+                        AddClipboardItem(KeyframeClipboardTarget.NoteKind, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
                 }
             }
 
@@ -1116,25 +1157,25 @@ namespace Axphi.ViewModels
         {
             return item.Target switch
             {
-                KeyframeClipboardTarget.Bpm => PasteBpmKeyframe(targetTime, (double)item.Value, item.Easing),
-                KeyframeClipboardTarget.TrackAnchor when item.Owner is TrackViewModel track => PasteTrackAnchorKeyframe(track, targetTime, (System.Windows.Vector)item.Value, item.Easing),
-                KeyframeClipboardTarget.TrackOffset when item.Owner is TrackViewModel track => PasteTrackOffsetKeyframe(track, targetTime, (System.Windows.Vector)item.Value, item.Easing),
-                KeyframeClipboardTarget.TrackScale when item.Owner is TrackViewModel track => PasteTrackScaleKeyframe(track, targetTime, (System.Windows.Vector)item.Value, item.Easing),
-                KeyframeClipboardTarget.TrackRotation when item.Owner is TrackViewModel track => PasteTrackRotationKeyframe(track, targetTime, (double)item.Value, item.Easing),
-                KeyframeClipboardTarget.TrackOpacity when item.Owner is TrackViewModel track => PasteTrackOpacityKeyframe(track, targetTime, (double)item.Value, item.Easing),
-                KeyframeClipboardTarget.TrackSpeed when item.Owner is TrackViewModel track => PasteTrackSpeedKeyframe(track, targetTime, (double)item.Value, item.Easing),
+                KeyframeClipboardTarget.Bpm => PasteBpmKeyframe(targetTime, (double)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.TrackAnchor when item.Owner is TrackViewModel track => PasteTrackAnchorKeyframe(track, targetTime, (System.Windows.Vector)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.TrackOffset when item.Owner is TrackViewModel track => PasteTrackOffsetKeyframe(track, targetTime, (System.Windows.Vector)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.TrackScale when item.Owner is TrackViewModel track => PasteTrackScaleKeyframe(track, targetTime, (System.Windows.Vector)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.TrackRotation when item.Owner is TrackViewModel track => PasteTrackRotationKeyframe(track, targetTime, (double)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.TrackOpacity when item.Owner is TrackViewModel track => PasteTrackOpacityKeyframe(track, targetTime, (double)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.TrackSpeed when item.Owner is TrackViewModel track => PasteTrackSpeedKeyframe(track, targetTime, (double)item.Value, item.Easing, item.IsFreezeKeyframe),
                 KeyframeClipboardTarget.NoteBody when item.Owner is TrackViewModel track => PasteNoteBody(track, targetTime, (Note)item.Value),
-                KeyframeClipboardTarget.NoteAnchor when item.Owner is NoteViewModel note => PasteNoteAnchorKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing),
-                KeyframeClipboardTarget.NoteOffset when item.Owner is NoteViewModel note => PasteNoteOffsetKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing),
-                KeyframeClipboardTarget.NoteScale when item.Owner is NoteViewModel note => PasteNoteScaleKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing),
-                KeyframeClipboardTarget.NoteRotation when item.Owner is NoteViewModel note => PasteNoteRotationKeyframe(note, targetTime, (double)item.Value, item.Easing),
-                KeyframeClipboardTarget.NoteOpacity when item.Owner is NoteViewModel note => PasteNoteOpacityKeyframe(note, targetTime, (double)item.Value, item.Easing),
-                KeyframeClipboardTarget.NoteKind when item.Owner is NoteViewModel note => PasteNoteKindKeyframe(note, targetTime, (NoteKind)item.Value, item.Easing),
+                KeyframeClipboardTarget.NoteAnchor when item.Owner is NoteViewModel note => PasteNoteAnchorKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.NoteOffset when item.Owner is NoteViewModel note => PasteNoteOffsetKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.NoteScale when item.Owner is NoteViewModel note => PasteNoteScaleKeyframe(note, targetTime, (System.Windows.Vector)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.NoteRotation when item.Owner is NoteViewModel note => PasteNoteRotationKeyframe(note, targetTime, (double)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.NoteOpacity when item.Owner is NoteViewModel note => PasteNoteOpacityKeyframe(note, targetTime, (double)item.Value, item.Easing, item.IsFreezeKeyframe),
+                KeyframeClipboardTarget.NoteKind when item.Owner is NoteViewModel note => PasteNoteKindKeyframe(note, targetTime, (NoteKind)item.Value, item.Easing, item.IsFreezeKeyframe),
                 _ => null,
             };
         }
 
-        private KeyFrameUIWrapper<double>? PasteBpmKeyframe(int targetTime, double value, BezierEasing easing)
+        private KeyFrameUIWrapper<double>? PasteBpmKeyframe(int targetTime, double value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (BpmTrack == null)
             {
@@ -1146,43 +1187,44 @@ namespace Axphi.ViewModels
                 Time = targetTime,
                 Value = value,
                 Easing = easing,
+                IsFreezeKeyframe = isFreezeKeyframe,
             });
         }
 
-        private KeyFrameUIWrapper<System.Windows.Vector>? PasteTrackAnchorKeyframe(TrackViewModel track, int targetTime, System.Windows.Vector value, BezierEasing easing)
+        private KeyFrameUIWrapper<System.Windows.Vector>? PasteTrackAnchorKeyframe(TrackViewModel track, int targetTime, System.Windows.Vector value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!Tracks.Contains(track)) return null;
-            return UpsertKeyframe(track.Data.AnimatableProperties.Anchor.KeyFrames, track.UIAnchorKeyframes, new OffsetKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(track.Data.AnimatableProperties.Anchor.KeyFrames, track.UIAnchorKeyframes, new OffsetKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
-        private KeyFrameUIWrapper<System.Windows.Vector>? PasteTrackOffsetKeyframe(TrackViewModel track, int targetTime, System.Windows.Vector value, BezierEasing easing)
+        private KeyFrameUIWrapper<System.Windows.Vector>? PasteTrackOffsetKeyframe(TrackViewModel track, int targetTime, System.Windows.Vector value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!Tracks.Contains(track)) return null;
-            return UpsertKeyframe(track.Data.AnimatableProperties.Offset.KeyFrames, track.UIOffsetKeyframes, new OffsetKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(track.Data.AnimatableProperties.Offset.KeyFrames, track.UIOffsetKeyframes, new OffsetKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
-        private KeyFrameUIWrapper<System.Windows.Vector>? PasteTrackScaleKeyframe(TrackViewModel track, int targetTime, System.Windows.Vector value, BezierEasing easing)
+        private KeyFrameUIWrapper<System.Windows.Vector>? PasteTrackScaleKeyframe(TrackViewModel track, int targetTime, System.Windows.Vector value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!Tracks.Contains(track)) return null;
-            return UpsertKeyframe(track.Data.AnimatableProperties.Scale.KeyFrames, track.UIScaleKeyframes, new ScaleKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(track.Data.AnimatableProperties.Scale.KeyFrames, track.UIScaleKeyframes, new ScaleKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
-        private KeyFrameUIWrapper<double>? PasteTrackRotationKeyframe(TrackViewModel track, int targetTime, double value, BezierEasing easing)
+        private KeyFrameUIWrapper<double>? PasteTrackRotationKeyframe(TrackViewModel track, int targetTime, double value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!Tracks.Contains(track)) return null;
-            return UpsertKeyframe(track.Data.AnimatableProperties.Rotation.KeyFrames, track.UIRotationKeyframes, new RotationKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(track.Data.AnimatableProperties.Rotation.KeyFrames, track.UIRotationKeyframes, new RotationKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
-        private KeyFrameUIWrapper<double>? PasteTrackOpacityKeyframe(TrackViewModel track, int targetTime, double value, BezierEasing easing)
+        private KeyFrameUIWrapper<double>? PasteTrackOpacityKeyframe(TrackViewModel track, int targetTime, double value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!Tracks.Contains(track)) return null;
-            return UpsertKeyframe(track.Data.AnimatableProperties.Opacity.KeyFrames, track.UIOpacityKeyframes, new OpacityKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(track.Data.AnimatableProperties.Opacity.KeyFrames, track.UIOpacityKeyframes, new OpacityKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
-        private KeyFrameUIWrapper<double>? PasteTrackSpeedKeyframe(TrackViewModel track, int targetTime, double value, BezierEasing easing)
+        private KeyFrameUIWrapper<double>? PasteTrackSpeedKeyframe(TrackViewModel track, int targetTime, double value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!Tracks.Contains(track)) return null;
-            return UpsertKeyframe(track.Data.SpeedKeyFrames, track.UISpeedKeyframes, new KeyFrame<double> { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(track.Data.SpeedKeyFrames, track.UISpeedKeyframes, new KeyFrame<double> { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
         private NoteViewModel? PasteNoteBody(TrackViewModel track, int targetTime, Note sourceNote)
@@ -1204,40 +1246,40 @@ namespace Axphi.ViewModels
             return newNoteViewModel;
         }
 
-        private KeyFrameUIWrapper<System.Windows.Vector>? PasteNoteAnchorKeyframe(NoteViewModel note, int targetTime, System.Windows.Vector value, BezierEasing easing)
+        private KeyFrameUIWrapper<System.Windows.Vector>? PasteNoteAnchorKeyframe(NoteViewModel note, int targetTime, System.Windows.Vector value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!note.ParentTrack.UINotes.Contains(note)) return null;
-            return UpsertKeyframe(note.Model.AnimatableProperties.Anchor.KeyFrames, note.UIAnchorKeyframes, new OffsetKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(note.Model.AnimatableProperties.Anchor.KeyFrames, note.UIAnchorKeyframes, new OffsetKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
-        private KeyFrameUIWrapper<System.Windows.Vector>? PasteNoteOffsetKeyframe(NoteViewModel note, int targetTime, System.Windows.Vector value, BezierEasing easing)
+        private KeyFrameUIWrapper<System.Windows.Vector>? PasteNoteOffsetKeyframe(NoteViewModel note, int targetTime, System.Windows.Vector value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!note.ParentTrack.UINotes.Contains(note)) return null;
-            return UpsertKeyframe(note.Model.AnimatableProperties.Offset.KeyFrames, note.UIOffsetKeyframes, new OffsetKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(note.Model.AnimatableProperties.Offset.KeyFrames, note.UIOffsetKeyframes, new OffsetKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
-        private KeyFrameUIWrapper<System.Windows.Vector>? PasteNoteScaleKeyframe(NoteViewModel note, int targetTime, System.Windows.Vector value, BezierEasing easing)
+        private KeyFrameUIWrapper<System.Windows.Vector>? PasteNoteScaleKeyframe(NoteViewModel note, int targetTime, System.Windows.Vector value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!note.ParentTrack.UINotes.Contains(note)) return null;
-            return UpsertKeyframe(note.Model.AnimatableProperties.Scale.KeyFrames, note.UIScaleKeyframes, new ScaleKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(note.Model.AnimatableProperties.Scale.KeyFrames, note.UIScaleKeyframes, new ScaleKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
-        private KeyFrameUIWrapper<double>? PasteNoteRotationKeyframe(NoteViewModel note, int targetTime, double value, BezierEasing easing)
+        private KeyFrameUIWrapper<double>? PasteNoteRotationKeyframe(NoteViewModel note, int targetTime, double value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!note.ParentTrack.UINotes.Contains(note)) return null;
-            return UpsertKeyframe(note.Model.AnimatableProperties.Rotation.KeyFrames, note.UIRotationKeyframes, new RotationKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(note.Model.AnimatableProperties.Rotation.KeyFrames, note.UIRotationKeyframes, new RotationKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
-        private KeyFrameUIWrapper<double>? PasteNoteOpacityKeyframe(NoteViewModel note, int targetTime, double value, BezierEasing easing)
+        private KeyFrameUIWrapper<double>? PasteNoteOpacityKeyframe(NoteViewModel note, int targetTime, double value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!note.ParentTrack.UINotes.Contains(note)) return null;
-            return UpsertKeyframe(note.Model.AnimatableProperties.Opacity.KeyFrames, note.UIOpacityKeyframes, new OpacityKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(note.Model.AnimatableProperties.Opacity.KeyFrames, note.UIOpacityKeyframes, new OpacityKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
-        private KeyFrameUIWrapper<NoteKind>? PasteNoteKindKeyframe(NoteViewModel note, int targetTime, NoteKind value, BezierEasing easing)
+        private KeyFrameUIWrapper<NoteKind>? PasteNoteKindKeyframe(NoteViewModel note, int targetTime, NoteKind value, BezierEasing easing, bool isFreezeKeyframe)
         {
             if (!note.ParentTrack.UINotes.Contains(note)) return null;
-            return UpsertKeyframe(note.Model.KindKeyFrames, note.UINoteKindKeyframes, new NoteKindKeyFrame { Time = targetTime, Value = value, Easing = easing });
+            return UpsertKeyframe(note.Model.KindKeyFrames, note.UINoteKindKeyframes, new NoteKindKeyFrame { Time = targetTime, Value = value, Easing = easing, IsFreezeKeyframe = isFreezeKeyframe });
         }
 
         private KeyFrameUIWrapper<T> UpsertKeyframe<T, TKeyFrame>(List<TKeyFrame> dataList, ObservableCollection<KeyFrameUIWrapper<T>> uiList, TKeyFrame frame)
@@ -1249,6 +1291,7 @@ namespace Axphi.ViewModels
             {
                 existingWrapper.Model.Value = frame.Value;
                 existingWrapper.Model.Easing = frame.Easing;
+                existingWrapper.IsFreezeKeyframe = frame.IsFreezeKeyframe;
                 return existingWrapper;
             }
 

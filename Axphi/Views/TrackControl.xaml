@@ -654,6 +654,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Thumb Cursor="Hand" ToolTip="Anchor 关键帧"
+                                               PreviewMouseRightButtonDown="KeyframeThumb_PreviewMouseRightButtonDown"
                                                DragStarted="KeyframeThumb_DragStarted"
                                                DragDelta="KeyframeThumb_DragDelta"
                                                DragCompleted="KeyframeThumb_DragCompleted">
@@ -663,12 +664,22 @@
                                                     <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
                                                         <Rectangle.RenderTransform>
                                                             <TransformGroup>
-                                                                <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                <RotateTransform x:Name="KeyframeRotate" Angle="45" CenterX="4" CenterY="4" />
                                                                 <TranslateTransform X="-4" Y="6" />
                                                             </TransformGroup>
                                                         </Rectangle.RenderTransform>
                                                     </Rectangle>
                                                     <ControlTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFreezeKeyframe}" Value="True">
+                                                            <Setter TargetName="KeyframeRect" Property="RenderTransform">
+                                                                <Setter.Value>
+                                                                    <TransformGroup>
+                                                                        <RotateTransform Angle="0" CenterX="4" CenterY="4" />
+                                                                        <TranslateTransform X="-4" Y="6" />
+                                                                    </TransformGroup>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
                                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                             <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
                                                             <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
@@ -704,6 +715,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Thumb Cursor="Hand" ToolTip="Position 关键帧"
+                                               PreviewMouseRightButtonDown="KeyframeThumb_PreviewMouseRightButtonDown"
                                                DragStarted="KeyframeThumb_DragStarted"
                                                DragDelta="KeyframeThumb_DragDelta"
                                                DragCompleted="KeyframeThumb_DragCompleted">
@@ -713,12 +725,22 @@
                                                     <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
                                                         <Rectangle.RenderTransform>
                                                             <TransformGroup>
-                                                                <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                <RotateTransform x:Name="KeyframeRotate" Angle="45" CenterX="4" CenterY="4" />
                                                                 <TranslateTransform X="-4" Y="6" />
                                                             </TransformGroup>
                                                         </Rectangle.RenderTransform>
                                                     </Rectangle>
                                                     <ControlTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFreezeKeyframe}" Value="True">
+                                                            <Setter TargetName="KeyframeRect" Property="RenderTransform">
+                                                                <Setter.Value>
+                                                                    <TransformGroup>
+                                                                        <RotateTransform Angle="0" CenterX="4" CenterY="4" />
+                                                                        <TranslateTransform X="-4" Y="6" />
+                                                                    </TransformGroup>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
                                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                             <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
                                                             <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
@@ -752,6 +774,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Thumb Cursor="Hand" ToolTip="Position 关键帧"
+                                               PreviewMouseRightButtonDown="KeyframeThumb_PreviewMouseRightButtonDown"
                                                DragStarted="KeyframeThumb_DragStarted"
                                                DragDelta="KeyframeThumb_DragDelta"
                                                DragCompleted="KeyframeThumb_DragCompleted">
@@ -761,12 +784,22 @@
                                                     <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
                                                         <Rectangle.RenderTransform>
                                                             <TransformGroup>
-                                                                <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                <RotateTransform x:Name="KeyframeRotate" Angle="45" CenterX="4" CenterY="4" />
                                                                 <TranslateTransform X="-4" Y="6" />
                                                             </TransformGroup>
                                                         </Rectangle.RenderTransform>
                                                     </Rectangle>
                                                     <ControlTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFreezeKeyframe}" Value="True">
+                                                            <Setter TargetName="KeyframeRect" Property="RenderTransform">
+                                                                <Setter.Value>
+                                                                    <TransformGroup>
+                                                                        <RotateTransform Angle="0" CenterX="4" CenterY="4" />
+                                                                        <TranslateTransform X="-4" Y="6" />
+                                                                    </TransformGroup>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
                                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                             <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
                                                             <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
@@ -800,6 +833,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Thumb Cursor="Hand" ToolTip="Position 关键帧"
+                                               PreviewMouseRightButtonDown="KeyframeThumb_PreviewMouseRightButtonDown"
                                                DragStarted="KeyframeThumb_DragStarted"
                                                DragDelta="KeyframeThumb_DragDelta"
                                                DragCompleted="KeyframeThumb_DragCompleted">
@@ -809,12 +843,22 @@
                                                     <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
                                                         <Rectangle.RenderTransform>
                                                             <TransformGroup>
-                                                                <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                <RotateTransform x:Name="KeyframeRotate" Angle="45" CenterX="4" CenterY="4" />
                                                                 <TranslateTransform X="-4" Y="6" />
                                                             </TransformGroup>
                                                         </Rectangle.RenderTransform>
                                                     </Rectangle>
                                                     <ControlTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFreezeKeyframe}" Value="True">
+                                                            <Setter TargetName="KeyframeRect" Property="RenderTransform">
+                                                                <Setter.Value>
+                                                                    <TransformGroup>
+                                                                        <RotateTransform Angle="0" CenterX="4" CenterY="4" />
+                                                                        <TranslateTransform X="-4" Y="6" />
+                                                                    </TransformGroup>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
                                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                             <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
                                                             <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
@@ -848,6 +892,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Thumb Cursor="Hand" ToolTip="Position 关键帧"
+                                               PreviewMouseRightButtonDown="KeyframeThumb_PreviewMouseRightButtonDown"
                                                DragStarted="KeyframeThumb_DragStarted"
                                                DragDelta="KeyframeThumb_DragDelta"
                                                DragCompleted="KeyframeThumb_DragCompleted">
@@ -857,12 +902,22 @@
                                                     <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
                                                         <Rectangle.RenderTransform>
                                                             <TransformGroup>
-                                                                <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                <RotateTransform x:Name="KeyframeRotate" Angle="45" CenterX="4" CenterY="4" />
                                                                 <TranslateTransform X="-4" Y="6" />
                                                             </TransformGroup>
                                                         </Rectangle.RenderTransform>
                                                     </Rectangle>
                                                     <ControlTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFreezeKeyframe}" Value="True">
+                                                            <Setter TargetName="KeyframeRect" Property="RenderTransform">
+                                                                <Setter.Value>
+                                                                    <TransformGroup>
+                                                                        <RotateTransform Angle="0" CenterX="4" CenterY="4" />
+                                                                        <TranslateTransform X="-4" Y="6" />
+                                                                    </TransformGroup>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
                                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                             <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
                                                             <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
@@ -896,6 +951,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Thumb Cursor="Hand" ToolTip="Speed 关键帧"
+                                               PreviewMouseRightButtonDown="KeyframeThumb_PreviewMouseRightButtonDown"
                                                DragStarted="KeyframeThumb_DragStarted"
                                                DragDelta="KeyframeThumb_DragDelta"
                                                DragCompleted="KeyframeThumb_DragCompleted">
@@ -904,12 +960,22 @@
                                                     <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#B366FF">
                                                         <Rectangle.RenderTransform>
                                                             <TransformGroup>
-                                                                <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                                <RotateTransform x:Name="KeyframeRotate" Angle="45" CenterX="4" CenterY="4" />
                                                                 <TranslateTransform X="-4" Y="6" />
                                                             </TransformGroup>
                                                         </Rectangle.RenderTransform>
                                                     </Rectangle>
                                                     <ControlTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFreezeKeyframe}" Value="True">
+                                                            <Setter TargetName="KeyframeRect" Property="RenderTransform">
+                                                                <Setter.Value>
+                                                                    <TransformGroup>
+                                                                        <RotateTransform Angle="0" CenterX="4" CenterY="4" />
+                                                                        <TranslateTransform X="-4" Y="6" />
+                                                                    </TransformGroup>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
                                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                             <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
                                                             <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />

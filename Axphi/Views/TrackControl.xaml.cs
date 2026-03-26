@@ -25,6 +25,8 @@ namespace Axphi.Views
 
         // 加在类里面，用来记录绝对静止的屏幕坐标
         private Point _trackLastMousePos;
+        private bool _isParentLinkDragging;
+        private Window? _parentLinkWindow;
 
 
         public TrackControl()
@@ -240,6 +242,11 @@ namespace Axphi.Views
 
         private void LayerHeader_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (IsFromParentBindingUi(e.OriginalSource as DependencyObject))
+            {
+                return;
+            }
+
             if (DataContext is TrackViewModel trackVM)
             {
                 if (e.ClickCount == 2)
@@ -255,6 +262,11 @@ namespace Axphi.Views
 
         private void LayerHeader_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            if (IsFromParentBindingUi(e.OriginalSource as DependencyObject))
+            {
+                return;
+            }
+
             if (DataContext is TrackViewModel trackVM)
             {
                 if (e.ClickCount == 2)
@@ -474,6 +486,93 @@ namespace Axphi.Views
                 trackVM.Data.DurationTicks = trackVM.LayerDurationTicks; // 🌟 【新增】同步给底层！
             }
             e.Handled = true;
+        }
+
+        private void ParentLinkHandle_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is not TrackViewModel sourceTrack)
+            {
+                return;
+            }
+
+            _isParentLinkDragging = true;
+
+            _parentLinkWindow = Window.GetWindow(this);
+            if (_parentLinkWindow != null)
+            {
+                Point startPoint = ParentLinkHandle.TranslatePoint(
+                    new Point(ParentLinkHandle.ActualWidth / 2.0, ParentLinkHandle.ActualHeight / 2.0),
+                    _parentLinkWindow);
+                WeakReferenceMessenger.Default.Send(new ParentBindingDragStartedMessage(sourceTrack.Data.ID, startPoint));
+
+                _parentLinkWindow.PreviewMouseMove += ParentLinkWindow_PreviewMouseMove;
+                _parentLinkWindow.PreviewMouseLeftButtonUp += ParentLinkWindow_PreviewMouseLeftButtonUp;
+            }
+
+            Mouse.Capture(this, CaptureMode.SubTree);
+            e.Handled = true;
+        }
+
+        private void ParentLinkWindow_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_isParentLinkDragging || _parentLinkWindow == null || DataContext is not TrackViewModel sourceTrack)
+            {
+                return;
+            }
+
+            Point currentPoint = e.GetPosition(_parentLinkWindow);
+            WeakReferenceMessenger.Default.Send(new ParentBindingDragUpdatedMessage(sourceTrack.Data.ID, currentPoint));
+        }
+
+        private void ParentLinkWindow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!_isParentLinkDragging)
+            {
+                return;
+            }
+
+            if (_parentLinkWindow != null && DataContext is TrackViewModel sourceTrack)
+            {
+                Point endPoint = e.GetPosition(_parentLinkWindow);
+                WeakReferenceMessenger.Default.Send(new ParentBindingDragCompletedMessage(sourceTrack.Data.ID, endPoint));
+            }
+
+            EndParentLinkDrag();
+        }
+
+        private void EndParentLinkDrag()
+        {
+            _isParentLinkDragging = false;
+
+            if (_parentLinkWindow != null)
+            {
+                _parentLinkWindow.PreviewMouseMove -= ParentLinkWindow_PreviewMouseMove;
+                _parentLinkWindow.PreviewMouseLeftButtonUp -= ParentLinkWindow_PreviewMouseLeftButtonUp;
+                _parentLinkWindow = null;
+            }
+
+            if (Mouse.Captured == this)
+            {
+                Mouse.Capture(null);
+            }
+        }
+
+        private static bool IsFromParentBindingUi(DependencyObject? source)
+        {
+            while (source != null)
+            {
+                if (source is FrameworkElement element)
+                {
+                    if (element.Name == "ParentLinkHandle" || element.Name == "ParentBindingComboBox")
+                    {
+                        return true;
+                    }
+                }
+
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            return false;
         }
     }
 }

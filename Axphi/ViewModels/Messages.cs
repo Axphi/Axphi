@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows;
 
 namespace Axphi.ViewModels
 {
@@ -63,6 +64,12 @@ namespace Axphi.ViewModels
 
 
     public record class UpdateRendererMessage();
+
+    public record class ParentBindingDragStartedMessage(string SourceTrackId, Point StartPoint);
+
+    public record class ParentBindingDragUpdatedMessage(string SourceTrackId, Point CurrentPoint);
+
+    public record class ParentBindingDragCompletedMessage(string SourceTrackId, Point EndPoint);
 
 
 }

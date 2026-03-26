@@ -15,6 +15,7 @@ namespace Axphi.ViewModels
 {
     public partial class TrackViewModel : ObservableObject
     {
+        public override string ToString() => TrackName;
 
         // 1. 保留原来的字段，这样你下面的代码（比如 _timeline.GetCurrentTick()）都不用改！
         public TimelineViewModel _timeline;
@@ -56,6 +57,23 @@ namespace Axphi.ViewModels
 
         [ObservableProperty]
         private string _trackName; // 轨道的名字，比如 "判定线 1"
+
+        public IEnumerable<TrackViewModel> AvailableParentTracks => _timeline.Tracks.Where(track => !ReferenceEquals(track, this));
+
+        public string? ParentLineId
+        {
+            get => Data.ParentLineId;
+            set
+            {
+                string? normalizedValue = string.IsNullOrWhiteSpace(value) ? null : value;
+                if (Data.ParentLineId == normalizedValue)
+                {
+                    return;
+                }
+
+                _timeline.TrySetParentLine(this, normalizedValue);
+            }
+        }
 
         // ================= 3. 供 DraggableValueBox 绑定的双向数据 =================
         [ObservableProperty]
@@ -972,6 +990,18 @@ namespace Axphi.ViewModels
 
             // 3. 通知全局对关键帧重新排个序，防止因为“防越界”导致部分关键帧堆叠在一起乱了顺序
             CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new KeyframesNeedSortMessage());
+        }
+
+        public void ApplyParentLineId(string? parentLineId)
+        {
+            Data.ParentLineId = string.IsNullOrWhiteSpace(parentLineId) ? null : parentLineId;
+            NotifyParentBindingChanged();
+        }
+
+        public void NotifyParentBindingChanged()
+        {
+            OnPropertyChanged(nameof(ParentLineId));
+            OnPropertyChanged(nameof(AvailableParentTracks));
         }
     }
 

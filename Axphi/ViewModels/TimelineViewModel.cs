@@ -478,6 +478,7 @@ namespace Axphi.ViewModels
             // 2. 实例化这个数据的“代理人”，并加进 UI 集合里！
             var newTrackVM = new TrackViewModel(newLine, $"判定线图层 {Tracks.Count + 1}",this);
             Tracks.Add(newTrackVM);
+            RefreshParentLineBindings();
         }
 
         private bool CanUndo() => _history.HasPendingChanges || _history.CanUndo;
@@ -573,6 +574,8 @@ namespace Axphi.ViewModels
                         Tracks.Add(newTrackVM);
                     }
                 }
+
+                RefreshParentLineBindings();
 
                 if (preservedUiState != null)
                 {
@@ -1125,9 +1128,24 @@ namespace Axphi.ViewModels
             EnterLayerSelectionContext();
             ClearLayerSelection();
 
+            var clonedLines = new List<JudgementLine>(_judgementLineClipboard.Count);
+            var idMap = new Dictionary<string, string>(_judgementLineClipboard.Count);
+
             foreach (var copiedLine in _judgementLineClipboard)
             {
                 var clonedLine = CloneJudgementLine(copiedLine);
+                clonedLines.Add(clonedLine);
+                idMap[copiedLine.ID] = clonedLine.ID;
+            }
+
+            foreach (var clonedLine in clonedLines)
+            {
+                if (!string.IsNullOrWhiteSpace(clonedLine.ParentLineId) &&
+                    idMap.TryGetValue(clonedLine.ParentLineId, out var mappedParentId))
+                {
+                    clonedLine.ParentLineId = mappedParentId;
+                }
+
                 CurrentChart.JudgementLines.Add(clonedLine);
 
                 var newTrackVM = new TrackViewModel(clonedLine, $"判定线图层 {Tracks.Count + 1}", this)
@@ -1139,6 +1157,7 @@ namespace Axphi.ViewModels
 
             ActiveSelectionContext = TimelineSelectionContext.Layers;
             ReindexTrackNames();
+            RefreshParentLineBindings();
             RefreshLayerSelectionVisuals();
             NotifyKeyframeClipboardCommandsStateChanged();
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
@@ -1473,6 +1492,7 @@ namespace Axphi.ViewModels
             {
                 ActiveSelectionContext = TimelineSelectionContext.None;
                 ReindexTrackNames();
+                RefreshParentLineBindings();
                 FinalizeDeleteChanges();
             }
         }
@@ -1539,6 +1559,79 @@ namespace Axphi.ViewModels
             {
                 Tracks[i].TrackName = $"判定线图层 {i + 1}";
             }
+        }
+
+        public bool TrySetParentLine(TrackViewModel childTrack, string? parentLineId)
+        {
+            if (!Tracks.Contains(childTrack))
+            {
+                return false;
+            }
+
+            string? normalizedParentId = string.IsNullOrWhiteSpace(parentLineId) ? null : parentLineId;
+            if (childTrack.Data.ParentLineId == normalizedParentId)
+            {
+                return true;
+            }
+
+            if (normalizedParentId != null)
+            {
+                var parentTrack = Tracks.FirstOrDefault(track => track.Data.ID == normalizedParentId);
+                if (parentTrack == null || ReferenceEquals(parentTrack, childTrack))
+                {
+                    return false;
+                }
+
+                if (WillCreateParentCycle(childTrack.Data.ID, normalizedParentId))
+                {
+                    return false;
+                }
+            }
+
+            childTrack.ApplyParentLineId(normalizedParentId);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            return true;
+        }
+
+        private void RefreshParentLineBindings()
+        {
+            var validIds = Tracks.Select(track => track.Data.ID).ToHashSet();
+            bool changed = false;
+
+            foreach (var track in Tracks)
+            {
+                if (!string.IsNullOrWhiteSpace(track.Data.ParentLineId) && !validIds.Contains(track.Data.ParentLineId))
+                {
+                    track.ApplyParentLineId(null);
+                    changed = true;
+                }
+
+                track.NotifyParentBindingChanged();
+            }
+
+            if (changed)
+            {
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            }
+        }
+
+        private bool WillCreateParentCycle(string childLineId, string candidateParentId)
+        {
+            string? current = candidateParentId;
+            var visited = new HashSet<string> { childLineId };
+
+            while (!string.IsNullOrWhiteSpace(current))
+            {
+                if (!visited.Add(current))
+                {
+                    return true;
+                }
+
+                var next = Tracks.FirstOrDefault(track => track.Data.ID == current)?.Data.ParentLineId;
+                current = string.IsNullOrWhiteSpace(next) ? null : next;
+            }
+
+            return false;
         }
 
 

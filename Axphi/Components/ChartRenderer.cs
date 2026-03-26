@@ -303,13 +303,17 @@ namespace Axphi.Components
             // 【第一遍遍历】：只画所有的判定线本身（铺在最底层）
             OverlayUiFlags effectiveOverlayFlags = ShowAuxiliaryUi ? OverlayUiVisibility : OverlayUiFlags.None;
             bool effectiveShowNoteCenters = ShowAuxiliaryUi && ShowNoteCenters;
+            var lineById = judgementLines
+                .Where(line => !string.IsNullOrWhiteSpace(line.ID))
+                .GroupBy(line => line.ID)
+                .ToDictionary(group => group.Key, group => group.First());
             foreach (var judgementLine in judgementLines)
             {
                 if (currentTick < judgementLine.StartTick || currentTick > (judgementLine.StartTick + judgementLine.DurationTicks))
                     continue;
 
                 // 传入 true, false (只画线，不画音符)
-                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, true, false, effectiveOverlayFlags, effectiveShowNoteCenters, multiHitTicks: null);
+                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, true, false, effectiveOverlayFlags, effectiveShowNoteCenters, lineById, multiHitTicks: null);
             }
 
             var multiHitTicks = CollectMultiHitTicks(chart);
@@ -321,14 +325,14 @@ namespace Axphi.Components
                     continue;
 
                 // 传入 false, true (只画音符，不画线)
-                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, false, true, effectiveOverlayFlags, effectiveShowNoteCenters, multiHitTicks);
+                RenderJudgementLine(drawingContext, renderInfo, chart, judgementLine, currentTick, false, true, effectiveOverlayFlags, effectiveShowNoteCenters, lineById, multiHitTicks);
             }
             // =====================================================================
 
 
             // ================= 新增：2. 最后在最上层画独立的击打特效 =================
             double currentSeconds = realTime.TotalSeconds;
-            RenderHitEffects(drawingContext, renderInfo, chart, currentDiscreteTick, currentSeconds);
+            RenderHitEffects(drawingContext, renderInfo, chart, currentDiscreteTick, currentSeconds, lineById);
             // =====================================================================
 
 
@@ -415,31 +419,19 @@ namespace Axphi.Components
 
             return startTick <= endTick ? pixelDistance : -pixelDistance;
         }
-        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, double currentTick, bool drawLine, bool drawNotes, OverlayUiFlags overlayUiVisibility, bool showNoteCenters, HashSet<int>? multiHitTicks)
+        private static void RenderJudgementLine(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, JudgementLine line, double currentTick, bool drawLine, bool drawNotes, OverlayUiFlags overlayUiVisibility, bool showNoteCenters, IReadOnlyDictionary<string, JudgementLine> lineById, HashSet<int>? multiHitTicks)
         {
+            Matrix transformMatrix = BuildLineWorldMatrix(line, currentTick, renderInfo, chart, lineById, []);
+            var transform = new MatrixTransform(transformMatrix);
+
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
                 line.AnimatableProperties,
-                out var anchor, out var offset, out var scale, out var rotationAngle, out var opacity);
+                out var anchor, out _, out _, out _, out var opacity);
 
-            var pixelOffset = new Vector(
-                renderInfo.ChartUnitToPixel(offset.X),
-                renderInfo.ChartUnitToPixel(offset.Y));
             var pixelAnchor = new Vector(
                 renderInfo.ChartUnitToPixel(anchor.X),
                 -renderInfo.ChartUnitToPixel(anchor.Y));
-
-            var transform = new TransformGroup()
-            {
-                Children =
-                {
-                    new TranslateTransform(-pixelAnchor.X, -pixelAnchor.Y),
-                    new ScaleTransform(scale.X, scale.Y),
-                    new RotateTransform(-rotationAngle),
-                    new TranslateTransform(pixelAnchor.X, pixelAnchor.Y),
-                    new TranslateTransform(pixelOffset.X, -pixelOffset.Y),
-                }
-            };
 
             drawingContext.PushTransform(transform);
 
@@ -492,6 +484,65 @@ namespace Axphi.Components
 
 
             drawingContext.Pop();
+        }
+
+        private static Matrix BuildLineWorldMatrix(
+            JudgementLine line,
+            double currentTick,
+            RenderInfo renderInfo,
+            Chart chart,
+            IReadOnlyDictionary<string, JudgementLine> lineById,
+            HashSet<string> visiting)
+        {
+            Matrix localMatrix = BuildLineLocalMatrix(line, currentTick, renderInfo, chart);
+
+            if (string.IsNullOrWhiteSpace(line.ParentLineId) ||
+                line.ParentLineId == line.ID ||
+                !visiting.Add(line.ID))
+            {
+                return localMatrix;
+            }
+
+            if (!lineById.TryGetValue(line.ParentLineId, out var parentLine))
+            {
+                visiting.Remove(line.ID);
+                return localMatrix;
+            }
+
+            Matrix parentMatrix = BuildLineWorldMatrix(parentLine, currentTick, renderInfo, chart, lineById, visiting);
+            localMatrix.Append(parentMatrix);
+
+            visiting.Remove(line.ID);
+            return localMatrix;
+        }
+
+        private static Matrix BuildLineLocalMatrix(JudgementLine line, double currentTick, RenderInfo renderInfo, Chart chart)
+        {
+            EasingUtils.CalculateObjectTransform(
+                currentTick, chart.KeyFrameEasingDirection,
+                line.AnimatableProperties,
+                out var anchor, out var offset, out var scale, out var rotationAngle, out _);
+
+            var pixelOffset = new Vector(
+                renderInfo.ChartUnitToPixel(offset.X),
+                renderInfo.ChartUnitToPixel(offset.Y));
+            var pixelAnchor = new Vector(
+                renderInfo.ChartUnitToPixel(anchor.X),
+                -renderInfo.ChartUnitToPixel(anchor.Y));
+
+            var localTransform = new TransformGroup()
+            {
+                Children =
+                {
+                    new TranslateTransform(-pixelAnchor.X, -pixelAnchor.Y),
+                    new ScaleTransform(scale.X, scale.Y),
+                    new RotateTransform(-rotationAngle),
+                    new TranslateTransform(pixelAnchor.X, pixelAnchor.Y),
+                    new TranslateTransform(pixelOffset.X, -pixelOffset.Y),
+                }
+            };
+
+            return localTransform.Value;
         }
 
         private static void RenderNote(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, Note note, double currentTick, JudgementLine line, bool showNoteCenter, bool isMultiHit)
@@ -711,7 +762,7 @@ namespace Axphi.Components
             };
         }
 
-        private static void RenderHitEffects(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, int currentTick, double currentSeconds)
+        private static void RenderHitEffects(DrawingContext drawingContext, RenderInfo renderInfo, Chart chart, int currentTick, double currentSeconds, IReadOnlyDictionary<string, JudgementLine> lineById)
         {
             if (chart.JudgementLines == null) return;
 
@@ -773,29 +824,7 @@ namespace Axphi.Components
                         double vTick = TimeTickConverter.TimeToTick(vTime, chart.BpmKeyFrames, chart.InitialBpm);
 
                         // 使用与音符渲染一致的判定线完整变换链，确保旋转后坐标严格一致。
-                        EasingUtils.CalculateObjectTransform(
-                            vTick, chart.KeyFrameEasingDirection,
-                            line.AnimatableProperties,
-                            out var lineAnchor, out var lineOffset, out var lineScale, out var lineRotationAngle, out _);
-
-                        var linePixelOffset = new Vector(
-                            renderInfo.ChartUnitToPixel(lineOffset.X),
-                            renderInfo.ChartUnitToPixel(lineOffset.Y));
-                        var linePixelAnchor = new Vector(
-                            renderInfo.ChartUnitToPixel(lineAnchor.X),
-                            -renderInfo.ChartUnitToPixel(lineAnchor.Y));
-
-                        var lineTransform = new TransformGroup()
-                        {
-                            Children =
-                            {
-                                new TranslateTransform(-linePixelAnchor.X, -linePixelAnchor.Y),
-                                new ScaleTransform(lineScale.X, lineScale.Y),
-                                new RotateTransform(-lineRotationAngle),
-                                new TranslateTransform(linePixelAnchor.X, linePixelAnchor.Y),
-                                new TranslateTransform(linePixelOffset.X, -linePixelOffset.Y),
-                            }
-                        };
+                        Matrix lineWorldMatrix = BuildLineWorldMatrix(line, vTick, renderInfo, chart, lineById, []);
 
                         // 使用与音符渲染一致的音符完整变换链，确保 offset/anchor/rotation 对命中特效生效。
                         EasingUtils.CalculateObjectTransform(
@@ -825,7 +854,7 @@ namespace Axphi.Components
                         // ================= 开始绘制 =================
                         // 命中点跟随历史变换，但特效始终保持屏幕正向（不继承任何旋转）。
                         Point noteLocalHitPoint = noteTransform.Transform(new Point(0, 0));
-                        Point fxCenter = lineTransform.Transform(noteLocalHitPoint);
+                        Point fxCenter = lineWorldMatrix.Transform(noteLocalHitPoint);
 
                         double tick = elapsedSeconds / fxDurationSeconds;
 

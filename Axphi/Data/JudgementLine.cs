@@ -10,6 +10,7 @@ namespace Axphi.Data
     public class JudgementLine
     {
         public string ID { get; set; } = Guid.NewGuid().ToString();
+        public string? ParentLineId { get; set; }
         public string Name { get; set; } = string.Empty;
         public double InitialSpeed { get; set; } = 1;
 

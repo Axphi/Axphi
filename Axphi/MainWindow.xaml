@@ -102,8 +102,9 @@
     </Window.InputBindings>
 
     <!--  主页面  -->
-    <ws:WindowContentAdapter>
-        <DockPanel>
+    <Grid>
+        <ws:WindowContentAdapter>
+            <DockPanel>
             <!--  标题栏  -->
             <v:TitleBar DockPanel.Dock="Top" />
             <!--  核心区域  -->
@@ -547,6 +548,19 @@
                               Cursor="SizeNS"
                               Panel.ZIndex="3000" />
             </Grid>
-        </DockPanel>
-    </ws:WindowContentAdapter>
+            </DockPanel>
+        </ws:WindowContentAdapter>
+
+        <Canvas x:Name="GlobalOverlayCanvas"
+                Background="Transparent"
+                IsHitTestVisible="False"
+                Panel.ZIndex="99999">
+            <Line x:Name="ParentBindingGlobalPreviewLine"
+                  Visibility="Collapsed"
+                  Stroke="#8AB4F8"
+                  StrokeThickness="1.5"
+                  StrokeDashArray="2,2"
+                  SnapsToDevicePixels="True" />
+        </Canvas>
+    </Grid>
 </Window>

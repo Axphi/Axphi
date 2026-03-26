@@ -212,10 +212,18 @@ namespace Axphi.Views
                 return;
             }
 
-            if (e.Key == Key.Escape && vm.CancelPendingHoldPlacement())
+            if (e.Key == Key.Escape)
             {
-                vm.ClearHoverPreview();
-                EditorCanvas.InvalidateVisual();
+                if (vm.CancelPendingHoldPlacement())
+                {
+                    vm.ClearHoverPreview();
+                    EditorCanvas.InvalidateVisual();
+                }
+                else if (vm.CloseCommand.CanExecute(null))
+                {
+                    vm.CloseCommand.Execute(null);
+                }
+
                 e.Handled = true;
                 return;
             }

@@ -1,4 +1,5 @@
 ﻿using Axphi.Data;
+using Axphi.Data.AnimatableProperties;
 using Axphi.Data.KeyFrames; // 引入你的 OffsetKeyFrame
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -51,6 +52,18 @@ namespace Axphi.ViewModels
         private double _currentSpeed = 1.0; // 默认值和底层 InitialSpeed 保持一致
         [ObservableProperty]
         private string _currentSpeedMode = "Integral";
+
+        public TrackExpressionSlot AnchorExpression { get; }
+
+        public TrackExpressionSlot PositionExpression { get; }
+
+        public TrackExpressionSlot ScaleExpression { get; }
+
+        public TrackExpressionSlot RotationExpression { get; }
+
+        public TrackExpressionSlot OpacityExpression { get; }
+
+        public TrackExpressionSlot SpeedExpression { get; }
 
         // ================= 1. 底层数据源 =================
         // 这个属性是只读的，它紧紧抓住那个不会被污染的底层老实人
@@ -127,6 +140,21 @@ namespace Axphi.ViewModels
             Data = data;
             TrackName = name;
             _timeline = timeline;
+
+            AnchorExpression = CreateVectorExpressionSlot("Anchor", Data.AnimatableProperties.Anchor, "例如: [value[0], Math.sin(time)]");
+            PositionExpression = CreateVectorExpressionSlot("Position", Data.AnimatableProperties.Offset, "例如: [Math.sin(time) * 4, value[1]]");
+            ScaleExpression = CreateVectorExpressionSlot("Scale", Data.AnimatableProperties.Scale, "例如: [1 + Math.sin(time) * 0.1, value[1]]");
+            RotationExpression = CreateScalarExpressionSlot("Rotation", Data.AnimatableProperties.Rotation, "例如: value + Math.sin(time * 2) * 15");
+            OpacityExpression = CreateScalarExpressionSlot("Opacity", Data.AnimatableProperties.Opacity, "例如: 50 + Math.sin(time * 4) * 50");
+            SpeedExpression = new TrackExpressionSlot(
+                "Speed",
+                "例如: Math.max(0.1, value + Math.sin(time))",
+                false,
+                () => Data.SpeedExpressionEnabled,
+                value => Data.SpeedExpressionEnabled = value,
+                () => Data.SpeedExpressionText,
+                value => Data.SpeedExpressionText = value ?? string.Empty,
+                HandleExpressionChanged);
 
             // 🌟 1. 出生时，读取底层的寿命数据
             LayerStartTick = Data.StartTick;
@@ -627,6 +655,7 @@ namespace Axphi.ViewModels
                 currentTick,
                 direction,
                 Data.AnimatableProperties,
+                _timeline.CurrentChart,
                 out var anchor, out var offset, out var scale, out var rotationAngle, out var opacity);
 
             // 把算出来的精确数值，直接塞给前端 UI 绑定的属性！
@@ -647,6 +676,9 @@ namespace Axphi.ViewModels
                 Data.InitialSpeed,       // 基础值
                 Data.SpeedKeyFrames,     // 关键帧集合
                 Axphi.Utilities.MathUtils.Lerp, // 你的双精度线性插值函数
+                Data.SpeedExpressionEnabled,
+                Data.SpeedExpressionText,
+                _timeline.CurrentChart,
                 out var finalSpeed);     // 吐出结果
 
             CurrentSpeed = finalSpeed;   // 塞给前端 UI！
@@ -655,6 +687,46 @@ namespace Axphi.ViewModels
 
 
             _isSyncing = false; // 放下免死金牌
+        }
+
+        private TrackExpressionSlot CreateVectorExpressionSlot<TKeyFrame>(string title, AnimatableProperty<Vector, TKeyFrame> property, string placeholder)
+            where TKeyFrame : KeyFrame<Vector>
+        {
+            return new TrackExpressionSlot(
+                title,
+                placeholder,
+                true,
+                () => property.ExpressionEnabled,
+                value => property.ExpressionEnabled = value,
+                () => property.ExpressionText,
+                value => property.ExpressionText = value ?? string.Empty,
+                HandleExpressionChanged);
+        }
+
+        private TrackExpressionSlot CreateScalarExpressionSlot<TKeyFrame>(string title, AnimatableProperty<double, TKeyFrame> property, string placeholder)
+            where TKeyFrame : KeyFrame<double>
+        {
+            return new TrackExpressionSlot(
+                title,
+                placeholder,
+                false,
+                () => property.ExpressionEnabled,
+                value => property.ExpressionEnabled = value,
+                () => property.ExpressionText,
+                value => property.ExpressionText = value ?? string.Empty,
+                HandleExpressionChanged);
+        }
+
+        private void HandleExpressionChanged()
+        {
+            if (Data == null)
+            {
+                return;
+            }
+
+            int currentTick = _timeline.GetCurrentTick();
+            SyncValuesToTime(currentTick, _timeline.CurrentChart.KeyFrameEasingDirection);
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
         }
 
 

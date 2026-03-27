@@ -27,6 +27,10 @@ namespace Axphi.Data.AnimatableProperties
     {
         public T InitialValue { get; set; }
 
+        public bool ExpressionEnabled { get; set; }
+
+        public string ExpressionText { get; set; } = string.Empty;
+
         public List<TKeyFrame> KeyFrames { get; } = new();
 
 

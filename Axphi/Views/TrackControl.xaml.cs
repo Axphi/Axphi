@@ -125,6 +125,20 @@ namespace Axphi.Views
             e.Handled = true;
         }
 
+        private void ExpressionIndicator_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
+            {
+                return;
+            }
+
+            if (sender is FrameworkElement element && element.DataContext is TrackExpressionSlot slot)
+            {
+                slot.IsEnabled = !slot.IsEnabled;
+                e.Handled = true;
+            }
+        }
+
         private static bool IsInNoteKeyframeEditorPanel(DependencyObject current)
         {
             while (current != null)

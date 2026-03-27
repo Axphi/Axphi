@@ -408,6 +408,9 @@ namespace Axphi.Components
                     line.InitialSpeed,
                     line.SpeedKeyFrames,
                     Axphi.Utilities.MathUtils.Lerp,
+                    line.SpeedExpressionEnabled,
+                    line.SpeedExpressionText,
+                    chart,
                     out var midSpeed);
 
                 // 3. 微小距离 = 瞬间速度 × 微小时间，然后累加！
@@ -427,6 +430,7 @@ namespace Axphi.Components
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
                 line.AnimatableProperties,
+                chart,
                 out var anchor, out _, out _, out _, out var opacity);
 
             var pixelAnchor = new Vector(
@@ -521,6 +525,7 @@ namespace Axphi.Components
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
                 line.AnimatableProperties,
+                chart,
                 out var anchor, out var offset, out var scale, out var rotationAngle, out _);
 
             var pixelOffset = new Vector(
@@ -575,7 +580,11 @@ namespace Axphi.Components
                 EasingUtils.CalculateObjectSingleTransform(
                     currentTick, chart.KeyFrameEasingDirection,
                     line.InitialSpeed, line.SpeedKeyFrames,
-                    Axphi.Utilities.MathUtils.Lerp, out currentRealtimeSpeed);
+                    Axphi.Utilities.MathUtils.Lerp,
+                    line.SpeedExpressionEnabled,
+                    line.SpeedExpressionText,
+                    chart,
+                    out currentRealtimeSpeed);
             }
 
             double pixelDistance = 0;

@@ -11,6 +11,65 @@
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
 
+    <UserControl.Resources>
+        <Style x:Key="ExpressionIndicatorBorderStyle" TargetType="Border">
+            <Setter Property="Width" Value="10" />
+            <Setter Property="Height" Value="10" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="#2F8FFF" />
+            <Setter Property="BorderBrush" Value="#9FD1FF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                    <Setter Property="Background" Value="#D04B4B" />
+                    <Setter Property="BorderBrush" Value="#FFC2C2" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasError}" Value="True">
+                    <Setter Property="BorderBrush" Value="#FFD966" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ExpressionSummaryBorderStyle" TargetType="Border">
+            <Setter Property="Margin" Value="5,2,10,4" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="#1D2D40" />
+            <Setter Property="BorderBrush" Value="#335B88" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasError}" Value="True">
+                    <Setter Property="Background" Value="#3C261E" />
+                    <Setter Property="BorderBrush" Value="#C96E54" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ExpressionEditorBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="#16283A" />
+            <Setter Property="BorderBrush" Value="#27486A" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasError}" Value="True">
+                    <Setter Property="Background" Value="#33231F" />
+                    <Setter Property="BorderBrush" Value="#C96E54" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -169,93 +228,174 @@
                 <StackPanel Margin="24,0,0,0" Background="#252525" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                     <!--  Anchor  -->
                     <Grid Height="20">
-                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Anchor" />
-                        <Button Command="{Binding AddAnchorKeyframeCommand}"
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Anchor" />
+                        <Button Grid.Column="1" Command="{Binding AddAnchorKeyframeCommand}"
                                 Width="12" Height="12"
                                 Background="Transparent" BorderThickness="0"
                                 Cursor="Hand" ToolTip="添加/更新关键帧">
                             <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
                                   Fill="#888" Stretch="Fill" />
                         </Button>
-                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Border Grid.Column="2"
+                                DataContext="{Binding AnchorExpression}"
+                                Style="{StaticResource ExpressionIndicatorBorderStyle}"
+                                ToolTip="Alt+点击启用/关闭表达式"
+                                PreviewMouseLeftButtonDown="ExpressionIndicator_PreviewMouseLeftButtonDown" />
+                        <StackPanel Grid.Column="3" Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
                             <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentAnchorX, Mode=TwoWay}" />
                             <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
                             <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentAnchorY, Mode=TwoWay}" />
                         </StackPanel>
                     </Grid>
+                    <Border DataContext="{Binding AnchorExpression}" Style="{StaticResource ExpressionSummaryBorderStyle}">
+                        <TextBlock FontSize="10" Foreground="#C8DEFF" Text="{Binding Summary}" TextWrapping="Wrap" />
+                    </Border>
 
                     <!--  Position  -->
                     <Grid Height="20">
-                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Position" />
-                        <Button Command="{Binding AddPositionKeyframeCommand}"
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Position" />
+                        <Button Grid.Column="1" Command="{Binding AddPositionKeyframeCommand}"
                                 Width="12" Height="12"
                                 Background="Transparent" BorderThickness="0"
                                 Cursor="Hand" ToolTip="添加/更新关键帧">
                             <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
                                   Fill="#888" Stretch="Fill" />
                         </Button>
-                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Border Grid.Column="2"
+                                DataContext="{Binding PositionExpression}"
+                                Style="{StaticResource ExpressionIndicatorBorderStyle}"
+                                ToolTip="Alt+点击启用/关闭表达式"
+                                PreviewMouseLeftButtonDown="ExpressionIndicator_PreviewMouseLeftButtonDown" />
+                        <StackPanel Grid.Column="3" Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
                             <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
                             <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
                             <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
                         </StackPanel>
                     </Grid>
+                    <Border DataContext="{Binding PositionExpression}" Style="{StaticResource ExpressionSummaryBorderStyle}">
+                        <TextBlock FontSize="10" Foreground="#C8DEFF" Text="{Binding Summary}" TextWrapping="Wrap" />
+                    </Border>
                     <!--  Scale  -->
                     <Grid Height="20">
-                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Scale" />
-                        <Button Command="{Binding AddScaleKeyframeCommand}"
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Scale" />
+                        <Button Grid.Column="1" Command="{Binding AddScaleKeyframeCommand}"
                                 Width="12" Height="12"
                                 Background="Transparent" BorderThickness="0"
                                 Cursor="Hand" ToolTip="添加/更新关键帧">
                             <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
                                   Fill="#888" Stretch="Fill" />
                         </Button>
-                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Border Grid.Column="2"
+                                DataContext="{Binding ScaleExpression}"
+                                Style="{StaticResource ExpressionIndicatorBorderStyle}"
+                                ToolTip="Alt+点击启用/关闭表达式"
+                                PreviewMouseLeftButtonDown="ExpressionIndicator_PreviewMouseLeftButtonDown" />
+                        <StackPanel Grid.Column="3" Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
                             <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleX, Mode=TwoWay}" />
                             <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
                             <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleY, Mode=TwoWay}" />
                         </StackPanel>
                     </Grid>
+                    <Border DataContext="{Binding ScaleExpression}" Style="{StaticResource ExpressionSummaryBorderStyle}">
+                        <TextBlock FontSize="10" Foreground="#C8DEFF" Text="{Binding Summary}" TextWrapping="Wrap" />
+                    </Border>
                     <!--  Rotation  -->
                     <Grid Height="20">
-                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Rotation" />
-                        <Button Command="{Binding AddRotationKeyframeCommand}"
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Rotation" />
+                        <Button Grid.Column="1" Command="{Binding AddRotationKeyframeCommand}"
                                 Width="12" Height="12"
                                 Background="Transparent" BorderThickness="0"
                                 Cursor="Hand" ToolTip="添加/更新关键帧">
                             <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
                                   Fill="#888" Stretch="Fill" />
                         </Button>
-                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Border Grid.Column="2"
+                                DataContext="{Binding RotationExpression}"
+                                Style="{StaticResource ExpressionIndicatorBorderStyle}"
+                                ToolTip="Alt+点击启用/关闭表达式"
+                                PreviewMouseLeftButtonDown="ExpressionIndicator_PreviewMouseLeftButtonDown" />
+                        <StackPanel Grid.Column="3" Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
                             <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentRotation, Mode=TwoWay}" />
                             <TextBlock VerticalAlignment="Center" Foreground="#888" Text="°" />
                         </StackPanel>
                     </Grid>
+                    <Border DataContext="{Binding RotationExpression}" Style="{StaticResource ExpressionSummaryBorderStyle}">
+                        <TextBlock FontSize="10" Foreground="#C8DEFF" Text="{Binding Summary}" TextWrapping="Wrap" />
+                    </Border>
                     <!--  Opacity  -->
                     <Grid Height="20">
-                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Opacity" />
-                        <Button Command="{Binding AddOpacityKeyframeCommand}"
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Opacity" />
+                        <Button Grid.Column="1" Command="{Binding AddOpacityKeyframeCommand}"
                                 Width="12" Height="12"
                                 Background="Transparent" BorderThickness="0"
                                 Cursor="Hand" ToolTip="添加/更新关键帧">
                             <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
                                   Fill="#888" Stretch="Fill" />
                         </Button>
-                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Border Grid.Column="2"
+                                DataContext="{Binding OpacityExpression}"
+                                Style="{StaticResource ExpressionIndicatorBorderStyle}"
+                                ToolTip="Alt+点击启用/关闭表达式"
+                                PreviewMouseLeftButtonDown="ExpressionIndicator_PreviewMouseLeftButtonDown" />
+                        <StackPanel Grid.Column="3" Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
                             <comp:DraggableValueBox DragSpeed="1" Maximum="100" Minimum="0" NumberFormat="0.00" Value="{Binding CurrentOpacity, Mode=TwoWay}" />
                         </StackPanel>
                     </Grid>
+                    <Border DataContext="{Binding OpacityExpression}" Style="{StaticResource ExpressionSummaryBorderStyle}">
+                        <TextBlock FontSize="10" Foreground="#C8DEFF" Text="{Binding Summary}" TextWrapping="Wrap" />
+                    </Border>
 
 
                     <Grid Height="20">
-                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Speed" />
-                        <Button Command="{Binding AddSpeedKeyframeCommand}"
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Speed" />
+                        <Button Grid.Column="1" Command="{Binding AddSpeedKeyframeCommand}"
                                 Width="12" Height="12"
                                 Background="Transparent" BorderThickness="0"
                                 Cursor="Hand" ToolTip="添加/更新关键帧">
                             <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
                         </Button>
-                        <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Border Grid.Column="2"
+                                DataContext="{Binding SpeedExpression}"
+                                Style="{StaticResource ExpressionIndicatorBorderStyle}"
+                                ToolTip="Alt+点击启用/关闭表达式"
+                                PreviewMouseLeftButtonDown="ExpressionIndicator_PreviewMouseLeftButtonDown" />
+                        <StackPanel Grid.Column="3" Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
                             <comp:DraggableOptionBox Value="{Binding CurrentSpeedMode, Mode=TwoWay}" ToolTip="速度渲染模式: Integral(最终) / Realtime(实时)">
                                 <comp:DraggableOptionBox.Options>
                                     <comp:StringList>
@@ -270,6 +410,9 @@
                             <comp:DraggableValueBox DragSpeed="0.1" NumberFormat="0.00" Value="{Binding CurrentSpeed, Mode=TwoWay}" />
                         </StackPanel>
                     </Grid>
+                    <Border DataContext="{Binding SpeedExpression}" Style="{StaticResource ExpressionSummaryBorderStyle}">
+                        <TextBlock FontSize="10" Foreground="#C8DEFF" Text="{Binding Summary}" TextWrapping="Wrap" />
+                    </Border>
 
 
 
@@ -782,6 +925,27 @@
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>
                         </Border>
+                        <Border Width="{Binding Timeline.TotalPixelWidth}"
+                                HorizontalAlignment="Left"
+                                DataContext="{Binding AnchorExpression}"
+                                Style="{StaticResource ExpressionEditorBorderStyle}">
+                            <Grid Margin="8,0,8,0">
+                                <TextBox MinHeight="44"
+                                         Padding="8,6"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         FontFamily="Consolas"
+                                         FontSize="11"
+                                         Foreground="#E9F3FF"
+                                         CaretBrush="#E9F3FF"
+                                         Background="#1B314A"
+                                         BorderBrush="#4A7AA8"
+                                         BorderThickness="1"
+                                         ToolTip="{Binding Summary}"
+                                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                        </Border>
 
                         <Border Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
                             <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
@@ -843,6 +1007,27 @@
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>
                         </Border>
+                        <Border Width="{Binding Timeline.TotalPixelWidth}"
+                                HorizontalAlignment="Left"
+                                DataContext="{Binding PositionExpression}"
+                                Style="{StaticResource ExpressionEditorBorderStyle}">
+                            <Grid Margin="8,0,8,0">
+                                <TextBox MinHeight="44"
+                                         Padding="8,6"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         FontFamily="Consolas"
+                                         FontSize="11"
+                                         Foreground="#E9F3FF"
+                                         CaretBrush="#E9F3FF"
+                                         Background="#1B314A"
+                                         BorderBrush="#4A7AA8"
+                                         BorderThickness="1"
+                                         ToolTip="{Binding Summary}"
+                                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                        </Border>
                         <Border Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
                             <ItemsControl ItemsSource="{Binding UIScaleKeyframes}">
                                 <ItemsControl.ItemsPanel>
@@ -901,6 +1086,27 @@
                                     </Style>
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>
+                        </Border>
+                        <Border Width="{Binding Timeline.TotalPixelWidth}"
+                                HorizontalAlignment="Left"
+                                DataContext="{Binding ScaleExpression}"
+                                Style="{StaticResource ExpressionEditorBorderStyle}">
+                            <Grid Margin="8,0,8,0">
+                                <TextBox MinHeight="44"
+                                         Padding="8,6"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         FontFamily="Consolas"
+                                         FontSize="11"
+                                         Foreground="#E9F3FF"
+                                         CaretBrush="#E9F3FF"
+                                         Background="#1B314A"
+                                         BorderBrush="#4A7AA8"
+                                         BorderThickness="1"
+                                         ToolTip="{Binding Summary}"
+                                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
                         </Border>
                         <Border Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
                             <ItemsControl ItemsSource="{Binding UIRotationKeyframes}">
@@ -961,6 +1167,27 @@
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>
                         </Border>
+                        <Border Width="{Binding Timeline.TotalPixelWidth}"
+                                HorizontalAlignment="Left"
+                                DataContext="{Binding RotationExpression}"
+                                Style="{StaticResource ExpressionEditorBorderStyle}">
+                            <Grid Margin="8,0,8,0">
+                                <TextBox MinHeight="44"
+                                         Padding="8,6"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         FontFamily="Consolas"
+                                         FontSize="11"
+                                         Foreground="#E9F3FF"
+                                         CaretBrush="#E9F3FF"
+                                         Background="#1B314A"
+                                         BorderBrush="#4A7AA8"
+                                         BorderThickness="1"
+                                         ToolTip="{Binding Summary}"
+                                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                        </Border>
                         <Border Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
                             <ItemsControl ItemsSource="{Binding UIOpacityKeyframes}">
                                 <ItemsControl.ItemsPanel>
@@ -1020,6 +1247,27 @@
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>
                         </Border>
+                        <Border Width="{Binding Timeline.TotalPixelWidth}"
+                                HorizontalAlignment="Left"
+                                DataContext="{Binding OpacityExpression}"
+                                Style="{StaticResource ExpressionEditorBorderStyle}">
+                            <Grid Margin="8,0,8,0">
+                                <TextBox MinHeight="44"
+                                         Padding="8,6"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         FontFamily="Consolas"
+                                         FontSize="11"
+                                         Foreground="#E9F3FF"
+                                         CaretBrush="#E9F3FF"
+                                         Background="#1B314A"
+                                         BorderBrush="#4A7AA8"
+                                         BorderThickness="1"
+                                         ToolTip="{Binding Summary}"
+                                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                        </Border>
 
                         <Border Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0" Background="#1a1a1a">
                             <ItemsControl ItemsSource="{Binding UISpeedKeyframes}">
@@ -1076,6 +1324,27 @@
                                     </Style>
                                 </ItemsControl.ItemContainerStyle>
                             </ItemsControl>
+                        </Border>
+                        <Border Width="{Binding Timeline.TotalPixelWidth}"
+                                HorizontalAlignment="Left"
+                                DataContext="{Binding SpeedExpression}"
+                                Style="{StaticResource ExpressionEditorBorderStyle}">
+                            <Grid Margin="8,0,8,0">
+                                <TextBox MinHeight="44"
+                                         Padding="8,6"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         FontFamily="Consolas"
+                                         FontSize="11"
+                                         Foreground="#E9F3FF"
+                                         CaretBrush="#E9F3FF"
+                                         Background="#1B314A"
+                                         BorderBrush="#4A7AA8"
+                                         BorderThickness="1"
+                                         ToolTip="{Binding Summary}"
+                                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
                         </Border>
 
 

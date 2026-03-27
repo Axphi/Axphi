@@ -69,6 +69,9 @@ namespace Axphi.Utilities
                     track.Data.InitialSpeed,
                     track.Data.SpeedKeyFrames,
                     MathUtils.Lerp,
+                    track.Data.SpeedExpressionEnabled,
+                    track.Data.SpeedExpressionText,
+                    timeline.CurrentChart,
                     out currentRealtimeSpeed);
 
                 double actualPixelsPerSecond = metrics.BaseVerticalFlowPixelsPerSecond * currentRealtimeSpeed * noteSpeedMultiplier;
@@ -154,6 +157,9 @@ namespace Axphi.Utilities
                     line.InitialSpeed,
                     line.SpeedKeyFrames,
                     MathUtils.Lerp,
+                    line.SpeedExpressionEnabled,
+                    line.SpeedExpressionText,
+                    chart,
                     out currentRealtimeSpeed);
 
                 double actualPixelsPerSecond = metrics.BaseVerticalFlowPixelsPerSecond * currentRealtimeSpeed * noteSpeedMultiplier;
@@ -191,6 +197,9 @@ namespace Axphi.Utilities
                     line.InitialSpeed,
                     line.SpeedKeyFrames,
                     MathUtils.Lerp,
+                    line.SpeedExpressionEnabled,
+                    line.SpeedExpressionText,
+                    chart,
                     out var midSpeed);
 
                 totalDistance += midSpeed * (sec2 - sec1);

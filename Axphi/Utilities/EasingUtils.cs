@@ -158,6 +158,45 @@ namespace Axphi.Utilities
             }
         }
 
+        public static void CalculateObjectSingleTransform(
+            double time,
+            KeyFrameEasingDirection easingDirection,
+            double initialValue,
+            IReadOnlyList<KeyFrame<double>> keyFrames,
+            Func<double, double, double, double> lerpFunction,
+            bool expressionEnabled,
+            string? expressionText,
+            Chart? chart,
+            out double finalValue)
+        {
+            CalculateObjectSingleTransform(time, easingDirection, initialValue, keyFrames, lerpFunction, out finalValue);
+
+            if (!expressionEnabled)
+            {
+                return;
+            }
+
+            var context = PropertyExpressionEvaluator.CreateContext(time, chart);
+            if (PropertyExpressionEvaluator.TryEvaluateDouble(expressionText, finalValue, context, out var evaluatedValue, out _))
+            {
+                finalValue = evaluatedValue;
+            }
+        }
+
+        public static void CalculateObjectSingleTransform(
+            int time,
+            KeyFrameEasingDirection easingDirection,
+            double initialValue,
+            IReadOnlyList<KeyFrame<double>> keyFrames,
+            Func<double, double, double, double> lerpFunction,
+            bool expressionEnabled,
+            string? expressionText,
+            Chart? chart,
+            out double finalValue)
+        {
+            CalculateObjectSingleTransform((double)time, easingDirection, initialValue, keyFrames, lerpFunction, expressionEnabled, expressionText, chart, out finalValue);
+        }
+
         
         public static void CalculateObjectTransform(
             int time,
@@ -165,7 +204,7 @@ namespace Axphi.Utilities
             StandardAnimatableProperties properties,
             out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
-            CalculateObjectTransform((double)time, easingDirection, properties, out finalAnchor, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
+            CalculateObjectTransform((double)time, easingDirection, properties, null, out finalAnchor, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
         }
 
         public static void CalculateObjectTransform(
@@ -174,15 +213,41 @@ namespace Axphi.Utilities
             StandardAnimatableProperties properties,
             out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
+            CalculateObjectTransform(time, easingDirection, properties, null, out finalAnchor, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
+        }
+
+        public static void CalculateObjectTransform(
+            int time,
+            KeyFrameEasingDirection easingDirection,
+            StandardAnimatableProperties properties,
+            Chart? chart,
+            out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+        {
+            CalculateObjectTransform((double)time, easingDirection, properties, chart, out finalAnchor, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
+        }
+
+        public static void CalculateObjectTransform(
+            double time,
+            KeyFrameEasingDirection easingDirection,
+            StandardAnimatableProperties properties,
+            Chart? chart,
+            out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+        {
             finalAnchor = properties.Anchor.InitialValue;
             finalOffset = properties.Offset.InitialValue;
             finalScale = properties.Scale.InitialValue;
             finalRotationAngle = properties.Rotation.InitialValue;
             finalOpacity = properties.Opacity.InitialValue;
+            var context = PropertyExpressionEvaluator.CreateContext(time, chart);
 
             if (properties.Anchor.KeyFrames is { } anchorKeyFrames)
             {
                 CalculateObjectSingleTransform(time, easingDirection, properties.Anchor.InitialValue, anchorKeyFrames, MathUtils.Lerp, out finalAnchor);
+            }
+
+            if (properties.Anchor.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Anchor.ExpressionText, finalAnchor, context, out var anchorExpressionValue, out _))
+            {
+                finalAnchor = anchorExpressionValue;
             }
 
             if (properties.Offset.KeyFrames is { } offsetKeyFrames)
@@ -190,9 +255,19 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Offset.InitialValue, offsetKeyFrames, MathUtils.Lerp, out finalOffset);
             }
 
+            if (properties.Offset.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Offset.ExpressionText, finalOffset, context, out var offsetExpressionValue, out _))
+            {
+                finalOffset = offsetExpressionValue;
+            }
+
             if (properties.Scale.KeyFrames is { } scaleKeyFrames)
             {
                 CalculateObjectSingleTransform(time, easingDirection, properties.Scale.InitialValue, scaleKeyFrames, MathUtils.Lerp, out finalScale);
+            }
+
+            if (properties.Scale.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Scale.ExpressionText, finalScale, context, out var scaleExpressionValue, out _))
+            {
+                finalScale = scaleExpressionValue;
             }
 
             if (properties.Rotation.KeyFrames is { } rotationKeyFrames)
@@ -200,9 +275,19 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Rotation.InitialValue, rotationKeyFrames, MathUtils.Lerp, out finalRotationAngle);
             }
 
+            if (properties.Rotation.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Rotation.ExpressionText, finalRotationAngle, context, out var rotationExpressionValue, out _))
+            {
+                finalRotationAngle = rotationExpressionValue;
+            }
+
             if (properties.Opacity.KeyFrames is { } opacityKeyFrames)
             {
                 CalculateObjectSingleTransform(time, easingDirection, properties.Opacity.InitialValue, opacityKeyFrames, MathUtils.Lerp, out finalOpacity);
+            }
+
+            if (properties.Opacity.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Opacity.ExpressionText, finalOpacity, context, out var opacityExpressionValue, out _))
+            {
+                finalOpacity = opacityExpressionValue;
             }
         }
 

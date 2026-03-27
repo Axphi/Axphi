@@ -154,7 +154,9 @@ namespace Axphi.ViewModels
                 value => Data.SpeedExpressionEnabled = value,
                 () => Data.SpeedExpressionText,
                 value => Data.SpeedExpressionText = value ?? string.Empty,
-                HandleExpressionChanged);
+                ValidateSpeedExpression,
+                HandleExpressionToggleChanged,
+                HandleExpressionTextCommitted);
 
             // 🌟 1. 出生时，读取底层的寿命数据
             LayerStartTick = Data.StartTick;
@@ -656,6 +658,7 @@ namespace Axphi.ViewModels
                 direction,
                 Data.AnimatableProperties,
                 _timeline.CurrentChart,
+                Data,
                 out var anchor, out var offset, out var scale, out var rotationAngle, out var opacity);
 
             // 把算出来的精确数值，直接塞给前端 UI 绑定的属性！
@@ -679,6 +682,7 @@ namespace Axphi.ViewModels
                 Data.SpeedExpressionEnabled,
                 Data.SpeedExpressionText,
                 _timeline.CurrentChart,
+                Data,
                 out var finalSpeed);     // 吐出结果
 
             CurrentSpeed = finalSpeed;   // 塞给前端 UI！
@@ -700,7 +704,9 @@ namespace Axphi.ViewModels
                 value => property.ExpressionEnabled = value,
                 () => property.ExpressionText,
                 value => property.ExpressionText = value ?? string.Empty,
-                HandleExpressionChanged);
+                text => ValidateVectorExpression(text, property.InitialValue),
+                HandleExpressionToggleChanged,
+                HandleExpressionTextCommitted);
         }
 
         private TrackExpressionSlot CreateScalarExpressionSlot<TKeyFrame>(string title, AnimatableProperty<double, TKeyFrame> property, string placeholder)
@@ -714,10 +720,45 @@ namespace Axphi.ViewModels
                 value => property.ExpressionEnabled = value,
                 () => property.ExpressionText,
                 value => property.ExpressionText = value ?? string.Empty,
-                HandleExpressionChanged);
+                text => ValidateScalarExpression(text, property.InitialValue),
+                HandleExpressionToggleChanged,
+                HandleExpressionTextCommitted);
         }
 
-        private void HandleExpressionChanged()
+        private string? ValidateVectorExpression(string text, Vector baseValue)
+        {
+            PropertyExpressionEvaluator.TryEvaluateVector(
+                text,
+                baseValue,
+                PropertyExpressionEvaluator.CreateContext(_timeline.GetCurrentTick(), _timeline.CurrentChart),
+                _timeline.CurrentChart,
+                Data,
+                out _,
+                out var error);
+
+            return error;
+        }
+
+        private string? ValidateScalarExpression(string text, double baseValue)
+        {
+            PropertyExpressionEvaluator.TryEvaluateDouble(
+                text,
+                baseValue,
+                PropertyExpressionEvaluator.CreateContext(_timeline.GetCurrentTick(), _timeline.CurrentChart),
+                _timeline.CurrentChart,
+                Data,
+                out _,
+                out var error);
+
+            return error;
+        }
+
+        private string? ValidateSpeedExpression(string text)
+        {
+            return ValidateScalarExpression(text, Data.InitialSpeed);
+        }
+
+        private void HandleExpressionToggleChanged()
         {
             if (Data == null)
             {
@@ -727,6 +768,11 @@ namespace Axphi.ViewModels
             int currentTick = _timeline.GetCurrentTick();
             SyncValuesToTime(currentTick, _timeline.CurrentChart.KeyFrameEasingDirection);
             WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        private void HandleExpressionTextCommitted()
+        {
+            HandleExpressionToggleChanged();
         }
 
 

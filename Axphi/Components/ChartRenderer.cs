@@ -431,6 +431,7 @@ namespace Axphi.Components
                 currentTick, chart.KeyFrameEasingDirection,
                 line.AnimatableProperties,
                 chart,
+                line,
                 out var anchor, out _, out _, out _, out var opacity);
 
             var pixelAnchor = new Vector(
@@ -526,6 +527,7 @@ namespace Axphi.Components
                 currentTick, chart.KeyFrameEasingDirection,
                 line.AnimatableProperties,
                 chart,
+                line,
                 out var anchor, out var offset, out var scale, out var rotationAngle, out _);
 
             var pixelOffset = new Vector(
@@ -584,6 +586,7 @@ namespace Axphi.Components
                     line.SpeedExpressionEnabled,
                     line.SpeedExpressionText,
                     chart,
+                    line,
                     out currentRealtimeSpeed);
             }
 

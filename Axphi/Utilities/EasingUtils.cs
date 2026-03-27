@@ -167,6 +167,7 @@ namespace Axphi.Utilities
             bool expressionEnabled,
             string? expressionText,
             Chart? chart,
+            JudgementLine? currentLine,
             out double finalValue)
         {
             CalculateObjectSingleTransform(time, easingDirection, initialValue, keyFrames, lerpFunction, out finalValue);
@@ -177,7 +178,7 @@ namespace Axphi.Utilities
             }
 
             var context = PropertyExpressionEvaluator.CreateContext(time, chart);
-            if (PropertyExpressionEvaluator.TryEvaluateDouble(expressionText, finalValue, context, out var evaluatedValue, out _))
+            if (PropertyExpressionEvaluator.TryEvaluateDouble(expressionText, finalValue, context, chart, currentLine, "speed", null, out var evaluatedValue, out _))
             {
                 finalValue = evaluatedValue;
             }
@@ -192,9 +193,38 @@ namespace Axphi.Utilities
             bool expressionEnabled,
             string? expressionText,
             Chart? chart,
+            JudgementLine? currentLine,
             out double finalValue)
         {
-            CalculateObjectSingleTransform((double)time, easingDirection, initialValue, keyFrames, lerpFunction, expressionEnabled, expressionText, chart, out finalValue);
+            CalculateObjectSingleTransform((double)time, easingDirection, initialValue, keyFrames, lerpFunction, expressionEnabled, expressionText, chart, currentLine, out finalValue);
+        }
+
+        public static void CalculateObjectSingleTransform(
+            double time,
+            KeyFrameEasingDirection easingDirection,
+            double initialValue,
+            IReadOnlyList<KeyFrame<double>> keyFrames,
+            Func<double, double, double, double> lerpFunction,
+            bool expressionEnabled,
+            string? expressionText,
+            Chart? chart,
+            out double finalValue)
+        {
+            CalculateObjectSingleTransform(time, easingDirection, initialValue, keyFrames, lerpFunction, expressionEnabled, expressionText, chart, null, out finalValue);
+        }
+
+        public static void CalculateObjectSingleTransform(
+            int time,
+            KeyFrameEasingDirection easingDirection,
+            double initialValue,
+            IReadOnlyList<KeyFrame<double>> keyFrames,
+            Func<double, double, double, double> lerpFunction,
+            bool expressionEnabled,
+            string? expressionText,
+            Chart? chart,
+            out double finalValue)
+        {
+            CalculateObjectSingleTransform((double)time, easingDirection, initialValue, keyFrames, lerpFunction, expressionEnabled, expressionText, chart, null, out finalValue);
         }
 
         
@@ -231,6 +261,7 @@ namespace Axphi.Utilities
             KeyFrameEasingDirection easingDirection,
             StandardAnimatableProperties properties,
             Chart? chart,
+            JudgementLine? currentLine,
             out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
             finalAnchor = properties.Anchor.InitialValue;
@@ -245,7 +276,7 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Anchor.InitialValue, anchorKeyFrames, MathUtils.Lerp, out finalAnchor);
             }
 
-            if (properties.Anchor.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Anchor.ExpressionText, finalAnchor, context, out var anchorExpressionValue, out _))
+            if (properties.Anchor.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Anchor.ExpressionText, finalAnchor, context, chart, currentLine, "anchor", null, out var anchorExpressionValue, out _))
             {
                 finalAnchor = anchorExpressionValue;
             }
@@ -255,7 +286,7 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Offset.InitialValue, offsetKeyFrames, MathUtils.Lerp, out finalOffset);
             }
 
-            if (properties.Offset.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Offset.ExpressionText, finalOffset, context, out var offsetExpressionValue, out _))
+            if (properties.Offset.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Offset.ExpressionText, finalOffset, context, chart, currentLine, "position", null, out var offsetExpressionValue, out _))
             {
                 finalOffset = offsetExpressionValue;
             }
@@ -265,7 +296,7 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Scale.InitialValue, scaleKeyFrames, MathUtils.Lerp, out finalScale);
             }
 
-            if (properties.Scale.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Scale.ExpressionText, finalScale, context, out var scaleExpressionValue, out _))
+            if (properties.Scale.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Scale.ExpressionText, finalScale, context, chart, currentLine, "scale", null, out var scaleExpressionValue, out _))
             {
                 finalScale = scaleExpressionValue;
             }
@@ -275,7 +306,7 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Rotation.InitialValue, rotationKeyFrames, MathUtils.Lerp, out finalRotationAngle);
             }
 
-            if (properties.Rotation.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Rotation.ExpressionText, finalRotationAngle, context, out var rotationExpressionValue, out _))
+            if (properties.Rotation.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Rotation.ExpressionText, finalRotationAngle, context, chart, currentLine, "rotation", null, out var rotationExpressionValue, out _))
             {
                 finalRotationAngle = rotationExpressionValue;
             }
@@ -285,12 +316,21 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Opacity.InitialValue, opacityKeyFrames, MathUtils.Lerp, out finalOpacity);
             }
 
-            if (properties.Opacity.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Opacity.ExpressionText, finalOpacity, context, out var opacityExpressionValue, out _))
+            if (properties.Opacity.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Opacity.ExpressionText, finalOpacity, context, chart, currentLine, "opacity", null, out var opacityExpressionValue, out _))
             {
                 finalOpacity = opacityExpressionValue;
             }
         }
 
+        public static void CalculateObjectTransform(
+            double time,
+            KeyFrameEasingDirection easingDirection,
+            StandardAnimatableProperties properties,
+            Chart? chart,
+            out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+        {
+            CalculateObjectTransform(time, easingDirection, properties, chart, null, out finalAnchor, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
+        }
 
     }
 }

@@ -139,6 +139,28 @@ namespace Axphi.Views
             }
         }
 
+        private void ExpressionEditorTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitExpressionEditor(sender as FrameworkElement);
+        }
+
+        private void ExpressionEditorTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                CommitExpressionEditor(sender as FrameworkElement);
+                e.Handled = true;
+            }
+        }
+
+        private static void CommitExpressionEditor(FrameworkElement? element)
+        {
+            if (element?.DataContext is TrackExpressionSlot slot)
+            {
+                slot.CommitNow();
+            }
+        }
+
         private static bool IsInNoteKeyframeEditorPanel(DependencyObject current)
         {
             while (current != null)

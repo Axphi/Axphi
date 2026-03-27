@@ -397,6 +397,7 @@ namespace Axphi.ViewModels
                 ActiveTrack.Data.SpeedExpressionEnabled,
                 ActiveTrack.Data.SpeedExpressionText,
                 _timeline.CurrentChart,
+                ActiveTrack.Data,
                 out currentSpeed);
 
             currentSpeed = Math.Max(Math.Abs(currentSpeed), 0.01);

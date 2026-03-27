@@ -1,7 +1,7 @@
 using Axphi.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
-using System.Windows;
+using System.Windows.Threading;
 
 namespace Axphi.ViewModels
 {
@@ -12,7 +12,10 @@ namespace Axphi.ViewModels
         private readonly Action<bool> _writeEnabled;
         private readonly Func<string> _readText;
         private readonly Action<string> _writeText;
-        private readonly Action _afterChange;
+        private readonly Func<string, string?> _validateText;
+        private readonly Action _afterToggle;
+        private readonly Action _afterTextCommitted;
+        private readonly DispatcherTimer _commitTimer;
 
         public TrackExpressionSlot(
             string title,
@@ -22,7 +25,9 @@ namespace Axphi.ViewModels
             Action<bool> writeEnabled,
             Func<string> readText,
             Action<string> writeText,
-            Action afterChange)
+            Func<string, string?> validateText,
+            Action afterToggle,
+            Action afterTextCommitted)
         {
             Title = title;
             Placeholder = placeholder;
@@ -31,7 +36,14 @@ namespace Axphi.ViewModels
             _writeEnabled = writeEnabled;
             _readText = readText;
             _writeText = writeText;
-            _afterChange = afterChange;
+            _validateText = validateText;
+            _afterToggle = afterToggle;
+            _afterTextCommitted = afterTextCommitted;
+            _commitTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(250)
+            };
+            _commitTimer.Tick += CommitTimer_Tick;
 
             _isEnabled = _readEnabled();
             _text = _readText() ?? string.Empty;
@@ -66,15 +78,33 @@ namespace Axphi.ViewModels
         partial void OnIsEnabledChanged(bool value)
         {
             _writeEnabled(value);
+            _commitTimer.Stop();
             ValidateCore();
-            _afterChange();
+            _afterToggle();
         }
 
         partial void OnTextChanged(string value)
         {
             _writeText(value ?? string.Empty);
+            ScheduleCommit();
+        }
+
+        public void CommitNow()
+        {
+            _commitTimer.Stop();
             ValidateCore();
-            _afterChange();
+            _afterTextCommitted();
+        }
+
+        private void ScheduleCommit()
+        {
+            _commitTimer.Stop();
+            _commitTimer.Start();
+        }
+
+        private void CommitTimer_Tick(object? sender, EventArgs e)
+        {
+            CommitNow();
         }
 
         private void ValidateCore()
@@ -85,17 +115,7 @@ namespace Axphi.ViewModels
                 return;
             }
 
-            string? error;
-            if (_expectsVector)
-            {
-                PropertyExpressionEvaluator.TryEvaluateVector(Text, default, PropertyExpressionEvaluator.CreateDesignTimeContext(), out _, out error);
-            }
-            else
-            {
-                PropertyExpressionEvaluator.TryEvaluateDouble(Text, 0, PropertyExpressionEvaluator.CreateDesignTimeContext(), out _, out error);
-            }
-
-            Error = error ?? string.Empty;
+            Error = _validateText(Text) ?? string.Empty;
         }
     }
 }

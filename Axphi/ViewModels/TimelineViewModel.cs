@@ -1559,6 +1559,11 @@ namespace Axphi.ViewModels
             {
                 Tracks[i].TrackName = $"判定线图层 {i + 1}";
             }
+
+            foreach (var track in Tracks)
+            {
+                track.NotifyParentBindingChanged();
+            }
         }
 
         public bool TrySetParentLine(TrackViewModel childTrack, string? parentLineId)

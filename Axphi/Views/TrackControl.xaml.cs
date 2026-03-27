@@ -540,6 +540,19 @@ namespace Axphi.Views
             EndParentLinkDrag();
         }
 
+        private void ParentBindingOptionButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button || DataContext is not TrackViewModel trackViewModel)
+            {
+                return;
+            }
+
+            string? parentLineId = button.Tag as string;
+            trackViewModel.Timeline.TrySetParentLine(trackViewModel, string.IsNullOrWhiteSpace(parentLineId) ? null : parentLineId);
+            ParentBindingToggleButton.IsChecked = false;
+            e.Handled = true;
+        }
+
         private void EndParentLinkDrag()
         {
             _isParentLinkDragging = false;
@@ -563,7 +576,7 @@ namespace Axphi.Views
             {
                 if (source is FrameworkElement element)
                 {
-                    if (element.Name == "ParentLinkHandle" || element.Name == "ParentBindingComboBox")
+                    if (element.Name == "ParentLinkHandle" || element.Name == "ParentBindingToggleButton")
                     {
                         return true;
                     }

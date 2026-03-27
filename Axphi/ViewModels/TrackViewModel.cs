@@ -69,6 +69,10 @@ namespace Axphi.ViewModels
                 .Where(track => !ReferenceEquals(track, this))
                 .Select(track => new ParentLineOption(track.Data.ID, track.TrackName)));
 
+        public string ParentLineDisplayName => ParentLineOptions
+            .FirstOrDefault(option => option.LineId == Data.ParentLineId)
+            ?.DisplayName ?? "无";
+
         public string? ParentLineId
         {
             get => Data.ParentLineId;
@@ -1011,6 +1015,7 @@ namespace Axphi.ViewModels
         {
             OnPropertyChanged(nameof(ParentLineId));
             OnPropertyChanged(nameof(ParentLineOptions));
+            OnPropertyChanged(nameof(ParentLineDisplayName));
         }
     }
 

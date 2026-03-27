@@ -75,151 +75,68 @@
                             Cursor="Cross"
                             PreviewMouseLeftButtonDown="ParentLinkHandle_PreviewMouseLeftButtonDown" />
 
-                    <ComboBox x:Name="ParentBindingComboBox"
-                              Grid.Column="4"
-                              Width="92"
-                              Height="16"
-                              Margin="0,2,4,2"
-                              VerticalAlignment="Center"
-                              ItemsSource="{Binding ParentLineOptions}"
-                              DisplayMemberPath="DisplayName"
-                              SelectedValuePath="LineId"
-                              SelectedValue="{Binding ParentLineId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                              Background="#1A2A40"
-                              Foreground="#E8F1FF"
-                              BorderBrush="#4C6A94"
-                              BorderThickness="1"
-                              FontSize="10"
-                              Padding="2,0"
-                              ToolTip="父线">
-                        <ComboBox.Style>
-                            <Style TargetType="ComboBox">
-                                <Setter Property="Background" Value="#1A2A40" />
-                                <Setter Property="Foreground" Value="#E8F1FF" />
-                                <Setter Property="BorderBrush" Value="#4C6A94" />
-                                <Setter Property="BorderThickness" Value="1" />
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ComboBox">
-                                            <Grid>
-                                                <ToggleButton Focusable="False"
-                                                              ClickMode="Press"
-                                                              Background="{TemplateBinding Background}"
-                                                              BorderBrush="{TemplateBinding BorderBrush}"
-                                                              BorderThickness="{TemplateBinding BorderThickness}"
-                                                              IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
-                                                    <ToggleButton.Template>
-                                                        <ControlTemplate TargetType="ToggleButton">
-                                                            <Border Background="{TemplateBinding Background}"
-                                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                                    BorderThickness="{TemplateBinding BorderThickness}">
-                                                                <Grid Margin="2,0,2,0">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*" />
-                                                                        <ColumnDefinition Width="14" />
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <ContentPresenter Grid.Column="0"
-                                                                                      Margin="0,0,2,0"
-                                                                                      VerticalAlignment="Center"
-                                                                                      HorizontalAlignment="Left"
-                                                                                      Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}"
-                                                                                      ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}"
-                                                                                      ContentStringFormat="{Binding SelectionBoxItemStringFormat, RelativeSource={RelativeSource AncestorType=ComboBox}}"
-                                                                                      RecognizesAccessKey="True"
-                                                                                      TextElement.Foreground="#E8F1FF" />
-                                                                    <Path Grid.Column="1"
-                                                                          VerticalAlignment="Center"
-                                                                          HorizontalAlignment="Center"
-                                                                          Fill="#D6E8FF"
-                                                                          Data="M 0 0 L 8 0 L 4 5 Z" />
-                                                                </Grid>
-                                                            </Border>
-                                                        </ControlTemplate>
-                                                    </ToggleButton.Template>
-                                                </ToggleButton>
+                    <Grid Grid.Column="4"
+                          Width="92"
+                          Height="16"
+                          Margin="0,2,4,2"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Center">
+                        <ToggleButton x:Name="ParentBindingToggleButton"
+                                      Background="#1A2A40"
+                                      BorderBrush="#4C6A94"
+                                      BorderThickness="1"
+                                      Foreground="#E8F1FF"
+                                      FontSize="10"
+                                      Padding="2,0"
+                                      HorizontalContentAlignment="Left"
+                                      ToolTip="父线">
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Left">
+                                <Path Width="8"
+                                      Height="5"
+                                      Margin="2,0,4,0"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Left"
+                                      Fill="#D6E8FF"
+                                      Data="M 0 0 L 8 0 L 4 5 Z" />
+                                <TextBlock VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="#E8F1FF"
+                                           Text="{Binding ParentLineDisplayName}" />
+                            </StackPanel>
+                        </ToggleButton>
 
-                                                <Popup x:Name="PART_Popup"
-                                                       Placement="Bottom"
-                                                       Focusable="False"
-                                                       AllowsTransparency="True"
-                                                       IsOpen="{TemplateBinding IsDropDownOpen}"
-                                                       PopupAnimation="Slide">
-                                                    <Border Background="#14253A"
-                                                            BorderBrush="#4C6A94"
-                                                            BorderThickness="1">
-                                                        <ScrollViewer CanContentScroll="True" MaxHeight="220">
-                                                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
-                                                        </ScrollViewer>
-                                                    </Border>
-                                                </Popup>
-                                            </Grid>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ComboBox.Style>
-                        <ComboBox.Resources>
-                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#14253A" />
-                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#E8F1FF" />
-                            <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#1A2A40" />
-                            <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#E8F1FF" />
-                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2D4A70" />
-                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#F4F8FF" />
-                        </ComboBox.Resources>
-                        <ComboBox.ItemContainerStyle>
-                            <Style TargetType="ComboBoxItem">
-                                <Setter Property="Foreground" Value="#E8F1FF" />
-                                <Setter Property="Background" Value="#14253A" />
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ComboBoxItem">
-                                            <Border x:Name="ItemBorder" Background="{TemplateBinding Background}">
-                                                <Grid Margin="6,1,6,1">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="12" />
-                                                        <ColumnDefinition Width="*" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <Path x:Name="SelectedMark"
-                                                          Grid.Column="0"
-                                                          VerticalAlignment="Center"
-                                                          HorizontalAlignment="Left"
-                                                          Stroke="#CFE3FF"
-                                                          StrokeThickness="1.6"
-                                                          StrokeStartLineCap="Round"
-                                                          StrokeEndLineCap="Round"
-                                                          StrokeLineJoin="Round"
-                                                          Data="M 0,4 L 3,7 L 9,1"
-                                                          Visibility="Collapsed" />
-                                                    <ContentPresenter Grid.Column="1"
-                                                                      VerticalAlignment="Center"
-                                                                      RecognizesAccessKey="True"
-                                                                      TextElement.Foreground="{TemplateBinding Foreground}" />
-                                                </Grid>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsHighlighted" Value="True">
-                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#2B4467" />
-                                                    <Setter Property="Foreground" Value="#F4F8FF" />
-                                                </Trigger>
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#35547C" />
-                                                    <Setter Property="Foreground" Value="#F7FBFF" />
-                                                    <Setter TargetName="SelectedMark" Property="Visibility" Value="Visible" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                                <Style.Triggers>
-                                    <Trigger Property="IsHighlighted" Value="True">
-                                        <Setter Property="Background" Value="#2B4467" />
-                                        <Setter Property="Foreground" Value="#F4F8FF" />
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ComboBox.ItemContainerStyle>
-                    </ComboBox>
+                        <Popup x:Name="ParentBindingPopup"
+                               PlacementTarget="{Binding ElementName=ParentBindingToggleButton}"
+                               Placement="Bottom"
+                               StaysOpen="False"
+                               AllowsTransparency="True"
+                               IsOpen="{Binding IsChecked, ElementName=ParentBindingToggleButton, Mode=TwoWay}">
+                            <Border Background="#14253A"
+                                    BorderBrush="#4C6A94"
+                                    BorderThickness="1"
+                                    MinWidth="92">
+                                <ScrollViewer MaxHeight="220">
+                                    <ItemsControl ItemsSource="{Binding ParentLineOptions}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Tag="{Binding LineId}"
+                                                        Click="ParentBindingOptionButton_Click"
+                                                        HorizontalContentAlignment="Left"
+                                                        Padding="6,2"
+                                                        Background="#14253A"
+                                                        Foreground="#E8F1FF"
+                                                        BorderThickness="0"
+                                                        FontSize="10"
+                                                        Cursor="Hand"
+                                                        Content="{Binding DisplayName}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
 
                     <Button Grid.Column="5"
                             Margin="0,2,6,2"

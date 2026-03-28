@@ -1,0 +1,101 @@
+<UserControl x:Class="Axphi.Views.TrackPropertyView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Axphi.Views"
+             mc:Ignorable="d"
+             d:DesignHeight="48"
+             d:DesignWidth="300"
+             x:Name="Root">
+
+    <UserControl.Resources>
+        <Style x:Key="ExpressionIndicatorBorderStyle" TargetType="Border">
+            <Setter Property="Width" Value="10" />
+            <Setter Property="Height" Value="10" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="#2F8FFF" />
+            <Setter Property="BorderBrush" Value="#9FD1FF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                    <Setter Property="Background" Value="#D04B4B" />
+                    <Setter Property="BorderBrush" Value="#FFC2C2" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasError}" Value="True">
+                    <Setter Property="BorderBrush" Value="#FFD966" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ExpressionSummaryBorderStyle" TargetType="Border">
+            <Setter Property="Margin" Value="5,2,10,4" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="#1D2D40" />
+            <Setter Property="BorderBrush" Value="#335B88" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasError}" Value="True">
+                    <Setter Property="Background" Value="#3C261E" />
+                    <Setter Property="BorderBrush" Value="#C96E54" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <Grid Height="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="60" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       Margin="5,0,0,0"
+                       VerticalAlignment="Center"
+                       FontSize="11"
+                       Foreground="#aaa"
+                       Text="{Binding Title, ElementName=Root}" />
+
+            <Button Grid.Column="1"
+                    Width="12"
+                    Height="12"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    ToolTip="添加/更新关键帧"
+                    Command="{Binding AddKeyframeCommand, ElementName=Root}">
+                <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
+                      Fill="#888"
+                      Stretch="Fill" />
+            </Button>
+
+            <Border Grid.Column="2"
+                    DataContext="{Binding ExpressionSlot, ElementName=Root}"
+                    Style="{StaticResource ExpressionIndicatorBorderStyle}"
+                    ToolTip="Alt+点击启用/关闭表达式"
+                    PreviewMouseLeftButtonDown="ExpressionIndicator_PreviewMouseLeftButtonDown" />
+
+            <ContentPresenter Grid.Column="3"
+                              Content="{Binding EditorContent, ElementName=Root}" />
+        </Grid>
+
+        <Border DataContext="{Binding ExpressionSlot, ElementName=Root}"
+                Style="{StaticResource ExpressionSummaryBorderStyle}">
+            <TextBlock FontSize="10"
+                       Foreground="#C8DEFF"
+                       Text="{Binding Summary}"
+                       TextWrapping="Wrap" />
+        </Border>
+    </StackPanel>
+</UserControl>

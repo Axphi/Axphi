@@ -306,6 +306,19 @@ namespace Axphi.Views
             }
 
             Point point = e.GetPosition(EditorCanvas);
+
+            // 鼠标悬浮在已有 note 上时，隐藏“将要放置的 note 虚影”
+            if (EditorCanvas.TryHitTest(point, out var hoveredNote, out _, out _) && hoveredNote != null)
+            {
+                if (vm.ClearHoverPreview())
+                {
+                    EditorCanvas.InvalidateVisual();
+                }
+                return;
+            }
+
+
+
             bool hoverPreviewChanged = vm.UpdateHoverPreview(point, EditorCanvas.RenderSize);
             if (vm.HasHoverPreview)
             {

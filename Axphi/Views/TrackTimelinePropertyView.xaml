@@ -1,0 +1,103 @@
+<UserControl x:Class="Axphi.Views.TrackTimelinePropertyView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="68"
+             d:DesignWidth="600"
+             x:Name="Root">
+
+    <StackPanel>
+        <Border Width="{Binding Timeline.TotalPixelWidth}"
+                Height="20"
+                HorizontalAlignment="Left"
+                BorderBrush="#333"
+                BorderThickness="0,1,0,0"
+                Background="{Binding RowBackground, ElementName=Root}">
+            <ItemsControl ItemsSource="{Binding KeyframesSource, ElementName=Root}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas Margin="8,0,0,0" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Thumb Cursor="Hand"
+                               ToolTip="{Binding KeyframeToolTip, ElementName=Root}"
+                               PreviewMouseRightButtonDown="KeyframeThumb_PreviewMouseRightButtonDown"
+                               DragStarted="KeyframeThumb_DragStarted"
+                               DragDelta="KeyframeThumb_DragDelta"
+                               DragCompleted="KeyframeThumb_DragCompleted">
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Rectangle x:Name="KeyframeRect"
+                                               Width="8"
+                                               Height="8"
+                                               Fill="{Binding KeyframeFill, ElementName=Root}">
+                                        <Rectangle.RenderTransform>
+                                            <TransformGroup>
+                                                <RotateTransform Angle="45" CenterX="4" CenterY="4" />
+                                                <TranslateTransform X="-4" Y="6" />
+                                            </TransformGroup>
+                                        </Rectangle.RenderTransform>
+                                    </Rectangle>
+                                    <ControlTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsFreezeKeyframe}" Value="True">
+                                            <Setter TargetName="KeyframeRect" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <TransformGroup>
+                                                        <RotateTransform Angle="0" CenterX="4" CenterY="4" />
+                                                        <TranslateTransform X="-4" Y="6" />
+                                                    </TransformGroup>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
+                                            <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
+                                            <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
+                                        </DataTrigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+            </ItemsControl>
+        </Border>
+
+        <Border Width="{Binding Timeline.TotalPixelWidth}"
+                HorizontalAlignment="Left"
+                DataContext="{Binding ExpressionSlot, ElementName=Root}"
+                Style="{Binding ExpressionEditorStyle, ElementName=Root}">
+            <Grid Margin="8,0,8,0">
+                <TextBox Style="{Binding ExpressionEditorTextBoxStyle, ElementName=Root}"
+                         MinHeight="44"
+                         Padding="8,6"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         FontFamily="Consolas"
+                         FontSize="11"
+                         Foreground="#E9F3FF"
+                         CaretBrush="#E9F3FF"
+                         Background="#1B314A"
+                         BorderBrush="#4A7AA8"
+                         BorderThickness="1"
+                         ToolTip="{Binding Summary}"
+                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
+        </Border>
+    </StackPanel>
+</UserControl>

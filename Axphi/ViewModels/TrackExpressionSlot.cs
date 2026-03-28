@@ -1,7 +1,6 @@
 using Axphi.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
-using System.Windows.Threading;
 
 namespace Axphi.ViewModels
 {
@@ -15,7 +14,6 @@ namespace Axphi.ViewModels
         private readonly Func<string, string?> _validateText;
         private readonly Action _afterToggle;
         private readonly Action _afterTextCommitted;
-        private readonly DispatcherTimer _commitTimer;
 
         public TrackExpressionSlot(
             string title,
@@ -39,11 +37,6 @@ namespace Axphi.ViewModels
             _validateText = validateText;
             _afterToggle = afterToggle;
             _afterTextCommitted = afterTextCommitted;
-            _commitTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(250)
-            };
-            _commitTimer.Tick += CommitTimer_Tick;
 
             _isEnabled = _readEnabled();
             _text = _readText() ?? string.Empty;
@@ -78,7 +71,6 @@ namespace Axphi.ViewModels
         partial void OnIsEnabledChanged(bool value)
         {
             _writeEnabled(value);
-            _commitTimer.Stop();
             ValidateCore();
             _afterToggle();
         }
@@ -86,25 +78,14 @@ namespace Axphi.ViewModels
         partial void OnTextChanged(string value)
         {
             _writeText(value ?? string.Empty);
-            ScheduleCommit();
+            // Avoid expensive live validation while typing; validate on explicit commit only.
+            Error = string.Empty;
         }
 
         public void CommitNow()
         {
-            _commitTimer.Stop();
             ValidateCore();
             _afterTextCommitted();
-        }
-
-        private void ScheduleCommit()
-        {
-            _commitTimer.Stop();
-            _commitTimer.Start();
-        }
-
-        private void CommitTimer_Tick(object? sender, EventArgs e)
-        {
-            CommitNow();
         }
 
         private void ValidateCore()

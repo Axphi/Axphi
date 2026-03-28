@@ -88,6 +88,8 @@
                     Style="{Binding ExpressionEditorStyle, ElementName=Root}">
                 <Grid Margin="8,0,8,0">
                     <TextBox Style="{Binding ExpressionEditorTextBoxStyle, ElementName=Root}"
+                             GotKeyboardFocus="ExpressionEditorTextBox_GotKeyboardFocus"
+                             LostKeyboardFocus="ExpressionEditorTextBox_LostKeyboardFocus"
                              MinHeight="44"
                              Padding="8,6"
                              AcceptsReturn="True"

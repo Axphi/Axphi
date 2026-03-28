@@ -3,12 +3,15 @@ using System.Collections;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace Axphi.Views
 {
     public partial class TrackTimelinePropertyView : UserControl
     {
         private Point _lastMousePos;
+        private Window? _parentWindow;
+        private TextBox? _activeExpressionEditor;
 
         public static readonly DependencyProperty KeyframesSourceProperty = DependencyProperty.Register(
             nameof(KeyframesSource),
@@ -79,6 +82,7 @@ namespace Axphi.Views
         public TrackTimelinePropertyView()
         {
             InitializeComponent();
+            Unloaded += (_, _) => UnhookWindowClick();
         }
 
         public IEnumerable? KeyframesSource
@@ -194,6 +198,81 @@ namespace Axphi.Views
             dynamic wrapper = fe.DataContext;
             wrapper.OnRightClick();
             e.Handled = true;
+        }
+
+        private void ExpressionEditorTextBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (sender is not TextBox textBox)
+            {
+                return;
+            }
+
+            _activeExpressionEditor = textBox;
+            HookWindowClick();
+        }
+
+        private void ExpressionEditorTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (ReferenceEquals(_activeExpressionEditor, sender))
+            {
+                _activeExpressionEditor = null;
+            }
+
+            UnhookWindowClick();
+        }
+
+        private void HookWindowClick()
+        {
+            _parentWindow ??= Window.GetWindow(this);
+            if (_parentWindow != null)
+            {
+                _parentWindow.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
+                _parentWindow.PreviewMouseDown += ParentWindow_PreviewMouseDown;
+            }
+        }
+
+        private void UnhookWindowClick()
+        {
+            if (_parentWindow != null)
+            {
+                _parentWindow.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
+            }
+
+            _parentWindow = null;
+        }
+
+        private void ParentWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (_activeExpressionEditor == null)
+            {
+                return;
+            }
+
+            if (e.OriginalSource is DependencyObject clickedElement
+                && IsDescendantOf(clickedElement, _activeExpressionEditor))
+            {
+                return;
+            }
+
+            UnhookWindowClick();
+            _activeExpressionEditor = null;
+            Keyboard.ClearFocus();
+        }
+
+        private static bool IsDescendantOf(DependencyObject descendant, DependencyObject ancestor)
+        {
+            DependencyObject? current = descendant;
+            while (current != null)
+            {
+                if (ReferenceEquals(current, ancestor))
+                {
+                    return true;
+                }
+
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            return false;
         }
     }
 }

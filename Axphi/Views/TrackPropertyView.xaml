@@ -43,6 +43,9 @@
                     <Setter Property="Visibility" Value="Visible" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding HasError}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasError}" Value="True">
                     <Setter Property="Background" Value="#3C261E" />
                     <Setter Property="BorderBrush" Value="#C96E54" />
                 </DataTrigger>

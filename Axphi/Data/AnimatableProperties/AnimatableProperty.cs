@@ -7,6 +7,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace Axphi.Data.AnimatableProperties
 {
@@ -30,6 +31,9 @@ namespace Axphi.Data.AnimatableProperties
         public bool ExpressionEnabled { get; set; }
 
         public string ExpressionText { get; set; } = string.Empty;
+
+        [JsonIgnore]
+        public bool ExpressionIsValid { get; set; } = true;
 
         public List<TKeyFrame> KeyFrames { get; } = new();
 

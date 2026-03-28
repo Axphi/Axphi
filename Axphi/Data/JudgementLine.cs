@@ -1,5 +1,6 @@
 ﻿using Axphi.Data.AnimatableProperties;
 using Axphi.Data.KeyFrames;
+using System.Text.Json.Serialization;
 using System.Windows;
 
 namespace Axphi.Data
@@ -19,6 +20,9 @@ namespace Axphi.Data
         public bool SpeedExpressionEnabled { get; set; }
 
         public string SpeedExpressionText { get; set; } = string.Empty;
+
+        [JsonIgnore]
+        public bool SpeedExpressionIsValid { get; set; } = true;
 
         // 默认使用实时(Realtime)模式，也可选积分(Integral)模式
         public string SpeedMode { get; set; } = "Realtime";

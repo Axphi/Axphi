@@ -704,7 +704,7 @@ namespace Axphi.ViewModels
                 value => property.ExpressionEnabled = value,
                 () => property.ExpressionText,
                 value => property.ExpressionText = value ?? string.Empty,
-                text => ValidateVectorExpression(text, property.InitialValue),
+                text => ValidateVectorExpression(text, property, property.InitialValue),
                 HandleExpressionToggleChanged,
                 HandleExpressionTextCommitted);
         }
@@ -720,12 +720,13 @@ namespace Axphi.ViewModels
                 value => property.ExpressionEnabled = value,
                 () => property.ExpressionText,
                 value => property.ExpressionText = value ?? string.Empty,
-                text => ValidateScalarExpression(text, property.InitialValue),
+                text => ValidateScalarExpression(text, property, property.InitialValue),
                 HandleExpressionToggleChanged,
                 HandleExpressionTextCommitted);
         }
 
-        private string? ValidateVectorExpression(string text, Vector baseValue)
+        private string? ValidateVectorExpression<TKeyFrame>(string text, AnimatableProperty<Vector, TKeyFrame> property, Vector baseValue)
+            where TKeyFrame : KeyFrame<Vector>
         {
             PropertyExpressionEvaluator.TryEvaluateVector(
                 text,
@@ -736,10 +737,13 @@ namespace Axphi.ViewModels
                 out _,
                 out var error);
 
+            property.ExpressionIsValid = string.IsNullOrWhiteSpace(error);
+
             return error;
         }
 
-        private string? ValidateScalarExpression(string text, double baseValue)
+        private string? ValidateScalarExpression<TKeyFrame>(string text, AnimatableProperty<double, TKeyFrame> property, double baseValue)
+            where TKeyFrame : KeyFrame<double>
         {
             PropertyExpressionEvaluator.TryEvaluateDouble(
                 text,
@@ -750,12 +754,24 @@ namespace Axphi.ViewModels
                 out _,
                 out var error);
 
+            property.ExpressionIsValid = string.IsNullOrWhiteSpace(error);
+
             return error;
         }
 
         private string? ValidateSpeedExpression(string text)
         {
-            return ValidateScalarExpression(text, Data.InitialSpeed);
+            PropertyExpressionEvaluator.TryEvaluateDouble(
+                text,
+                Data.InitialSpeed,
+                PropertyExpressionEvaluator.CreateContext(_timeline.GetCurrentTick(), _timeline.CurrentChart),
+                _timeline.CurrentChart,
+                Data,
+                out _,
+                out var error);
+
+            Data.SpeedExpressionIsValid = string.IsNullOrWhiteSpace(error);
+            return error;
         }
 
         private void HandleExpressionToggleChanged()

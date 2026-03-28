@@ -172,7 +172,7 @@ namespace Axphi.Utilities
         {
             CalculateObjectSingleTransform(time, easingDirection, initialValue, keyFrames, lerpFunction, out finalValue);
 
-            if (!expressionEnabled)
+            if (!expressionEnabled || (currentLine != null && !currentLine.SpeedExpressionIsValid))
             {
                 return;
             }
@@ -276,7 +276,9 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Anchor.InitialValue, anchorKeyFrames, MathUtils.Lerp, out finalAnchor);
             }
 
-            if (properties.Anchor.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Anchor.ExpressionText, finalAnchor, context, chart, currentLine, "anchor", null, out var anchorExpressionValue, out _))
+            if (properties.Anchor.ExpressionEnabled
+                && properties.Anchor.ExpressionIsValid
+                && PropertyExpressionEvaluator.TryEvaluateVector(properties.Anchor.ExpressionText, finalAnchor, context, chart, currentLine, "anchor", null, out var anchorExpressionValue, out _))
             {
                 finalAnchor = anchorExpressionValue;
             }
@@ -286,7 +288,9 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Offset.InitialValue, offsetKeyFrames, MathUtils.Lerp, out finalOffset);
             }
 
-            if (properties.Offset.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Offset.ExpressionText, finalOffset, context, chart, currentLine, "position", null, out var offsetExpressionValue, out _))
+            if (properties.Offset.ExpressionEnabled
+                && properties.Offset.ExpressionIsValid
+                && PropertyExpressionEvaluator.TryEvaluateVector(properties.Offset.ExpressionText, finalOffset, context, chart, currentLine, "position", null, out var offsetExpressionValue, out _))
             {
                 finalOffset = offsetExpressionValue;
             }
@@ -296,7 +300,9 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Scale.InitialValue, scaleKeyFrames, MathUtils.Lerp, out finalScale);
             }
 
-            if (properties.Scale.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateVector(properties.Scale.ExpressionText, finalScale, context, chart, currentLine, "scale", null, out var scaleExpressionValue, out _))
+            if (properties.Scale.ExpressionEnabled
+                && properties.Scale.ExpressionIsValid
+                && PropertyExpressionEvaluator.TryEvaluateVector(properties.Scale.ExpressionText, finalScale, context, chart, currentLine, "scale", null, out var scaleExpressionValue, out _))
             {
                 finalScale = scaleExpressionValue;
             }
@@ -306,7 +312,9 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Rotation.InitialValue, rotationKeyFrames, MathUtils.Lerp, out finalRotationAngle);
             }
 
-            if (properties.Rotation.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Rotation.ExpressionText, finalRotationAngle, context, chart, currentLine, "rotation", null, out var rotationExpressionValue, out _))
+            if (properties.Rotation.ExpressionEnabled
+                && properties.Rotation.ExpressionIsValid
+                && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Rotation.ExpressionText, finalRotationAngle, context, chart, currentLine, "rotation", null, out var rotationExpressionValue, out _))
             {
                 finalRotationAngle = rotationExpressionValue;
             }
@@ -316,7 +324,9 @@ namespace Axphi.Utilities
                 CalculateObjectSingleTransform(time, easingDirection, properties.Opacity.InitialValue, opacityKeyFrames, MathUtils.Lerp, out finalOpacity);
             }
 
-            if (properties.Opacity.ExpressionEnabled && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Opacity.ExpressionText, finalOpacity, context, chart, currentLine, "opacity", null, out var opacityExpressionValue, out _))
+            if (properties.Opacity.ExpressionEnabled
+                && properties.Opacity.ExpressionIsValid
+                && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Opacity.ExpressionText, finalOpacity, context, chart, currentLine, "opacity", null, out var opacityExpressionValue, out _))
             {
                 finalOpacity = opacityExpressionValue;
             }

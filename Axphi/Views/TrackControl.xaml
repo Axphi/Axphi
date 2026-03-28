@@ -191,6 +191,9 @@
                 </Grid>
                 <!--  四个属性和 note  -->
                 <StackPanel Margin="24,0,0,0" Background="#252525" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+
+
+                    <!--  anchor  -->
                     <local:TrackPropertyView Title="Anchor"
                                              AddKeyframeCommand="{Binding AddAnchorKeyframeCommand}"
                                              ExpressionSlot="{Binding AnchorExpression}">
@@ -203,6 +206,8 @@
                         </local:TrackPropertyView.EditorContent>
                     </local:TrackPropertyView>
 
+
+                    <!--  position  -->
                     <local:TrackPropertyView Title="Position"
                                              AddKeyframeCommand="{Binding AddPositionKeyframeCommand}"
                                              ExpressionSlot="{Binding PositionExpression}">
@@ -215,6 +220,8 @@
                         </local:TrackPropertyView.EditorContent>
                     </local:TrackPropertyView>
 
+
+                    <!--  scale  -->
                     <local:TrackPropertyView Title="Scale"
                                              AddKeyframeCommand="{Binding AddScaleKeyframeCommand}"
                                              ExpressionSlot="{Binding ScaleExpression}">
@@ -227,6 +234,8 @@
                         </local:TrackPropertyView.EditorContent>
                     </local:TrackPropertyView>
 
+
+                    <!--  rotation  -->
                     <local:TrackPropertyView Title="Rotation"
                                              AddKeyframeCommand="{Binding AddRotationKeyframeCommand}"
                                              ExpressionSlot="{Binding RotationExpression}">
@@ -238,6 +247,8 @@
                         </local:TrackPropertyView.EditorContent>
                     </local:TrackPropertyView>
 
+
+                    <!--  opacity  -->
                     <local:TrackPropertyView Title="Opacity"
                                              AddKeyframeCommand="{Binding AddOpacityKeyframeCommand}"
                                              ExpressionSlot="{Binding OpacityExpression}">
@@ -248,6 +259,8 @@
                         </local:TrackPropertyView.EditorContent>
                     </local:TrackPropertyView>
 
+
+                    <!--  speed  -->
                     <local:TrackPropertyView Title="Speed"
                                              AddKeyframeCommand="{Binding AddSpeedKeyframeCommand}"
                                              ExpressionSlot="{Binding SpeedExpression}">
@@ -392,26 +405,29 @@
                                     </StackPanel.Style>
 
                                     <Grid Height="20">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#d6d6d6" Text="{Binding SelectionTitle}" />
-                                    <Border Grid.Column="1" Margin="0,2,10,2" Padding="6,0" Background="#2F4A73" CornerRadius="9">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding SelectionModeHint}" Value="">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock VerticalAlignment="Center" FontSize="10" Foreground="#D7E6FF" Text="{Binding SelectionModeHint}" />
-                                    </Border>
-                                </Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#d6d6d6" Text="{Binding SelectionTitle}" />
+                                        <Border Grid.Column="1" Margin="0,2,10,2" Padding="6,0" Background="#2F4A73" CornerRadius="9">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectionModeHint}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock VerticalAlignment="Center" FontSize="10" Foreground="#D7E6FF" Text="{Binding SelectionModeHint}" />
+                                        </Border>
+                                    </Grid>
 
+
+
+                                    <!--  kind  -->
                                     <local:TrackPropertyView Title="Kind"
                                                              AddKeyframeCommand="{Binding AddNoteKindKeyframeCommand}"
                                                              KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
@@ -434,6 +450,7 @@
                                         </local:TrackPropertyView.EditorContent>
                                     </local:TrackPropertyView>
 
+                                    <!--  anchor  -->
                                     <local:TrackPropertyView Title="Anchor"
                                                              AddKeyframeCommand="{Binding AddAnchorKeyframeCommand}"
                                                              KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
@@ -448,6 +465,7 @@
                                         </local:TrackPropertyView.EditorContent>
                                     </local:TrackPropertyView>
 
+                                    <!--  position  -->
                                     <local:TrackPropertyView Title="Position"
                                                              AddKeyframeCommand="{Binding AddPositionKeyframeCommand}"
                                                              KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
@@ -462,6 +480,7 @@
                                         </local:TrackPropertyView.EditorContent>
                                     </local:TrackPropertyView>
 
+                                    <!--  scale  -->
                                     <local:TrackPropertyView Title="Scale"
                                                              AddKeyframeCommand="{Binding AddScaleKeyframeCommand}"
                                                              KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
@@ -476,6 +495,7 @@
                                         </local:TrackPropertyView.EditorContent>
                                     </local:TrackPropertyView>
 
+                                    <!--  rotation  -->
                                     <local:TrackPropertyView Title="Rotation"
                                                              AddKeyframeCommand="{Binding AddRotationKeyframeCommand}"
                                                              KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
@@ -488,6 +508,7 @@
                                         </local:TrackPropertyView.EditorContent>
                                     </local:TrackPropertyView>
 
+                                    <!--  opacity  -->
                                     <local:TrackPropertyView Title="Opacity"
                                                              AddKeyframeCommand="{Binding AddOpacityKeyframeCommand}"
                                                              KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
@@ -501,75 +522,75 @@
                                     </local:TrackPropertyView>
 
                                     <Grid Height="20">
-                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Custom Speed" />
-                                    <Grid Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="18" />
-                                            <ColumnDefinition Width="62" />
-                                        </Grid.ColumnDefinitions>
-                                        <CheckBox Grid.Column="0" IsChecked="{Binding HasCustomSpeed, Mode=TwoWay}" IsThreeState="True" VerticalAlignment="Center" HorizontalAlignment="Left" Cursor="Hand">
-                                        <CheckBox.Template>
-                                            <ControlTemplate TargetType="CheckBox">
-                                                <Grid Width="14" Height="14" Background="Transparent">
-                                                    <Border x:Name="CheckBoxBorder"
-                                                            Background="#252525"
-                                                            BorderBrush="#5A5A5A"
-                                                            BorderThickness="1"
-                                                            CornerRadius="2" />
-                                                    <Path x:Name="CheckMark"
-                                                          Width="8"
-                                                          Height="6"
-                                                          Data="M 0,3 L 2.5,5.5 L 8,0"
-                                                          Stretch="Fill"
-                                                          Stroke="#FFFFFF"
-                                                          StrokeThickness="1.6"
-                                                          StrokeStartLineCap="Round"
-                                                          StrokeEndLineCap="Round"
-                                                          StrokeLineJoin="Round"
-                                                          Visibility="Collapsed"
-                                                          HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"
-                                                          Margin="0,1,0,0" />
-                                                </Grid>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsChecked" Value="True">
-                                                        <Setter TargetName="CheckBoxBorder" Property="Background" Value="#29476D" />
-                                                        <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#5285F3" />
-                                                        <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
-                                                    </Trigger>
-                                                    <Trigger Property="IsChecked" Value="{x:Null}">
-                                                        <Setter TargetName="CheckBoxBorder" Property="Background" Value="#3B3B3B" />
-                                                        <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#9B9B9B" />
-                                                    </Trigger>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#8AAEFF" />
-                                                    </Trigger>
-                                                    <Trigger Property="IsEnabled" Value="False">
-                                                        <Setter TargetName="CheckBoxBorder" Property="Opacity" Value="0.45" />
-                                                        <Setter TargetName="CheckMark" Property="Opacity" Value="0.45" />
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </CheckBox.Template>
-                                    </CheckBox>
-                                        <comp:DraggableValueBox Grid.Column="1"
-                                                                Margin="6,0,0,0"
-                                                                Width="56"
-                                                                DragSpeed="0.1"
-                                                                NumberFormat="0.00"
-                                                                Value="{Binding CurrentCustomSpeed, Mode=TwoWay}">
-                                            <comp:DraggableValueBox.Style>
-                                                <Style TargetType="comp:DraggableValueBox">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding HasResolvedCustomSpeed}" Value="False">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </comp:DraggableValueBox.Style>
-                                        </comp:DraggableValueBox>
-                                    </Grid>
+                                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Custom Speed" />
+                                        <Grid Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="18" />
+                                                <ColumnDefinition Width="62" />
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" IsChecked="{Binding HasCustomSpeed, Mode=TwoWay}" IsThreeState="True" VerticalAlignment="Center" HorizontalAlignment="Left" Cursor="Hand">
+                                                <CheckBox.Template>
+                                                    <ControlTemplate TargetType="CheckBox">
+                                                        <Grid Width="14" Height="14" Background="Transparent">
+                                                            <Border x:Name="CheckBoxBorder"
+                                                                    Background="#252525"
+                                                                    BorderBrush="#5A5A5A"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="2" />
+                                                            <Path x:Name="CheckMark"
+                                                                  Width="8"
+                                                                  Height="6"
+                                                                  Data="M 0,3 L 2.5,5.5 L 8,0"
+                                                                  Stretch="Fill"
+                                                                  Stroke="#FFFFFF"
+                                                                  StrokeThickness="1.6"
+                                                                  StrokeStartLineCap="Round"
+                                                                  StrokeEndLineCap="Round"
+                                                                  StrokeLineJoin="Round"
+                                                                  Visibility="Collapsed"
+                                                                  HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"
+                                                                  Margin="0,1,0,0" />
+                                                        </Grid>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsChecked" Value="True">
+                                                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#29476D" />
+                                                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#5285F3" />
+                                                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                                                            </Trigger>
+                                                            <Trigger Property="IsChecked" Value="{x:Null}">
+                                                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#3B3B3B" />
+                                                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#9B9B9B" />
+                                                            </Trigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#8AAEFF" />
+                                                            </Trigger>
+                                                            <Trigger Property="IsEnabled" Value="False">
+                                                                <Setter TargetName="CheckBoxBorder" Property="Opacity" Value="0.45" />
+                                                                <Setter TargetName="CheckMark" Property="Opacity" Value="0.45" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </CheckBox.Template>
+                                            </CheckBox>
+                                            <comp:DraggableValueBox Grid.Column="1"
+                                                                    Margin="6,0,0,0"
+                                                                    Width="56"
+                                                                    DragSpeed="0.1"
+                                                                    NumberFormat="0.00"
+                                                                    Value="{Binding CurrentCustomSpeed, Mode=TwoWay}">
+                                                <comp:DraggableValueBox.Style>
+                                                    <Style TargetType="comp:DraggableValueBox">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasResolvedCustomSpeed}" Value="False">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </comp:DraggableValueBox.Style>
+                                            </comp:DraggableValueBox>
+                                        </Grid>
                                     </Grid>
                                 </StackPanel>
                             </Grid>
@@ -582,7 +603,7 @@
 
         <!--  右侧  -->
         <ScrollViewer x:Name="TrackScrollViewer"
-                  Grid.Column="2" HorizontalScrollBarVisibility="Hidden"
+                      Grid.Column="2" HorizontalScrollBarVisibility="Hidden"
                       VerticalScrollBarVisibility="Disabled"
                       PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
@@ -591,7 +612,7 @@
                     <!--  图层  -->
                     <Canvas Margin="8,0,0,0" Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left">
 
-                           <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
+                        <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
                                PreviewMouseLeftButtonDown="LayerThumb_PreviewMouseLeftButtonDown"
                                PreviewMouseLeftButtonUp="LayerThumb_PreviewMouseLeftButtonUp"
                                DragStarted="LayerThumb_DragStarted"
@@ -602,7 +623,7 @@
 
                                     <Grid Width="{Binding LayerPixelWidth}" Height="20">
 
-                                        <Rectangle x:Name="LayerRect" Fill="#374561"/>
+                                        <Rectangle x:Name="LayerRect" Fill="#374561" />
 
                                         <Thumb Width="8" HorizontalAlignment="Left" Cursor="SizeWE"
                                                DragStarted="LayerLeftHandle_DragStarted"

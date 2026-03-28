@@ -13,18 +13,11 @@
 
     <UserControl.Resources>
         <Style x:Key="ExpressionEditorBorderStyle" TargetType="Border">
-            <Setter Property="Background" Value="#16283A" />
-            <Setter Property="BorderBrush" Value="#27486A" />
-            <Setter Property="BorderThickness" Value="0,1,0,0" />
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="Visibility" Value="Collapsed" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,6,12,8" />
             <Style.Triggers>
-                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
-                    <Setter Property="Visibility" Value="Visible" />
-                </DataTrigger>
                 <DataTrigger Binding="{Binding HasError}" Value="True">
-                    <Setter Property="Background" Value="#33231F" />
-                    <Setter Property="BorderBrush" Value="#C96E54" />
+                    <Setter Property="Background" Value="#2A1D1A" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -32,6 +25,19 @@
         <Style x:Key="ExpressionEditorTextBoxStyle" TargetType="TextBox">
             <EventSetter Event="LostFocus" Handler="ExpressionEditorTextBox_LostFocus" />
             <EventSetter Event="PreviewKeyDown" Handler="ExpressionEditorTextBox_PreviewKeyDown" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#DDEBFF" />
+            <Setter Property="CaretBrush" Value="#E9F3FF" />
+            <Setter Property="SelectionBrush" Value="#496B92" />
+            <Style.Triggers>
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                    <Setter Property="Background" Value="#181818" />
+                </Trigger>
+                <DataTrigger Binding="{Binding HasError}" Value="True">
+                    <Setter Property="Background" Value="#2A1D1A" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 

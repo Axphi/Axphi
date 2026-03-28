@@ -200,6 +200,11 @@ namespace Axphi.Views
             e.Handled = true;
         }
 
+        private void ExpressionEditorHost_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            ExpressionSlot?.UpdatePanelHeight(e.NewSize.Height);
+        }
+
         private void ExpressionEditorTextBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
             if (sender is not TextBox textBox)

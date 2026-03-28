@@ -81,10 +81,26 @@
             </ItemsControl>
         </Border>
 
-        <ContentControl Visibility="{Binding ShowExpressionEditor, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}">
+        <ContentControl>
+            <ContentControl.Style>
+                <Style TargetType="ContentControl">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding ShowExpressionEditor, ElementName=Root}" Value="True" />
+                                <Condition Binding="{Binding ExpressionSlot.IsPanelVisible, ElementName=Root}" Value="True" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ContentControl.Style>
             <Border Width="{Binding TimelineWidth, ElementName=Root}"
                     HorizontalAlignment="Left"
                     DataContext="{Binding ExpressionSlot, ElementName=Root}"
+                    Background="#252525"
+                    SizeChanged="ExpressionEditorHost_SizeChanged"
                     Style="{Binding ExpressionEditorStyle, ElementName=Root}">
                 <Grid Margin="8,0,8,0">
                     <TextBox Style="{Binding ExpressionEditorTextBoxStyle, ElementName=Root}"
@@ -99,9 +115,8 @@
                              FontSize="11"
                              Foreground="#E9F3FF"
                              CaretBrush="#E9F3FF"
-                             Background="#1B314A"
-                             BorderBrush="#4A7AA8"
-                             BorderThickness="1"
+                             Background="Transparent"
+                             BorderThickness="0"
                              ToolTip="{Binding Summary}"
                              Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
                 </Grid>

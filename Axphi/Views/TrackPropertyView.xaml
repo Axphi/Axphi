@@ -39,7 +39,7 @@
             <Setter Property="CornerRadius" Value="3" />
             <Setter Property="Visibility" Value="Collapsed" />
             <Style.Triggers>
-                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                <DataTrigger Binding="{Binding IsPanelVisible}" Value="True">
                     <Setter Property="Visibility" Value="Visible" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding HasError}" Value="True">
@@ -56,6 +56,7 @@
                 <ColumnDefinition Width="60" />
                 <ColumnDefinition Width="{Binding KeyframeColumnWidth, ElementName=Root}" />
                 <ColumnDefinition Width="{Binding ExpressionColumnWidth, ElementName=Root}" />
+                <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -87,11 +88,46 @@
                     ToolTip="Alt+点击启用/关闭表达式"
                     PreviewMouseLeftButtonDown="ExpressionIndicator_PreviewMouseLeftButtonDown" />
 
-            <ContentPresenter Grid.Column="3"
+            <Button Grid.Column="3"
+                    DataContext="{Binding ExpressionSlot, ElementName=Root}"
+                    Width="14"
+                    Height="14"
+                    Margin="1,0,0,0"
+                    Padding="0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    ToolTip="展开/收起表达式区域"
+                    Click="ExpressionExpandButton_Click">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Setter Property="Foreground" Value="#9FB4D1" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#D9E9FF" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <TextBlock HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontFamily="Consolas"
+                           FontSize="10"
+                           FontWeight="Bold"
+                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                           Text="{Binding ExpandGlyph}" />
+            </Button>
+
+            <ContentPresenter Grid.Column="4"
                               Content="{Binding EditorContent, ElementName=Root}" />
         </Grid>
 
         <Border DataContext="{Binding ExpressionSlot, ElementName=Root}"
+                MinHeight="{Binding PanelHeight}"
                 Style="{StaticResource ExpressionSummaryBorderStyle}">
             <TextBlock FontSize="10"
                        Foreground="#C8DEFF"

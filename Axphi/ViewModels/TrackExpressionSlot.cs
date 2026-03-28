@@ -55,13 +55,27 @@ namespace Axphi.ViewModels
                 ? (string.IsNullOrWhiteSpace(Text) ? "请输入 JS 表达式" : "表达式已启用")
                 : "按住 Alt 点击蓝色方块启用表达式";
 
+        public bool IsPanelVisible => IsEnabled && IsExpanded;
+
+        public string ExpandGlyph => IsExpanded ? "v" : ">";
+
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsPanelVisible))]
         [NotifyPropertyChangedFor(nameof(Summary))]
+        [NotifyPropertyChangedFor(nameof(ExpandGlyph))]
         private bool _isEnabled;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsPanelVisible))]
+        [NotifyPropertyChangedFor(nameof(ExpandGlyph))]
+        private bool _isExpanded = true;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(Summary))]
         private string _text = string.Empty;
+
+        [ObservableProperty]
+        private double _panelHeight = 44;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(HasError))]
@@ -70,6 +84,7 @@ namespace Axphi.ViewModels
 
         partial void OnIsEnabledChanged(bool value)
         {
+            IsExpanded = value;
             _writeEnabled(value);
             ValidateCore();
             _afterToggle();
@@ -86,6 +101,26 @@ namespace Axphi.ViewModels
         {
             ValidateCore();
             _afterTextCommitted();
+        }
+
+        public void ToggleExpanded()
+        {
+            if (!IsEnabled)
+            {
+                return;
+            }
+
+            IsExpanded = !IsExpanded;
+        }
+
+        public void UpdatePanelHeight(double height)
+        {
+            if (double.IsNaN(height) || double.IsInfinity(height))
+            {
+                return;
+            }
+
+            PanelHeight = Math.Max(44, height);
         }
 
         private void ValidateCore()

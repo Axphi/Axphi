@@ -122,5 +122,16 @@ namespace Axphi.Views
                 e.Handled = true;
             }
         }
+
+        private void ExpressionExpandButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ExpressionSlot == null)
+            {
+                return;
+            }
+
+            ExpressionSlot.ToggleExpanded();
+            e.Handled = true;
+        }
     }
 }

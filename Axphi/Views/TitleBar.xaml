@@ -13,15 +13,24 @@
             Margin="4,0,0,0"
             Orientation="Horizontal"
             WindowChrome.IsHitTestVisibleInChrome="True">
-            <TextBlock VerticalAlignment="Center" Text="LOGO" />
-            <ws:Menu Margin="4" VerticalAlignment="Center">
+            <Image VerticalAlignment="Center"
+                   Height="18"
+                   Margin="6,0,6,0"
+                   Stretch="Uniform"
+                   Source="/Resources/UI/AxphiLogo.png"/>
+            <ws:Menu Margin="4"
+                    VerticalAlignment="Center">
                 <ws:MenuItem Header="File">
-                    <ws:MenuItem Command="{Binding FileActions.OpenProjectCommand}" Header="Open" />
-                    <ws:MenuItem Command="{Binding FileActions.SaveChartCommand}" Header="Save" />
+                    <ws:MenuItem Command="{Binding FileActions.OpenProjectCommand}"
+                            Header="Open"/>
+                    <ws:MenuItem Command="{Binding FileActions.SaveChartCommand}"
+                            Header="Save"/>
                 </ws:MenuItem>
                 <ws:MenuItem Header="Debugging">
-                    <ws:MenuItem Command="{Binding LoadDemoChartCommand}" Header="Load demo chart" />
-                    <ws:MenuItem Command="{Binding LoadDemoChart2Command}" Header="Load demo chart 2" />
+                    <ws:MenuItem Command="{Binding LoadDemoChartCommand}"
+                            Header="Load demo chart"/>
+                    <ws:MenuItem Command="{Binding LoadDemoChart2Command}"
+                            Header="Load demo chart 2"/>
                 </ws:MenuItem>
             </ws:Menu>
         </StackPanel>
@@ -29,7 +38,7 @@
             Margin="0"
             HorizontalAlignment="Right"
             Orientation="Horizontal">
-            <comp:WindowControl />
+            <comp:WindowControl/>
         </StackPanel>
     </Grid>
 </UserControl>

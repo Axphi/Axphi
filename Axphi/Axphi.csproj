@@ -26,6 +26,7 @@
     <None Remove="Resources\Sounds\flick.wav" />
     <None Remove="Resources\Sounds\tap.ogg" />
     <None Remove="Resources\Sounds\tap.wav" />
+    <None Remove="Resources\UI\AxphiLogo.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -61,6 +62,7 @@
     <Resource Include="Resources\Notes\flickHL.png" />
     <Resource Include="Resources\Notes\hold.png" />
     <Resource Include="Resources\Notes\holdHL.png" />
+    <Resource Include="Resources\UI\AxphiLogo.png" />
   </ItemGroup>
 
 </Project>

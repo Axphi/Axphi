@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:Axphi.Views"
              mc:Ignorable="d"
              d:DesignHeight="48"
              d:DesignWidth="300"
@@ -55,8 +54,8 @@
         <Grid Height="20">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="60" />
-                <ColumnDefinition Width="14" />
-                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="{Binding KeyframeColumnWidth, ElementName=Root}" />
+                <ColumnDefinition Width="{Binding ExpressionColumnWidth, ElementName=Root}" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -73,6 +72,7 @@
                     Background="Transparent"
                     BorderThickness="0"
                     Cursor="Hand"
+                    Visibility="{Binding KeyframeButtonVisibility, ElementName=Root}"
                     ToolTip="添加/更新关键帧"
                     Command="{Binding AddKeyframeCommand, ElementName=Root}">
                 <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
@@ -82,6 +82,7 @@
 
             <Border Grid.Column="2"
                     DataContext="{Binding ExpressionSlot, ElementName=Root}"
+                    Visibility="{Binding ExpressionIndicatorVisibility, ElementName=Root}"
                     Style="{StaticResource ExpressionIndicatorBorderStyle}"
                     ToolTip="Alt+点击启用/关闭表达式"
                     PreviewMouseLeftButtonDown="ExpressionIndicator_PreviewMouseLeftButtonDown" />

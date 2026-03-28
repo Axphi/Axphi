@@ -8,11 +8,15 @@
              d:DesignWidth="600"
              x:Name="Root">
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
+
     <StackPanel>
-        <Border Width="{Binding Timeline.TotalPixelWidth}"
+        <Border Width="{Binding TimelineWidth, ElementName=Root}"
                 Height="20"
                 HorizontalAlignment="Left"
-                BorderBrush="#333"
+                BorderBrush="{Binding RowBorderBrush, ElementName=Root}"
                 BorderThickness="0,1,0,0"
                 Background="{Binding RowBackground, ElementName=Root}">
             <ItemsControl ItemsSource="{Binding KeyframesSource, ElementName=Root}">
@@ -77,8 +81,9 @@
             </ItemsControl>
         </Border>
 
-        <Border Width="{Binding Timeline.TotalPixelWidth}"
+        <Border Width="{Binding TimelineWidth, ElementName=Root}"
                 HorizontalAlignment="Left"
+            Visibility="{Binding ShowExpressionEditor, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}"
                 DataContext="{Binding ExpressionSlot, ElementName=Root}"
                 Style="{Binding ExpressionEditorStyle, ElementName=Root}">
             <Grid Margin="8,0,8,0">

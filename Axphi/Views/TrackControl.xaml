@@ -412,165 +412,93 @@
                                     </Border>
                                 </Grid>
 
-                                    <Grid Height="20">
-                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Kind" />
-                                    <Button Command="{Binding AddNoteKindKeyframeCommand}"
-                                            Width="12" Height="12"
-                                            Background="Transparent" BorderThickness="0"
-                                            Cursor="Hand" ToolTip="添加/更新关键帧">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z"
-                                              Fill="#888" Stretch="Fill" />
-                                    </Button>
-                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                        <comp:DraggableOptionBox Value="{Binding CurrentNoteKind, Mode=TwoWay}">
-                                            <comp:DraggableOptionBox.Options>
-                                                <comp:StringList>
-                                                    <sys:String>Mixed</sys:String>
-                                                    <sys:String>Tap</sys:String>
-                                                    <sys:String>Drag</sys:String>
-                                                    <sys:String>Hold</sys:String>
-                                                    <sys:String>Flick</sys:String>
-                                                </comp:StringList>
-                                            </comp:DraggableOptionBox.Options>
-                                        </comp:DraggableOptionBox>
-                                    </StackPanel>
-                                </Grid>
+                                    <local:TrackPropertyView Title="Kind"
+                                                             AddKeyframeCommand="{Binding AddNoteKindKeyframeCommand}"
+                                                             KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
+                                                             ExpressionIndicatorVisibility="Collapsed"
+                                                             ExpressionColumnWidth="0">
+                                        <local:TrackPropertyView.EditorContent>
+                                            <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                <comp:DraggableOptionBox Value="{Binding CurrentNoteKind, Mode=TwoWay}">
+                                                    <comp:DraggableOptionBox.Options>
+                                                        <comp:StringList>
+                                                            <sys:String>Mixed</sys:String>
+                                                            <sys:String>Tap</sys:String>
+                                                            <sys:String>Drag</sys:String>
+                                                            <sys:String>Hold</sys:String>
+                                                            <sys:String>Flick</sys:String>
+                                                        </comp:StringList>
+                                                    </comp:DraggableOptionBox.Options>
+                                                </comp:DraggableOptionBox>
+                                            </StackPanel>
+                                        </local:TrackPropertyView.EditorContent>
+                                    </local:TrackPropertyView>
 
-                                    <Grid Height="20">
-                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Anchor" />
-                                    <Button Command="{Binding AddAnchorKeyframeCommand}"
-                                            Width="12" Height="12"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Cursor="Hand" ToolTip="添加/更新关键帧">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
-                                    </Button>
-                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                        <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentAnchorX, Mode=TwoWay}" />
-                                        <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
-                                        <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentAnchorY, Mode=TwoWay}" />
-                                    </StackPanel>
-                                </Grid>
+                                    <local:TrackPropertyView Title="Anchor"
+                                                             AddKeyframeCommand="{Binding AddAnchorKeyframeCommand}"
+                                                             KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
+                                                             ExpressionIndicatorVisibility="Collapsed"
+                                                             ExpressionColumnWidth="0">
+                                        <local:TrackPropertyView.EditorContent>
+                                            <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentAnchorX, Mode=TwoWay}" />
+                                                <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
+                                                <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentAnchorY, Mode=TwoWay}" />
+                                            </StackPanel>
+                                        </local:TrackPropertyView.EditorContent>
+                                    </local:TrackPropertyView>
 
-                                    <Grid Height="20">
-                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Position" />
-                                    <Button Command="{Binding AddPositionKeyframeCommand}"
-                                            Width="12" Height="12"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Cursor="Hand" ToolTip="添加/更新关键帧">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
-                                    </Button>
-                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                        <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
-                                        <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
-                                        <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
-                                    </StackPanel>
-                                </Grid>
+                                    <local:TrackPropertyView Title="Position"
+                                                             AddKeyframeCommand="{Binding AddPositionKeyframeCommand}"
+                                                             KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
+                                                             ExpressionIndicatorVisibility="Collapsed"
+                                                             ExpressionColumnWidth="0">
+                                        <local:TrackPropertyView.EditorContent>
+                                            <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetX, Mode=TwoWay}" />
+                                                <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
+                                                <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentOffsetY, Mode=TwoWay}" />
+                                            </StackPanel>
+                                        </local:TrackPropertyView.EditorContent>
+                                    </local:TrackPropertyView>
 
-                                    <Grid Height="20">
-                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Scale" />
-                                    <Button Command="{Binding AddScaleKeyframeCommand}"
-                                            Width="12" Height="12"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Cursor="Hand" ToolTip="添加/更新关键帧">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
-                                    </Button>
-                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                        <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleX, Mode=TwoWay}" />
-                                        <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
-                                        <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleY, Mode=TwoWay}" />
-                                    </StackPanel>
-                                </Grid>
-                                    <Grid Height="20">
-                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Rotation" />
-                                    <Button Command="{Binding AddRotationKeyframeCommand}"
-                                            Width="12" Height="12"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Cursor="Hand" ToolTip="添加/更新关键帧">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
-                                    </Button>
-                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                        <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentRotation, Mode=TwoWay}" />
+                                    <local:TrackPropertyView Title="Scale"
+                                                             AddKeyframeCommand="{Binding AddScaleKeyframeCommand}"
+                                                             KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
+                                                             ExpressionIndicatorVisibility="Collapsed"
+                                                             ExpressionColumnWidth="0">
+                                        <local:TrackPropertyView.EditorContent>
+                                            <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleX, Mode=TwoWay}" />
+                                                <TextBlock VerticalAlignment="Center" Foreground="#888" Text=", " />
+                                                <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00" Value="{Binding CurrentScaleY, Mode=TwoWay}" />
+                                            </StackPanel>
+                                        </local:TrackPropertyView.EditorContent>
+                                    </local:TrackPropertyView>
 
-                                    </StackPanel>
-                                </Grid>
-                                    <Grid Height="20">
-                                    <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Opacity" />
-                                    <Button Command="{Binding AddOpacityKeyframeCommand}"
-                                            Width="12" Height="12"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Cursor="Hand" ToolTip="添加/更新关键帧">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding CanEditKeyframes}" Value="False">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                        <Path Data="M 6,0 L 12,6 L 6,12 L 0,6 Z" Fill="#888" Stretch="Fill" />
-                                    </Button>
-                                    <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                                        <comp:DraggableValueBox DragSpeed="1" Maximum="100" Minimum="0" NumberFormat="0.00" Value="{Binding CurrentOpacity, Mode=TwoWay}" />
+                                    <local:TrackPropertyView Title="Rotation"
+                                                             AddKeyframeCommand="{Binding AddRotationKeyframeCommand}"
+                                                             KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
+                                                             ExpressionIndicatorVisibility="Collapsed"
+                                                             ExpressionColumnWidth="0">
+                                        <local:TrackPropertyView.EditorContent>
+                                            <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.00" Value="{Binding CurrentRotation, Mode=TwoWay}" />
+                                            </StackPanel>
+                                        </local:TrackPropertyView.EditorContent>
+                                    </local:TrackPropertyView>
 
-                                    </StackPanel>
-                                </Grid>
+                                    <local:TrackPropertyView Title="Opacity"
+                                                             AddKeyframeCommand="{Binding AddOpacityKeyframeCommand}"
+                                                             KeyframeButtonVisibility="{Binding CanEditKeyframes, Converter={StaticResource BoolToVis}}"
+                                                             ExpressionIndicatorVisibility="Collapsed"
+                                                             ExpressionColumnWidth="0">
+                                        <local:TrackPropertyView.EditorContent>
+                                            <StackPanel Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                                                <comp:DraggableValueBox DragSpeed="1" Maximum="100" Minimum="0" NumberFormat="0.00" Value="{Binding CurrentOpacity, Mode=TwoWay}" />
+                                            </StackPanel>
+                                        </local:TrackPropertyView.EditorContent>
+                                    </local:TrackPropertyView>
 
                                     <Grid Height="20">
                                     <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#aaa" Text="Custom Speed" />
@@ -720,37 +648,43 @@
                     </Canvas>
 
                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
-                        <local:TrackTimelinePropertyView KeyframesSource="{Binding UIAnchorKeyframes}"
+                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         KeyframesSource="{Binding UIAnchorKeyframes}"
                                                          ExpressionSlot="{Binding AnchorExpression}"
                                                          KeyframeToolTip="Anchor 关键帧"
                                                          ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
                                                          ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
 
-                        <local:TrackTimelinePropertyView KeyframesSource="{Binding UIOffsetKeyframes}"
+                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         KeyframesSource="{Binding UIOffsetKeyframes}"
                                                          ExpressionSlot="{Binding PositionExpression}"
                                                          KeyframeToolTip="Position 关键帧"
                                                          ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
                                                          ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
 
-                        <local:TrackTimelinePropertyView KeyframesSource="{Binding UIScaleKeyframes}"
+                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         KeyframesSource="{Binding UIScaleKeyframes}"
                                                          ExpressionSlot="{Binding ScaleExpression}"
                                                          KeyframeToolTip="Scale 关键帧"
                                                          ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
                                                          ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
 
-                        <local:TrackTimelinePropertyView KeyframesSource="{Binding UIRotationKeyframes}"
+                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         KeyframesSource="{Binding UIRotationKeyframes}"
                                                          ExpressionSlot="{Binding RotationExpression}"
                                                          KeyframeToolTip="Rotation 关键帧"
                                                          ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
                                                          ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
 
-                        <local:TrackTimelinePropertyView KeyframesSource="{Binding UIOpacityKeyframes}"
+                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         KeyframesSource="{Binding UIOpacityKeyframes}"
                                                          ExpressionSlot="{Binding OpacityExpression}"
                                                          KeyframeToolTip="Opacity 关键帧"
                                                          ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
                                                          ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
 
-                        <local:TrackTimelinePropertyView KeyframesSource="{Binding UISpeedKeyframes}"
+                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         KeyframesSource="{Binding UISpeedKeyframes}"
                                                          ExpressionSlot="{Binding SpeedExpression}"
                                                          KeyframeToolTip="Speed 关键帧"
                                                          KeyframeFill="#B366FF"
@@ -859,316 +793,53 @@
 
                                 </Style>
                             </StackPanel.Style>
-                            <!--  kind  -->
-                            <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                    Height="20" HorizontalAlignment="Left"
-                                    BorderBrush="#444" BorderThickness="0,1,0,0"
-                                    Background="#1a1a1a">
-                                <ItemsControl ItemsSource="{Binding UINoteKindKeyframes}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0" />
-                                            <!--  设置容器  -->
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Thumb Cursor="Hand" ToolTip="Note 关键帧"
-                                                   DragStarted="KeyframeThumb_DragStarted"
-                                                   DragDelta="KeyframeThumb_DragDelta"
-                                                   DragCompleted="KeyframeThumb_DragCompleted">
+                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             KeyframesSource="{Binding UINoteKindKeyframes}"
+                                                             KeyframeToolTip="Note 关键帧"
+                                                             RowBackground="#1a1a1a"
+                                                             RowBorderBrush="#444"
+                                                             ShowExpressionEditor="False"
+                                                             EnableRightClick="False" />
 
-                                                <Thumb.Template>
-                                                    <ControlTemplate TargetType="Thumb">
-                                                        <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
-                                                            <Rectangle.RenderTransform>
-                                                                <TransformGroup>
-                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                    <TranslateTransform X="-4" Y="6" />
-                                                                </TransformGroup>
-                                                            </Rectangle.RenderTransform>
-                                                        </Rectangle>
-                                                        <ControlTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
-                                                                <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
-                                                                <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
-                                                            </DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Thumb.Template>
-                                            </Thumb>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
+                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             KeyframesSource="{Binding UIAnchorKeyframes}"
+                                                             KeyframeToolTip="Anchor 关键帧"
+                                                             RowBackground="#1a1a1a"
+                                                             RowBorderBrush="#444"
+                                                             ShowExpressionEditor="False"
+                                                             EnableRightClick="False" />
 
-                                    <ItemsControl.ItemContainerStyle>
-                                        <Style TargetType="ContentPresenter">
-                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                        </Style>
-                                    </ItemsControl.ItemContainerStyle>
-                                </ItemsControl>
-                            </Border>
+                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             KeyframesSource="{Binding UIOffsetKeyframes}"
+                                                             KeyframeToolTip="Position 关键帧"
+                                                             RowBackground="#1a1a1a"
+                                                             RowBorderBrush="#444"
+                                                             ShowExpressionEditor="False"
+                                                             EnableRightClick="False" />
 
-                            <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                    Height="20" HorizontalAlignment="Left"
-                                    BorderBrush="#444" BorderThickness="0,1,0,0"
-                                    Background="#1a1a1a">
-                                <ItemsControl ItemsSource="{Binding UIAnchorKeyframes}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0" />
+                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             KeyframesSource="{Binding UIScaleKeyframes}"
+                                                             KeyframeToolTip="Scale 关键帧"
+                                                             RowBackground="#1a1a1a"
+                                                             RowBorderBrush="#444"
+                                                             ShowExpressionEditor="False"
+                                                             EnableRightClick="False" />
 
-                                            <!--  设置容器  -->
+                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             KeyframesSource="{Binding UIRotationKeyframes}"
+                                                             KeyframeToolTip="Rotation 关键帧"
+                                                             RowBackground="#1a1a1a"
+                                                             RowBorderBrush="#444"
+                                                             ShowExpressionEditor="False"
+                                                             EnableRightClick="False" />
 
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Thumb Cursor="Hand" ToolTip="Anchor 关键帧"
-                                                   DragStarted="KeyframeThumb_DragStarted"
-                                                   DragDelta="KeyframeThumb_DragDelta"
-                                                   DragCompleted="KeyframeThumb_DragCompleted">
-
-                                                <Thumb.Template>
-                                                    <ControlTemplate TargetType="Thumb">
-                                                        <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
-                                                            <Rectangle.RenderTransform>
-                                                                <TransformGroup>
-                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                    <TranslateTransform X="-4" Y="6" />
-                                                                </TransformGroup>
-                                                            </Rectangle.RenderTransform>
-                                                        </Rectangle>
-                                                        <ControlTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
-                                                                <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
-                                                                <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
-                                                            </DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Thumb.Template>
-                                            </Thumb>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-
-                                    <ItemsControl.ItemContainerStyle>
-                                        <Style TargetType="ContentPresenter">
-                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                        </Style>
-                                    </ItemsControl.ItemContainerStyle>
-                                </ItemsControl>
-                            </Border>
-
-                            <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                    Height="20" HorizontalAlignment="Left"
-                                    BorderBrush="#444" BorderThickness="0,1,0,0"
-                                    Background="#1a1a1a">
-                                <ItemsControl ItemsSource="{Binding UIOffsetKeyframes}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0" />
-
-                                            <!--  设置容器  -->
-
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Thumb Cursor="Hand" ToolTip="Position 关键帧"
-                                                   DragStarted="KeyframeThumb_DragStarted"
-                                                   DragDelta="KeyframeThumb_DragDelta"
-                                                   DragCompleted="KeyframeThumb_DragCompleted">
-
-                                                <Thumb.Template>
-                                                    <ControlTemplate TargetType="Thumb">
-                                                        <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
-                                                            <Rectangle.RenderTransform>
-                                                                <TransformGroup>
-                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                    <TranslateTransform X="-4" Y="6" />
-                                                                </TransformGroup>
-                                                            </Rectangle.RenderTransform>
-                                                        </Rectangle>
-                                                        <ControlTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
-                                                                <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
-                                                                <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
-                                                            </DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Thumb.Template>
-                                            </Thumb>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-
-                                    <ItemsControl.ItemContainerStyle>
-                                        <Style TargetType="ContentPresenter">
-                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                        </Style>
-                                    </ItemsControl.ItemContainerStyle>
-                                </ItemsControl>
-                            </Border>
-                            <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}" Height="20" HorizontalAlignment="Left" BorderBrush="#444" BorderThickness="0,1,0,0" Background="#1a1a1a">
-                                <ItemsControl ItemsSource="{Binding UIScaleKeyframes}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0" />
-
-                                            <!--  设置容器  -->
-
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Thumb Cursor="Hand" ToolTip="Scale 关键帧"
-                                                   DragStarted="KeyframeThumb_DragStarted"
-                                                   DragDelta="KeyframeThumb_DragDelta"
-                                                   DragCompleted="KeyframeThumb_DragCompleted">
-
-                                                <Thumb.Template>
-                                                    <ControlTemplate TargetType="Thumb">
-                                                        <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
-                                                            <Rectangle.RenderTransform>
-                                                                <TransformGroup>
-                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                    <TranslateTransform X="-4" Y="6" />
-                                                                </TransformGroup>
-                                                            </Rectangle.RenderTransform>
-                                                        </Rectangle>
-                                                        <ControlTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
-                                                                <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
-                                                                <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
-                                                            </DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Thumb.Template>
-                                            </Thumb>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-
-                                    <ItemsControl.ItemContainerStyle>
-                                        <Style TargetType="ContentPresenter">
-                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                        </Style>
-                                    </ItemsControl.ItemContainerStyle>
-                                </ItemsControl>
-                            </Border>
-                            <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}" Height="20" HorizontalAlignment="Left" BorderBrush="#444" BorderThickness="0,1,0,0" Background="#1a1a1a">
-                                <ItemsControl ItemsSource="{Binding UIRotationKeyframes}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0" />
-
-                                            <!--  设置容器  -->
-
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Thumb Cursor="Hand" ToolTip="Position 关键帧"
-                                                   DragStarted="KeyframeThumb_DragStarted"
-                                                   DragDelta="KeyframeThumb_DragDelta"
-                                                   DragCompleted="KeyframeThumb_DragCompleted">
-
-                                                <Thumb.Template>
-                                                    <ControlTemplate TargetType="Thumb">
-                                                        <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
-                                                            <Rectangle.RenderTransform>
-                                                                <TransformGroup>
-                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                    <TranslateTransform X="-4" Y="6" />
-                                                                </TransformGroup>
-                                                            </Rectangle.RenderTransform>
-                                                        </Rectangle>
-                                                        <ControlTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
-                                                                <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
-                                                                <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
-                                                            </DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Thumb.Template>
-                                            </Thumb>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-
-                                    <ItemsControl.ItemContainerStyle>
-                                        <Style TargetType="ContentPresenter">
-                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                        </Style>
-                                    </ItemsControl.ItemContainerStyle>
-                                </ItemsControl>
-                            </Border>
-                            <Border Width="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}" Height="20" HorizontalAlignment="Left" BorderBrush="#444" BorderThickness="0,1,0,0" Background="#1a1a1a">
-                                <ItemsControl ItemsSource="{Binding UIOpacityKeyframes}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <Canvas Margin="8,0,0,0" />
-
-                                            <!--  设置容器  -->
-
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Thumb Cursor="Hand" ToolTip="Position 关键帧"
-                                                   DragStarted="KeyframeThumb_DragStarted"
-                                                   DragDelta="KeyframeThumb_DragDelta"
-                                                   DragCompleted="KeyframeThumb_DragCompleted">
-
-                                                <Thumb.Template>
-                                                    <ControlTemplate TargetType="Thumb">
-                                                        <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#FFD700">
-                                                            <Rectangle.RenderTransform>
-                                                                <TransformGroup>
-                                                                    <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                                    <TranslateTransform X="-4" Y="6" />
-                                                                </TransformGroup>
-                                                            </Rectangle.RenderTransform>
-                                                        </Rectangle>
-                                                        <ControlTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Fill" Value="#5285F3" />
-                                                                <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
-                                                                <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
-                                                            </DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Thumb.Template>
-                                            </Thumb>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-
-                                    <ItemsControl.ItemContainerStyle>
-                                        <Style TargetType="ContentPresenter">
-                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                        </Style>
-                                    </ItemsControl.ItemContainerStyle>
-                                </ItemsControl>
-                            </Border>
+                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             KeyframesSource="{Binding UIOpacityKeyframes}"
+                                                             KeyframeToolTip="Opacity 关键帧"
+                                                             RowBackground="#1a1a1a"
+                                                             RowBorderBrush="#444"
+                                                             ShowExpressionEditor="False"
+                                                             EnableRightClick="False" />
 
 
                         </StackPanel>

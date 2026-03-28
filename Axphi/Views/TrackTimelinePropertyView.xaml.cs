@@ -40,6 +40,30 @@ namespace Axphi.Views
             typeof(TrackTimelinePropertyView),
             new PropertyMetadata(null));
 
+        public static readonly DependencyProperty RowBorderBrushProperty = DependencyProperty.Register(
+            nameof(RowBorderBrush),
+            typeof(string),
+            typeof(TrackTimelinePropertyView),
+            new PropertyMetadata("#333"));
+
+        public static readonly DependencyProperty TimelineWidthProperty = DependencyProperty.Register(
+            nameof(TimelineWidth),
+            typeof(double),
+            typeof(TrackTimelinePropertyView),
+            new PropertyMetadata(double.NaN));
+
+        public static readonly DependencyProperty ShowExpressionEditorProperty = DependencyProperty.Register(
+            nameof(ShowExpressionEditor),
+            typeof(bool),
+            typeof(TrackTimelinePropertyView),
+            new PropertyMetadata(true));
+
+        public static readonly DependencyProperty EnableRightClickProperty = DependencyProperty.Register(
+            nameof(EnableRightClick),
+            typeof(bool),
+            typeof(TrackTimelinePropertyView),
+            new PropertyMetadata(true));
+
         public static readonly DependencyProperty ExpressionEditorStyleProperty = DependencyProperty.Register(
             nameof(ExpressionEditorStyle),
             typeof(Style),
@@ -85,6 +109,30 @@ namespace Axphi.Views
         {
             get => (string?)GetValue(RowBackgroundProperty);
             set => SetValue(RowBackgroundProperty, value);
+        }
+
+        public string RowBorderBrush
+        {
+            get => (string)GetValue(RowBorderBrushProperty);
+            set => SetValue(RowBorderBrushProperty, value);
+        }
+
+        public double TimelineWidth
+        {
+            get => (double)GetValue(TimelineWidthProperty);
+            set => SetValue(TimelineWidthProperty, value);
+        }
+
+        public bool ShowExpressionEditor
+        {
+            get => (bool)GetValue(ShowExpressionEditorProperty);
+            set => SetValue(ShowExpressionEditorProperty, value);
+        }
+
+        public bool EnableRightClick
+        {
+            get => (bool)GetValue(EnableRightClickProperty);
+            set => SetValue(EnableRightClickProperty, value);
         }
 
         public Style? ExpressionEditorStyle
@@ -133,6 +181,11 @@ namespace Axphi.Views
 
         private void KeyframeThumb_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (!EnableRightClick)
+            {
+                return;
+            }
+
             if (sender is not FrameworkElement fe || fe.DataContext == null)
             {
                 return;

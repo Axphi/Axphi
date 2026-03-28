@@ -307,8 +307,11 @@ namespace Axphi.Views
 
             Point point = e.GetPosition(EditorCanvas);
 
-            // 鼠标悬浮在已有 note 上时，隐藏“将要放置的 note 虚影”
-            if (EditorCanvas.TryHitTest(point, out var hoveredNote, out _, out _) && hoveredNote != null)
+            // 鼠标悬浮在已有 note 上时，默认隐藏“将要放置的 note 虚影”。
+            // 对 hold 保留放置预览，便于直接叠放新 note。
+            if (EditorCanvas.TryHitTest(point, out var hoveredNote, out _, out _)
+                && hoveredNote != null
+                && hoveredNote.CurrentNoteKind != Axphi.Data.NoteKind.Hold)
             {
                 if (vm.ClearHoverPreview())
                 {
@@ -363,10 +366,15 @@ namespace Axphi.Views
                 return;
             }
 
-            if (EditorCanvas.TryHitTest(point, out var hitNote, out var targetKind, out var anchorPoint) && hitNote != null)
+            if (EditorCanvas.TryHitTest(point, out var hitNote, out var targetKind, out var anchorPoint)
+                && hitNote != null)
             {
-                BeginNoteInteraction(vm, hitNote, targetKind, point, anchorPoint);
-                return;
+                bool isHold = hitNote.CurrentNoteKind == Axphi.Data.NoteKind.Hold;
+                if (!isHold || hitNote.IsSelected)
+                {
+                    BeginNoteInteraction(vm, hitNote, targetKind, point, anchorPoint);
+                    return;
+                }
             }
 
             _dragMode = EditorDragMode.BoxSelect;
@@ -600,5 +608,6 @@ namespace Axphi.Views
             note.IsSelected = true;
             vm.Timeline.RefreshNoteSelectionState(note.ParentTrack, note);
         }
+
     }
 }

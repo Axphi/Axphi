@@ -228,7 +228,7 @@ namespace Axphi.Components
             }
         }
 
-        public bool TryHitTest(Point viewportPoint, out NoteViewModel? note, out HitTargetKind targetKind, out Point anchorPoint)
+        public bool TryHitTest(Point viewportPoint, out NoteViewModel? note, out HitTargetKind targetKind, out Point anchorPoint, bool includeHoldNotes = true)
         {
             note = null;
             targetKind = HitTargetKind.None;
@@ -250,6 +250,11 @@ namespace Axphi.Components
             {
                 var renderState = GetNoteRenderState(editor.Timeline, candidate, currentTick);
                 if (!ShouldRenderNote(candidate, renderState.Kind, currentTick))
+                {
+                    continue;
+                }
+
+                if (!includeHoldNotes && renderState.Kind == NoteKind.Hold)
                 {
                     continue;
                 }

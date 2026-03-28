@@ -14,7 +14,7 @@
     <UserControl.Resources>
         <Style x:Key="ExpressionEditorBorderStyle" TargetType="Border">
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="12,6,12,8" />
+            <Setter Property="Padding" Value="10,2,10,4" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding HasError}" Value="True">
                     <Setter Property="Background" Value="#2A1D1A" />
@@ -32,7 +32,7 @@
             <Setter Property="SelectionBrush" Value="#496B92" />
             <Style.Triggers>
                 <Trigger Property="IsKeyboardFocused" Value="True">
-                    <Setter Property="Background" Value="#181818" />
+                    <Setter Property="Background" Value="#101010" />
                 </Trigger>
                 <DataTrigger Binding="{Binding HasError}" Value="True">
                     <Setter Property="Background" Value="#2A1D1A" />

@@ -75,7 +75,7 @@ namespace Axphi.ViewModels
         private string _text = string.Empty;
 
         [ObservableProperty]
-        private double _panelHeight = 44;
+        private double _panelHeight = 28;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(HasError))]
@@ -120,7 +120,7 @@ namespace Axphi.ViewModels
                 return;
             }
 
-            PanelHeight = Math.Max(44, height);
+            PanelHeight = Math.Max(28, height);
         }
 
         private void ValidateCore()

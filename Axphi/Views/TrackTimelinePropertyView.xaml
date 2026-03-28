@@ -81,28 +81,29 @@
             </ItemsControl>
         </Border>
 
-        <Border Width="{Binding TimelineWidth, ElementName=Root}"
-                HorizontalAlignment="Left"
-            Visibility="{Binding ShowExpressionEditor, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}"
-                DataContext="{Binding ExpressionSlot, ElementName=Root}"
-                Style="{Binding ExpressionEditorStyle, ElementName=Root}">
-            <Grid Margin="8,0,8,0">
-                <TextBox Style="{Binding ExpressionEditorTextBoxStyle, ElementName=Root}"
-                         MinHeight="44"
-                         Padding="8,6"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         VerticalScrollBarVisibility="Auto"
-                         FontFamily="Consolas"
-                         FontSize="11"
-                         Foreground="#E9F3FF"
-                         CaretBrush="#E9F3FF"
-                         Background="#1B314A"
-                         BorderBrush="#4A7AA8"
-                         BorderThickness="1"
-                         ToolTip="{Binding Summary}"
-                         Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
-            </Grid>
-        </Border>
+        <ContentControl Visibility="{Binding ShowExpressionEditor, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border Width="{Binding TimelineWidth, ElementName=Root}"
+                    HorizontalAlignment="Left"
+                    DataContext="{Binding ExpressionSlot, ElementName=Root}"
+                    Style="{Binding ExpressionEditorStyle, ElementName=Root}">
+                <Grid Margin="8,0,8,0">
+                    <TextBox Style="{Binding ExpressionEditorTextBoxStyle, ElementName=Root}"
+                             MinHeight="44"
+                             Padding="8,6"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             FontFamily="Consolas"
+                             FontSize="11"
+                             Foreground="#E9F3FF"
+                             CaretBrush="#E9F3FF"
+                             Background="#1B314A"
+                             BorderBrush="#4A7AA8"
+                             BorderThickness="1"
+                             ToolTip="{Binding Summary}"
+                             Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+            </Border>
+        </ContentControl>
     </StackPanel>
 </UserControl>

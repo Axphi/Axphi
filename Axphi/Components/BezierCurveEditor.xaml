@@ -26,24 +26,24 @@
 
                 <Path
                     x:Name="CurvePath"
-                    Stroke="Red"
+                    Stroke="#DBDBDB"
                     StrokeThickness="2" />
 
                 <Line
                     x:Name="Line1"
-                    Stroke="Gray"
-                    StrokeDashArray="4 2" />
+                    Stroke="#E3CC0E"
+                     />
                 <Line
                     x:Name="Line2"
-                    Stroke="Gray"
-                    StrokeDashArray="4 2" />
+                    Stroke="#E3CC0E"
+                     />
 
                 <Ellipse
                     x:Name="Thumb1"
                     Width="14"
                     Height="14"
                     Cursor="Hand"
-                    Fill="#007ACC"
+                    Fill="#E3CC0E"
                     MouseLeftButtonDown="Thumb_MouseDown"
                     MouseLeftButtonUp="Thumb_MouseUp"
                     MouseMove="Thumb_MouseMove" />
@@ -54,7 +54,7 @@
                     Width="14"
                     Height="14"
                     Cursor="Hand"
-                    Fill="#007ACC"
+                    Fill="#E3CC0E"
                     MouseLeftButtonDown="Thumb_MouseDown"
                     MouseLeftButtonUp="Thumb_MouseUp"
                     MouseMove="Thumb_MouseMove" />

@@ -12,6 +12,7 @@ namespace Axphi.ViewModels
     {
     }
     public record AudioLoadedMessage(string FilePath);
+    public record IllustrationLoadedMessage();
     public record JudgementLinesChangedMessage;
     public record ProjectLoadedMessage();
     public record ZoomScaleChangedMessage(double NewZoomScale);

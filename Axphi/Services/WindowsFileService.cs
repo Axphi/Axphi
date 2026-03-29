@@ -18,6 +18,17 @@ namespace Axphi.Services
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        public string? OpenImageFile()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Import illustration",
+                Filter = "Image file|*.png;*.jpg;*.jpeg;*.webp;*.bmp|Any|*.*",
+                CheckFileExists = true
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
         public string? OpenProjectFile()
         {
             var dialog = new OpenFileDialog

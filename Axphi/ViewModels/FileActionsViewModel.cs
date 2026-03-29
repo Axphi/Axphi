@@ -56,6 +56,31 @@ public partial class FileActionsViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void ImportIllustration()
+    {
+        string? filePath = _fileService.OpenImageFile();
+        if (filePath == null) return;
+
+        try
+        {
+            ProjectManager.EditingProject.EncodedIllustration = File.ReadAllBytes(filePath);
+            WeakReferenceMessenger.Default.Send(new IllustrationLoadedMessage());
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            ShowFileActionError("import illustration", "Import Illustration Failed", filePath, $"Access to the image file was denied.\n\n{ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            ShowFileActionError("import illustration", "Import Illustration Failed", filePath, $"The image file could not be read.\n\n{ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            ShowFileActionError("import illustration", "Import Illustration Failed", filePath, $"An unexpected error occurred while importing illustration.\n\n{ex.Message}");
+        }
+    }
+
+    [RelayCommand]
     private void OpenProject()
     {
         string? filePath = _fileService.OpenProjectFile();

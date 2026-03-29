@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using NAudio.Utils;
 using NAudio.Wave; // 需要引用 NAudio
+using NAudio.Wave.SampleProviders;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -43,9 +44,66 @@ namespace Axphi.Views
                 typeof(ChartDisplay),
                 new PropertyMetadata(false));
 
+        public double PlaybackSpeed
+        {
+            get => (double)GetValue(PlaybackSpeedProperty);
+            set => SetValue(PlaybackSpeedProperty, value);
+        }
+
+        public static readonly DependencyProperty PlaybackSpeedProperty =
+            DependencyProperty.Register(
+                nameof(PlaybackSpeed),
+                typeof(double),
+                typeof(ChartDisplay),
+                new PropertyMetadata(1.0, OnPlaybackSpeedChanged));
+
+        public bool PreserveAudioPitch
+        {
+            get => (bool)GetValue(PreserveAudioPitchProperty);
+            set => SetValue(PreserveAudioPitchProperty, value);
+        }
+
+        public static readonly DependencyProperty PreserveAudioPitchProperty =
+            DependencyProperty.Register(
+                nameof(PreserveAudioPitch),
+                typeof(bool),
+                typeof(ChartDisplay),
+                new PropertyMetadata(true, OnPreserveAudioPitchChanged));
+
+        private static void OnPlaybackSpeedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not ChartDisplay display)
+            {
+                return;
+            }
+
+            if (display.PlaybackSpeed < 0.1)
+            {
+                display.PlaybackSpeed = 0.1;
+                return;
+            }
+
+            if (display.PlaybackSpeed > 4.0)
+            {
+                display.PlaybackSpeed = 4.0;
+                return;
+            }
+
+            display.ApplyAudioSpeedSettings();
+        }
+
+        private static void OnPreserveAudioPitchChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ChartDisplay display)
+            {
+                display.ApplyAudioSpeedSettings();
+            }
+        }
+
         // 私有变量搬过来
         // 把 private MediaFoundationReader? _musicReader; 替换为：
         private AudioFileReader? _musicReader;
+        private SoundTouchPlaybackSampleProvider? _soundTouchProvider;
         private WasapiOut? _wasapiOut;
         private DispatcherTimer? _dispatcherTimer;
         private Stopwatch? _renderStopwatch;
@@ -158,6 +216,12 @@ namespace Axphi.Views
             LoadAudioFromFile(temporaryAudioFilePath, isTemporaryFile: true);
         }
 
+        public void LoadIllustration(byte[]? imageBytes)
+        {
+            InternalChartRenderer.IllustrationBytes = imageBytes;
+            InternalChartRenderer.InvalidateVisual();
+        }
+
         private void LoadAudioFromFile(string fileName, bool isTemporaryFile)
         {
             try
@@ -243,7 +307,10 @@ namespace Axphi.Views
 
             // 核心魔法：不论有没有音乐，统一用 "空降锚点时间 + 秒表本次跑过的时间"
             // 这样红线不仅绝对不会闪回，而且移动会极其丝滑（因为秒表精度极高）
-            TimeSpan currentTime = _manualTimeOffset + _renderStopwatch.Elapsed;
+            double playbackSpeed = Math.Clamp(PlaybackSpeed, 0.1, 4.0);
+            ApplyAudioSpeedSettings();
+            long scaledTicks = (long)Math.Round(_renderStopwatch.Elapsed.Ticks * playbackSpeed, MidpointRounding.AwayFromZero);
+            TimeSpan currentTime = _manualTimeOffset + TimeSpan.FromTicks(scaledTicks);
 
 
             InternalChartRenderer.Time = currentTime;
@@ -397,6 +464,7 @@ namespace Axphi.Views
             _wasapiOut?.Stop();
             _wasapiOut?.Dispose();
             _wasapiOut = null;
+            _soundTouchProvider = null;
 
             _musicReader?.Dispose();
             _musicReader = null;
@@ -411,13 +479,16 @@ namespace Axphi.Views
             {
                 _wasapiOut?.Dispose();
                 _wasapiOut = null;
+                _soundTouchProvider = null;
                 return;
             }
 
             _wasapiOut?.Stop();
             _wasapiOut?.Dispose();
+            _soundTouchProvider = new SoundTouchPlaybackSampleProvider(_musicReader);
+            ApplyAudioSpeedSettings();
             _wasapiOut = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, WasapiLatencyMilliseconds);
-            _wasapiOut.Init(_musicReader);
+            _wasapiOut.Init(_soundTouchProvider.ToWaveProvider());
         }
 
         private void StartAudioAtTimelineTime(TimeSpan chartTime)
@@ -435,7 +506,28 @@ namespace Axphi.Views
 
             _wasapiOut?.Stop();
             _musicReader.CurrentTime = audioTime;
+            _soundTouchProvider?.Reset();
+            ApplyAudioSpeedSettings();
             _wasapiOut?.Play();
+        }
+
+        private void ApplyAudioSpeedSettings()
+        {
+            if (_soundTouchProvider == null)
+            {
+                return;
+            }
+
+            double speed = Math.Clamp(PlaybackSpeed, 0.1, 4.0);
+            if (PreserveAudioPitch)
+            {
+                _soundTouchProvider.PreservePitch = true;
+                _soundTouchProvider.Speed = (float)speed;
+                return;
+            }
+
+            _soundTouchProvider.PreservePitch = false;
+            _soundTouchProvider.Speed = (float)speed;
         }
 
         private string PreparePlaybackFile(string sourceFilePath)
@@ -550,10 +642,12 @@ namespace Axphi.Views
                     if (TryGetTargetAudioTime(time, out TimeSpan audioTime))
                     {
                         _musicReader.CurrentTime = audioTime;
+                        _soundTouchProvider?.Reset();
                     }
                     else
                     {
                         _musicReader.CurrentTime = TimeSpan.Zero;
+                        _soundTouchProvider?.Reset();
                     }
                 }
             }

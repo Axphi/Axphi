@@ -3,6 +3,7 @@ using Axphi.Data.KeyFrames;
 using Axphi.Utilities;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,8 +35,12 @@ namespace Axphi.Components
         private static SolidColorBrush _noteTap = new SolidColorBrush(Color.FromRgb(82, 133, 243));
         private static SolidColorBrush _noteDrag = new SolidColorBrush(Color.FromRgb(255, 222, 145));
         private static SolidColorBrush _noteHold = new SolidColorBrush(Color.FromRgb(81, 180, 255));
+        private static readonly SolidColorBrush _backgroundDimBrush = new SolidColorBrush(Color.FromArgb(118, 0, 0, 0));
 
         private const double BaseVerticalFlowPixelsPerSecondAt1080 = 648.0;
+
+        private byte[]? _cachedIllustrationBytes;
+        private BitmapSource? _cachedBlurredIllustration;
 
 
 
@@ -116,6 +121,8 @@ namespace Axphi.Components
                 _imgAnchor.Freeze();
             }
 
+            _backgroundDimBrush.Freeze();
+
 
             _perfectFxBrush.Freeze();
 
@@ -184,8 +191,21 @@ namespace Axphi.Components
             set { SetValue(BpmLinesDivisorProperty, value); }
         }
 
+        public byte[]? IllustrationBytes
+        {
+            get => (byte[]?)GetValue(IllustrationBytesProperty);
+            set => SetValue(IllustrationBytesProperty, value);
+        }
+
         public static readonly DependencyProperty BpmLinesDivisorProperty =
             DependencyProperty.Register("BpmLinesDivisor", typeof(int), typeof(ChartRenderer), new PropertyMetadata(1));
+
+        public static readonly DependencyProperty IllustrationBytesProperty =
+            DependencyProperty.Register(
+                nameof(IllustrationBytes),
+                typeof(byte[]),
+                typeof(ChartRenderer),
+                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnIllustrationBytesChanged));
 
         public static readonly DependencyProperty ShowBpmLinesProperty =
             DependencyProperty.Register("ShowBpmLines", typeof(bool), typeof(ChartRenderer), new PropertyMetadata(false));
@@ -210,6 +230,17 @@ namespace Axphi.Components
                 typeof(bool),
                 typeof(ChartRenderer),
                 new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
+
+        private static void OnIllustrationBytesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not ChartRenderer renderer)
+            {
+                return;
+            }
+
+            renderer._cachedIllustrationBytes = null;
+            renderer._cachedBlurredIllustration = null;
+        }
 
 
 
@@ -264,7 +295,11 @@ namespace Axphi.Components
         {
             base.OnRender(drawingContext);
 
-            drawingContext.DrawRectangle(Brushes.Black, null, new Rect(0, 0, ActualWidth, ActualHeight));
+            Rect viewportRect = new Rect(0, 0, ActualWidth, ActualHeight);
+            drawingContext.DrawRectangle(Brushes.Black, null, viewportRect);
+
+            var renderInfo = CalculateRenderInfo();
+            RenderBlurredIllustrationBackground(drawingContext, renderInfo);
 
             if (Chart is not { } chart ||
                 chart.JudgementLines is not { } judgementLines)
@@ -276,7 +311,6 @@ namespace Axphi.Components
             //var renderInfo = CalculateRenderInfo();
             // 1. 获取物理现实时间
             var realTime = Time;
-            var renderInfo = CalculateRenderInfo();
 
             // 2. 将现实时间转换为底层逻辑运算用的精确 Tick，避免低 BPM 时画面被整数 Tick 量化成低帧率
             double currentTick = CalculateCurrentTick(realTime, chart);
@@ -337,6 +371,219 @@ namespace Axphi.Components
 
 
             drawingContext.Pop();
+        }
+
+        private void RenderBlurredIllustrationBackground(DrawingContext drawingContext, RenderInfo renderInfo)
+        {
+            Rect viewportRect = new Rect(0, 0, renderInfo.CanvasWidth, renderInfo.CanvasHeight);
+            if (viewportRect.Width <= 0 || viewportRect.Height <= 0)
+            {
+                return;
+            }
+
+            var blurredSource = EnsureBlurredIllustration(IllustrationBytes);
+            if (blurredSource == null)
+            {
+                return;
+            }
+
+            Rect chartRect = new Rect(
+                (renderInfo.CanvasWidth - renderInfo.ClientWidth) * 0.5,
+                (renderInfo.CanvasHeight - renderInfo.ClientHeight) * 0.5,
+                renderInfo.ClientWidth,
+                renderInfo.ClientHeight);
+            Rect drawRect = FitContainRect(chartRect, blurredSource.Width, blurredSource.Height);
+
+            drawingContext.PushClip(new RectangleGeometry(chartRect));
+            drawingContext.DrawImage(blurredSource, drawRect);
+            drawingContext.Pop();
+
+            drawingContext.DrawRectangle(_backgroundDimBrush, null, chartRect);
+        }
+
+        private static Rect FitContainRect(Rect container, double sourceWidth, double sourceHeight)
+        {
+            if (container.Width <= 0 || container.Height <= 0)
+            {
+                return Rect.Empty;
+            }
+
+            double safeWidth = Math.Max(1.0, sourceWidth);
+            double safeHeight = Math.Max(1.0, sourceHeight);
+            double scale = Math.Min(container.Width / safeWidth, container.Height / safeHeight);
+            double drawWidth = safeWidth * scale;
+            double drawHeight = safeHeight * scale;
+
+            return new Rect(
+                container.X + (container.Width - drawWidth) * 0.5,
+                container.Y + (container.Height - drawHeight) * 0.5,
+                drawWidth,
+                drawHeight);
+        }
+
+        private BitmapSource? EnsureBlurredIllustration(byte[]? illustrationBytes)
+        {
+            if (illustrationBytes is not { Length: > 0 })
+            {
+                return null;
+            }
+
+            if (ReferenceEquals(_cachedIllustrationBytes, illustrationBytes) && _cachedBlurredIllustration is not null)
+            {
+                return _cachedBlurredIllustration;
+            }
+
+            BitmapSource? blurred = null;
+            try
+            {
+                BitmapSource decoded = DecodeBitmap(illustrationBytes);
+                BitmapSource normalized = NormalizeBitmap(decoded);
+                int width = normalized.PixelWidth;
+                int height = normalized.PixelHeight;
+                int radius = Math.Max(1, (int)Math.Ceiling(Math.Min(width, height) * 0.0125));
+
+                int stride = width * 4;
+                byte[] sourcePixels = new byte[stride * height];
+                normalized.CopyPixels(sourcePixels, stride, 0);
+                byte[] blurredPixels = ApplyStackLikeBlur(sourcePixels, width, height, radius);
+
+                var output = new WriteableBitmap(width, height, normalized.DpiX, normalized.DpiY, PixelFormats.Bgra32, null);
+                output.WritePixels(new Int32Rect(0, 0, width, height), blurredPixels, stride, 0);
+                if (output.CanFreeze)
+                {
+                    output.Freeze();
+                }
+
+                blurred = output;
+            }
+            catch
+            {
+                blurred = null;
+            }
+
+            _cachedIllustrationBytes = illustrationBytes;
+            _cachedBlurredIllustration = blurred;
+            return blurred;
+        }
+
+        private static BitmapSource DecodeBitmap(byte[] bytes)
+        {
+            using var ms = new MemoryStream(bytes, writable: false);
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.StreamSource = ms;
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+
+        private static BitmapSource NormalizeBitmap(BitmapSource source)
+        {
+            BitmapSource formatSource = source.Format == PixelFormats.Bgra32
+                ? source
+                : new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
+
+            const int maxSide = 1600;
+            int width = Math.Max(1, formatSource.PixelWidth);
+            int height = Math.Max(1, formatSource.PixelHeight);
+            int largest = Math.Max(width, height);
+            if (largest <= maxSide)
+            {
+                return formatSource;
+            }
+
+            double scale = maxSide / (double)largest;
+            int scaledWidth = Math.Max(1, (int)Math.Round(width * scale));
+            int scaledHeight = Math.Max(1, (int)Math.Round(height * scale));
+            var scaled = new TransformedBitmap(formatSource, new ScaleTransform(
+                scaledWidth / (double)width,
+                scaledHeight / (double)height));
+            if (scaled.CanFreeze)
+            {
+                scaled.Freeze();
+            }
+
+            return scaled;
+        }
+
+        private static byte[] ApplyStackLikeBlur(byte[] src, int width, int height, int radius)
+        {
+            int windowSize = radius * 2 + 1;
+            byte[] tmp = new byte[src.Length];
+            byte[] dst = new byte[src.Length];
+
+            for (int y = 0; y < height; y++)
+            {
+                int rowStart = y * width;
+                int sumB = 0, sumG = 0, sumR = 0, sumA = 0;
+
+                for (int k = -radius; k <= radius; k++)
+                {
+                    int sx = Math.Clamp(k, 0, width - 1);
+                    int srcIndex = (rowStart + sx) * 4;
+                    sumB += src[srcIndex];
+                    sumG += src[srcIndex + 1];
+                    sumR += src[srcIndex + 2];
+                    sumA += src[srcIndex + 3];
+                }
+
+                for (int x = 0; x < width; x++)
+                {
+                    int outIndex = (rowStart + x) * 4;
+                    tmp[outIndex] = (byte)(sumB / windowSize);
+                    tmp[outIndex + 1] = (byte)(sumG / windowSize);
+                    tmp[outIndex + 2] = (byte)(sumR / windowSize);
+                    tmp[outIndex + 3] = (byte)(sumA / windowSize);
+
+                    int removeX = Math.Clamp(x - radius, 0, width - 1);
+                    int addX = Math.Clamp(x + radius + 1, 0, width - 1);
+
+                    int removeIndex = (rowStart + removeX) * 4;
+                    int addIndex = (rowStart + addX) * 4;
+
+                    sumB += src[addIndex] - src[removeIndex];
+                    sumG += src[addIndex + 1] - src[removeIndex + 1];
+                    sumR += src[addIndex + 2] - src[removeIndex + 2];
+                    sumA += src[addIndex + 3] - src[removeIndex + 3];
+                }
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                int sumB = 0, sumG = 0, sumR = 0, sumA = 0;
+
+                for (int k = -radius; k <= radius; k++)
+                {
+                    int sy = Math.Clamp(k, 0, height - 1);
+                    int srcIndex = (sy * width + x) * 4;
+                    sumB += tmp[srcIndex];
+                    sumG += tmp[srcIndex + 1];
+                    sumR += tmp[srcIndex + 2];
+                    sumA += tmp[srcIndex + 3];
+                }
+
+                for (int y = 0; y < height; y++)
+                {
+                    int outIndex = (y * width + x) * 4;
+                    dst[outIndex] = (byte)(sumB / windowSize);
+                    dst[outIndex + 1] = (byte)(sumG / windowSize);
+                    dst[outIndex + 2] = (byte)(sumR / windowSize);
+                    dst[outIndex + 3] = (byte)(sumA / windowSize);
+
+                    int removeY = Math.Clamp(y - radius, 0, height - 1);
+                    int addY = Math.Clamp(y + radius + 1, 0, height - 1);
+                    int removeIndex = (removeY * width + x) * 4;
+                    int addIndex = (addY * width + x) * 4;
+
+                    sumB += tmp[addIndex] - tmp[removeIndex];
+                    sumG += tmp[addIndex + 1] - tmp[removeIndex + 1];
+                    sumR += tmp[addIndex + 2] - tmp[removeIndex + 2];
+                    sumA += tmp[addIndex + 3] - tmp[removeIndex + 3];
+                }
+            }
+
+            return dst;
         }
 
         /// <summary>

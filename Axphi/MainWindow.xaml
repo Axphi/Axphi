@@ -179,6 +179,30 @@
                     Header="Display Controls">
                     <StackPanel Margin="10" Orientation="Vertical" VerticalAlignment="Top">
                         <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Foreground="#d6d6d6"
+                                Text="播放速度" />
+                            <comp:DraggableValueBox
+                                Margin="8,0,0,0"
+                                Width="72"
+                                DragSpeed="0.01"
+                                Minimum="0.1"
+                                Maximum="4"
+                                NumberFormat="0.00'x'"
+                                Value="{Binding ElementName=MainChartDisplay, Path=PlaybackSpeed, Mode=TwoWay}" />
+                            <CheckBox
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                IsChecked="{Binding ElementName=MainChartDisplay, Path=PreserveAudioPitch, Mode=TwoWay}" />
+                            <TextBlock
+                                Margin="6,0,0,0"
+                                VerticalAlignment="Center"
+                                Foreground="#d6d6d6"
+                                Text="保持音高" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal">
                             <CheckBox
                                 VerticalAlignment="Center"
                                 IsChecked="{Binding ElementName=MainChartDisplay, Path=ShowAuxiliaryUi, Mode=TwoWay}" />
@@ -472,7 +496,11 @@
                     Header="Project">
                     <StackPanel Margin="10">
                         <StackPanel Orientation="Horizontal">
-                            <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import Music" Padding="15,5" />
+                            <StackPanel>
+                                <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import Music" Padding="15,5" />
+                                <ws:Button Command="{Binding FileActions.ImportIllustrationCommand}" Content="Import Illustration" Padding="15,5" Margin="0,8,0,0" />
+                            </StackPanel>
+
                             <ToggleButton IsChecked="{Binding Timeline.IsMetronomeEnabled}"
                                           Content="Metronome (节拍器)"
                                           Margin="10,0,0,0" Padding="15,5"

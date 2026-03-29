@@ -8,6 +8,7 @@ namespace Axphi.Services
     {
         // 返回选中的文件路径，取消则返回 null
         string? OpenAudioFile();
+        string? OpenImageFile();
         string? OpenProjectFile();
         string? SaveProjectFile(string defaultFileName);
     }

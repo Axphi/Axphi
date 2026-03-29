@@ -67,9 +67,15 @@ public partial class MainWindow : Window
             MainChartDisplay.LoadAudio(message.FilePath);
         });
 
+        WeakReferenceMessenger.Default.Register<IllustrationLoadedMessage>(this, (r, message) =>
+        {
+            MainChartDisplay.LoadIllustration(_mainViewModel.ProjectManager.EditingProject.EncodedIllustration);
+        });
+
         WeakReferenceMessenger.Default.Register<ProjectLoadedMessage>(this, (r, message) =>
         {
             MainChartDisplay.LoadAudio(_mainViewModel.ProjectManager.EditingProject.EncodedAudio);
+            MainChartDisplay.LoadIllustration(_mainViewModel.ProjectManager.EditingProject.EncodedIllustration);
             Dispatcher.BeginInvoke(new Action(RestoreHorizontalScrollFromTimeline), DispatcherPriority.Loaded);
         });
 

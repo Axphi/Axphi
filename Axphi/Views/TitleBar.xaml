@@ -8,15 +8,20 @@
     xmlns:ws="https://schemas.elecho.dev/wpfsuite"
     mc:Ignorable="d">
 
-    <Grid d:Width="500">
+    <Grid d:Width="500"
+          UseLayoutRounding="True"
+          SnapsToDevicePixels="True">
         <StackPanel
             Margin="4,0,0,0"
             Orientation="Horizontal"
             WindowChrome.IsHitTestVisibleInChrome="True">
             <Image VerticalAlignment="Center"
-                   Height="18"
+                   Width="20"
+                   Height="20"
                    Margin="6,0,6,0"
                    Stretch="Uniform"
+                   RenderOptions.BitmapScalingMode="Fant"
+                   SnapsToDevicePixels="True"
                    Source="/Resources/UI/AxphiLogo.png"/>
             <ws:Menu Margin="4"
                     VerticalAlignment="Center">

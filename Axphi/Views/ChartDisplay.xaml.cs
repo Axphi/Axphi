@@ -44,6 +44,19 @@ namespace Axphi.Views
                 typeof(ChartDisplay),
                 new PropertyMetadata(false));
 
+        public double BackgroundDimOpacity
+        {
+            get => (double)GetValue(BackgroundDimOpacityProperty);
+            set => SetValue(BackgroundDimOpacityProperty, value);
+        }
+
+        public static readonly DependencyProperty BackgroundDimOpacityProperty =
+            DependencyProperty.Register(
+                nameof(BackgroundDimOpacity),
+                typeof(double),
+                typeof(ChartDisplay),
+                new PropertyMetadata(0.3, OnBackgroundDimOpacityChanged));
+
         public double PlaybackSpeed
         {
             get => (double)GetValue(PlaybackSpeedProperty);
@@ -97,6 +110,20 @@ namespace Axphi.Views
             if (d is ChartDisplay display)
             {
                 display.ApplyAudioSpeedSettings();
+            }
+        }
+
+        private static void OnBackgroundDimOpacityChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not ChartDisplay display)
+            {
+                return;
+            }
+
+            double clamped = Math.Clamp(display.BackgroundDimOpacity, 0.0, 1.0);
+            if (Math.Abs(clamped - display.BackgroundDimOpacity) > 0.000001)
+            {
+                display.BackgroundDimOpacity = clamped;
             }
         }
 

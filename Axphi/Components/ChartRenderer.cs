@@ -35,7 +35,7 @@ namespace Axphi.Components
         private static SolidColorBrush _noteTap = new SolidColorBrush(Color.FromRgb(82, 133, 243));
         private static SolidColorBrush _noteDrag = new SolidColorBrush(Color.FromRgb(255, 222, 145));
         private static SolidColorBrush _noteHold = new SolidColorBrush(Color.FromRgb(81, 180, 255));
-        private static readonly SolidColorBrush _backgroundDimBrush = new SolidColorBrush(Color.FromArgb(118, 0, 0, 0));
+        private readonly SolidColorBrush _backgroundDimBrush = new SolidColorBrush(Color.FromArgb(77, 0, 0, 0));
 
         private const double BaseVerticalFlowPixelsPerSecondAt1080 = 648.0;
 
@@ -121,9 +121,6 @@ namespace Axphi.Components
                 _imgAnchor.Freeze();
             }
 
-            _backgroundDimBrush.Freeze();
-
-
             _perfectFxBrush.Freeze();
 
             // ================= 新增：初始化并切割击打特效 =================
@@ -191,6 +188,12 @@ namespace Axphi.Components
             set { SetValue(BpmLinesDivisorProperty, value); }
         }
 
+        public double BackgroundDimOpacity
+        {
+            get => (double)GetValue(BackgroundDimOpacityProperty);
+            set => SetValue(BackgroundDimOpacityProperty, value);
+        }
+
         public byte[]? IllustrationBytes
         {
             get => (byte[]?)GetValue(IllustrationBytesProperty);
@@ -206,6 +209,13 @@ namespace Axphi.Components
                 typeof(byte[]),
                 typeof(ChartRenderer),
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnIllustrationBytesChanged));
+
+        public static readonly DependencyProperty BackgroundDimOpacityProperty =
+            DependencyProperty.Register(
+                nameof(BackgroundDimOpacity),
+                typeof(double),
+                typeof(ChartRenderer),
+                new FrameworkPropertyMetadata(0.3, FrameworkPropertyMetadataOptions.AffectsRender, OnBackgroundDimOpacityChanged));
 
         public static readonly DependencyProperty ShowBpmLinesProperty =
             DependencyProperty.Register("ShowBpmLines", typeof(bool), typeof(ChartRenderer), new PropertyMetadata(false));
@@ -240,6 +250,24 @@ namespace Axphi.Components
 
             renderer._cachedIllustrationBytes = null;
             renderer._cachedBlurredIllustration = null;
+        }
+
+        private static void OnBackgroundDimOpacityChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not ChartRenderer renderer)
+            {
+                return;
+            }
+
+            double opacity = Math.Clamp(renderer.BackgroundDimOpacity, 0.0, 1.0);
+            if (Math.Abs(opacity - renderer.BackgroundDimOpacity) > 0.000001)
+            {
+                renderer.BackgroundDimOpacity = opacity;
+                return;
+            }
+
+            byte alpha = (byte)Math.Round(opacity * 255.0, MidpointRounding.AwayFromZero);
+            renderer._backgroundDimBrush.Color = Color.FromArgb(alpha, 0, 0, 0);
         }
 
 
@@ -392,7 +420,7 @@ namespace Axphi.Components
                 (renderInfo.CanvasHeight - renderInfo.ClientHeight) * 0.5,
                 renderInfo.ClientWidth,
                 renderInfo.ClientHeight);
-            Rect drawRect = FitContainRect(chartRect, blurredSource.Width, blurredSource.Height);
+            Rect drawRect = FitCoverRect(chartRect, blurredSource.Width, blurredSource.Height);
 
             drawingContext.PushClip(new RectangleGeometry(chartRect));
             drawingContext.DrawImage(blurredSource, drawRect);
@@ -401,7 +429,7 @@ namespace Axphi.Components
             drawingContext.DrawRectangle(_backgroundDimBrush, null, chartRect);
         }
 
-        private static Rect FitContainRect(Rect container, double sourceWidth, double sourceHeight)
+        private static Rect FitCoverRect(Rect container, double sourceWidth, double sourceHeight)
         {
             if (container.Width <= 0 || container.Height <= 0)
             {
@@ -410,7 +438,7 @@ namespace Axphi.Components
 
             double safeWidth = Math.Max(1.0, sourceWidth);
             double safeHeight = Math.Max(1.0, sourceHeight);
-            double scale = Math.Min(container.Width / safeWidth, container.Height / safeHeight);
+            double scale = Math.Max(container.Width / safeWidth, container.Height / safeHeight);
             double drawWidth = safeWidth * scale;
             double drawHeight = safeHeight * scale;
 
@@ -440,12 +468,12 @@ namespace Axphi.Components
                 BitmapSource normalized = NormalizeBitmap(decoded);
                 int width = normalized.PixelWidth;
                 int height = normalized.PixelHeight;
-                int radius = Math.Max(1, (int)Math.Ceiling(Math.Min(width, height) * 0.0125));
-
                 int stride = width * 4;
                 byte[] sourcePixels = new byte[stride * height];
                 normalized.CopyPixels(sourcePixels, stride, 0);
-                byte[] blurredPixels = ApplyStackLikeBlur(sourcePixels, width, height, radius);
+                byte[] sourceRgb = ExtractRgb(sourcePixels, width, height);
+                byte[] blurredRgb = ApplyGaussianBlurRgb(sourceRgb, width, height, 50.0);
+                byte[] blurredPixels = PackRgbToBgra(blurredRgb, width, height);
 
                 var output = new WriteableBitmap(width, height, normalized.DpiX, normalized.DpiY, PixelFormats.Bgra32, null);
                 output.WritePixels(new Int32Rect(0, 0, width, height), blurredPixels, stride, 0);
@@ -507,83 +535,166 @@ namespace Axphi.Components
             return scaled;
         }
 
-        private static byte[] ApplyStackLikeBlur(byte[] src, int width, int height, int radius)
+        private static byte[] ExtractRgb(byte[] bgra, int width, int height)
         {
-            int windowSize = radius * 2 + 1;
+            byte[] rgb = new byte[width * height * 3];
+            int pixelCount = width * height;
+            for (int i = 0; i < pixelCount; i++)
+            {
+                int bgraIndex = i * 4;
+                int rgbIndex = i * 3;
+                rgb[rgbIndex] = bgra[bgraIndex + 2];
+                rgb[rgbIndex + 1] = bgra[bgraIndex + 1];
+                rgb[rgbIndex + 2] = bgra[bgraIndex];
+            }
+
+            return rgb;
+        }
+
+        private static byte[] PackRgbToBgra(byte[] rgb, int width, int height)
+        {
+            byte[] bgra = new byte[width * height * 4];
+            int pixelCount = width * height;
+            for (int i = 0; i < pixelCount; i++)
+            {
+                int bgraIndex = i * 4;
+                int rgbIndex = i * 3;
+                bgra[bgraIndex] = rgb[rgbIndex + 2];
+                bgra[bgraIndex + 1] = rgb[rgbIndex + 1];
+                bgra[bgraIndex + 2] = rgb[rgbIndex];
+                bgra[bgraIndex + 3] = 255;
+            }
+
+            return bgra;
+        }
+
+        private static byte[] ApplyGaussianBlurRgb(byte[] sourceRgb, int width, int height, double sigma)
+        {
+            if (sigma <= 0)
+            {
+                return (byte[])sourceRgb.Clone();
+            }
+
+            int[] boxSizes = GetGaussianBoxSizes(sigma, 3);
+            byte[] src = (byte[])sourceRgb.Clone();
             byte[] tmp = new byte[src.Length];
             byte[] dst = new byte[src.Length];
+
+            foreach (int boxSize in boxSizes)
+            {
+                int radius = Math.Max(0, (boxSize - 1) / 2);
+                if (radius == 0)
+                {
+                    continue;
+                }
+
+                BoxBlurHorizontalRgb(src, tmp, width, height, radius);
+                BoxBlurVerticalRgb(tmp, dst, width, height, radius);
+
+                byte[] swap = src;
+                src = dst;
+                dst = swap;
+            }
+
+            return src;
+        }
+
+        private static int[] GetGaussianBoxSizes(double sigma, int boxCount)
+        {
+            double widthIdeal = Math.Sqrt((12.0 * sigma * sigma / boxCount) + 1.0);
+            int lower = (int)Math.Floor(widthIdeal);
+            if (lower % 2 == 0)
+            {
+                lower--;
+            }
+
+            int upper = lower + 2;
+            double matchIdeal =
+                (12.0 * sigma * sigma - (boxCount * lower * lower) - (4.0 * boxCount * lower) - (3.0 * boxCount))
+                / ((-4.0 * lower) - 4.0);
+            int lowerCount = (int)Math.Round(matchIdeal);
+            lowerCount = Math.Clamp(lowerCount, 0, boxCount);
+
+            int[] sizes = new int[boxCount];
+            for (int i = 0; i < boxCount; i++)
+            {
+                sizes[i] = i < lowerCount ? lower : upper;
+            }
+
+            return sizes;
+        }
+
+        private static void BoxBlurHorizontalRgb(byte[] src, byte[] dst, int width, int height, int radius)
+        {
+            int windowSize = radius * 2 + 1;
 
             for (int y = 0; y < height; y++)
             {
                 int rowStart = y * width;
-                int sumB = 0, sumG = 0, sumR = 0, sumA = 0;
+                int sumR = 0, sumG = 0, sumB = 0;
 
                 for (int k = -radius; k <= radius; k++)
                 {
                     int sx = Math.Clamp(k, 0, width - 1);
-                    int srcIndex = (rowStart + sx) * 4;
-                    sumB += src[srcIndex];
+                    int srcIndex = (rowStart + sx) * 3;
+                    sumR += src[srcIndex];
                     sumG += src[srcIndex + 1];
-                    sumR += src[srcIndex + 2];
-                    sumA += src[srcIndex + 3];
+                    sumB += src[srcIndex + 2];
                 }
 
                 for (int x = 0; x < width; x++)
                 {
-                    int outIndex = (rowStart + x) * 4;
-                    tmp[outIndex] = (byte)(sumB / windowSize);
-                    tmp[outIndex + 1] = (byte)(sumG / windowSize);
-                    tmp[outIndex + 2] = (byte)(sumR / windowSize);
-                    tmp[outIndex + 3] = (byte)(sumA / windowSize);
+                    int outIndex = (rowStart + x) * 3;
+                    dst[outIndex] = (byte)(sumR / windowSize);
+                    dst[outIndex + 1] = (byte)(sumG / windowSize);
+                    dst[outIndex + 2] = (byte)(sumB / windowSize);
 
                     int removeX = Math.Clamp(x - radius, 0, width - 1);
                     int addX = Math.Clamp(x + radius + 1, 0, width - 1);
 
-                    int removeIndex = (rowStart + removeX) * 4;
-                    int addIndex = (rowStart + addX) * 4;
+                    int removeIndex = (rowStart + removeX) * 3;
+                    int addIndex = (rowStart + addX) * 3;
 
-                    sumB += src[addIndex] - src[removeIndex];
+                    sumR += src[addIndex] - src[removeIndex];
                     sumG += src[addIndex + 1] - src[removeIndex + 1];
-                    sumR += src[addIndex + 2] - src[removeIndex + 2];
-                    sumA += src[addIndex + 3] - src[removeIndex + 3];
+                    sumB += src[addIndex + 2] - src[removeIndex + 2];
                 }
             }
+        }
 
+        private static void BoxBlurVerticalRgb(byte[] src, byte[] dst, int width, int height, int radius)
+        {
+            int windowSize = radius * 2 + 1;
             for (int x = 0; x < width; x++)
             {
-                int sumB = 0, sumG = 0, sumR = 0, sumA = 0;
+                int sumR = 0, sumG = 0, sumB = 0;
 
                 for (int k = -radius; k <= radius; k++)
                 {
                     int sy = Math.Clamp(k, 0, height - 1);
-                    int srcIndex = (sy * width + x) * 4;
-                    sumB += tmp[srcIndex];
-                    sumG += tmp[srcIndex + 1];
-                    sumR += tmp[srcIndex + 2];
-                    sumA += tmp[srcIndex + 3];
+                    int srcIndex = (sy * width + x) * 3;
+                    sumR += src[srcIndex];
+                    sumG += src[srcIndex + 1];
+                    sumB += src[srcIndex + 2];
                 }
 
                 for (int y = 0; y < height; y++)
                 {
-                    int outIndex = (y * width + x) * 4;
-                    dst[outIndex] = (byte)(sumB / windowSize);
+                    int outIndex = (y * width + x) * 3;
+                    dst[outIndex] = (byte)(sumR / windowSize);
                     dst[outIndex + 1] = (byte)(sumG / windowSize);
-                    dst[outIndex + 2] = (byte)(sumR / windowSize);
-                    dst[outIndex + 3] = (byte)(sumA / windowSize);
+                    dst[outIndex + 2] = (byte)(sumB / windowSize);
 
                     int removeY = Math.Clamp(y - radius, 0, height - 1);
                     int addY = Math.Clamp(y + radius + 1, 0, height - 1);
-                    int removeIndex = (removeY * width + x) * 4;
-                    int addIndex = (addY * width + x) * 4;
+                    int removeIndex = (removeY * width + x) * 3;
+                    int addIndex = (addY * width + x) * 3;
 
-                    sumB += tmp[addIndex] - tmp[removeIndex];
-                    sumG += tmp[addIndex + 1] - tmp[removeIndex + 1];
-                    sumR += tmp[addIndex + 2] - tmp[removeIndex + 2];
-                    sumA += tmp[addIndex + 3] - tmp[removeIndex + 3];
+                    sumR += src[addIndex] - src[removeIndex];
+                    sumG += src[addIndex + 1] - src[removeIndex + 1];
+                    sumB += src[addIndex + 2] - src[removeIndex + 2];
                 }
             }
-
-            return dst;
         }
 
         /// <summary>

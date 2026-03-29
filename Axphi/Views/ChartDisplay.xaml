@@ -25,6 +25,7 @@
             x:Name="InternalChartRenderer"
             Chart="{Binding ProjectManager.EditingProject.Chart}"
             IllustrationBytes="{Binding ProjectManager.EditingProject.EncodedIllustration}"
+            BackgroundDimOpacity="{Binding ElementName=Root, Path=BackgroundDimOpacity}"
             ClipToBounds="True"
             ShowAuxiliaryUi="{Binding ElementName=Root, Path=ShowAuxiliaryUi}"
             ShowNoteCenters="{Binding ElementName=Root, Path=ShowNoteCenters}" />

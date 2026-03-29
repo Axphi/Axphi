@@ -224,6 +224,21 @@
                                 Foreground="#d6d6d6"
                                 Text="显示note中心" />
                         </StackPanel>
+
+                        <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Foreground="#d6d6d6"
+                                Text="背景暗层" />
+                            <comp:DraggableValueBox
+                                Margin="8,0,0,0"
+                                Width="72"
+                                DragSpeed="0.01"
+                                Minimum="0"
+                                Maximum="1"
+                                NumberFormat="0.00"
+                                Value="{Binding ElementName=MainChartDisplay, Path=BackgroundDimOpacity, Mode=TwoWay}" />
+                        </StackPanel>
                     </StackPanel>
                 </comp:TabPane>
 

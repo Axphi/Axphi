@@ -595,7 +595,6 @@
         </ws:WindowContentAdapter>
 
         <Canvas x:Name="GlobalOverlayCanvas"
-                Background="Transparent"
                 IsHitTestVisible="False"
                 Panel.ZIndex="99999">
             <Line x:Name="ParentBindingGlobalPreviewLine"

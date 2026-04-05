@@ -527,6 +527,7 @@ namespace Axphi.Components
                 double previewX = centerX + editor.PendingHoldChartX * metrics.PixelsPerChartUnit;
                 double previewY = JudgementLineEditorRenderMath.CalculateHoverY(editor.Timeline, track, currentTick, editor.PendingHoldStartTick, viewportSize, editor.ViewZoom, centerY);
                 int holdDuration = Math.Max(1, editor.HoverHitTick - editor.PendingHoldStartTick);
+                int headTick = editor.PendingHoldStartTick;
                 int tailTick = editor.PendingHoldStartTick + holdDuration;
                 double tailY = JudgementLineEditorRenderMath.CalculateHoverY(editor.Timeline, track, currentTick, tailTick, viewportSize, editor.ViewZoom, centerY);
                 double holdLength = CalculatePreviewHoldLength(editor, track, viewportSize, centerY, holdDuration);
@@ -538,6 +539,15 @@ namespace Axphi.Components
                 }
 
                 DrawPreviewHold(dc, holdPreviewWidth, previewX, previewY, holdLength, 0.58, true, false);
+
+                var headStyle = ResolveBeatGuideVisualStyle(headTick);
+                string headFractionText = BuildBeatFractionText(headTick);
+                dc.DrawLine(headStyle.GuidePen, new Point(0, previewY), new Point(width, previewY));
+
+                FormattedText headMarkerText = CreateLabel(headFractionText, 11.0, headStyle.LabelBrush);
+                double headMarkerX = Math.Clamp(previewX - headMarkerText.Width - 14, 8, Math.Max(8, width - headMarkerText.Width - 8));
+                double headMarkerY = Math.Clamp(previewY - headMarkerText.Height - 10, 6, Math.Max(6, height - headMarkerText.Height - 6));
+                DrawLabelBadge(dc, headMarkerText, new Point(headMarkerX, headMarkerY), headStyle.LabelBackgroundBrush);
 
                 var tailStyle = ResolveBeatGuideVisualStyle(tailTick);
                 string tailFractionText = BuildBeatFractionText(tailTick);

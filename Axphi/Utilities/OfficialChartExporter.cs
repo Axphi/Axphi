@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
+using System.Windows.Media;
 
 namespace Axphi.Utilities;
 
@@ -17,6 +18,7 @@ internal static class OfficialChartExporter
     private const double ProjectViewportWidthUnits = 16.0;
     private const double ProjectViewportHeightUnits = 9.0;
     private const double OfficialNoteXUnitSpan = 18.0;
+    private const double MergeTolerance = 1e-6;
 
     public static void Export(Project project, string path)
     {
@@ -42,12 +44,15 @@ internal static class OfficialChartExporter
         var chart = project.Chart ?? new Chart();
         int endTick = GetExportEndTick(project);
         double defaultBpm = GetDefaultBpm(chart);
+        var lineById = chart.JudgementLines
+            .Where(line => !string.IsNullOrWhiteSpace(line.ID))
+            .GroupBy(line => line.ID)
+            .ToDictionary(group => group.Key, group => group.First());
 
         var judgeLines = new List<OfficialJudgeLineDto>();
         foreach (var line in chart.JudgementLines)
         {
             BuildLineNotes(chart, line, out var notesAbove, out var notesBelow);
-            var lineProperties = line.AnimatableProperties;
 
             judgeLines.Add(new OfficialJudgeLineDto
             {
@@ -55,9 +60,9 @@ internal static class OfficialChartExporter
                 NotesAbove = notesAbove,
                 NotesBelow = notesBelow,
                 SpeedEvents = BuildSpeedEvents(chart, line, endTick),
-                JudgeLineMoveEvents = BuildMoveEvents(chart, lineProperties, endTick),
-                JudgeLineRotateEvents = BuildRotateEvents(chart, lineProperties, endTick),
-                JudgeLineDisappearEvents = BuildDisappearEvents(chart, lineProperties, endTick)
+                JudgeLineMoveEvents = BuildMoveEvents(chart, line, endTick, lineById),
+                JudgeLineRotateEvents = BuildRotateEvents(chart, line, endTick, lineById),
+                JudgeLineDisappearEvents = BuildDisappearEvents(chart, line, endTick)
             });
         }
 
@@ -163,16 +168,10 @@ internal static class OfficialChartExporter
     private static List<OfficialSpeedEventDto> BuildSpeedEvents(Chart chart, JudgementLine line, int endTick)
     {
         var speedKeyframes = line.SpeedKeyFrames.OrderBy(k => k.Time).ToList();
-        var breakpoints = CollectBreakpoints(endTick, speedKeyframes.Select(k => k.Time));
-        var result = new List<OfficialSpeedEventDto>(breakpoints.Count - 1);
-
-        for (int i = 0; i < breakpoints.Count - 1; i++)
+        return BakeConstantEvents(endTick, tick =>
         {
-            int startTime = breakpoints[i];
-            int endTime = breakpoints[i + 1];
-
             EasingUtils.CalculateObjectSingleTransform(
-                startTime,
+                tick,
                 chart.KeyFrameEasingDirection,
                 line.InitialSpeed,
                 speedKeyframes,
@@ -183,151 +182,277 @@ internal static class OfficialChartExporter
                 line,
                 out double speed);
 
-            result.Add(new OfficialSpeedEventDto
-            {
-                StartTime = startTime,
-                EndTime = endTime,
-                Value = Sanitize(speed),
-                FloorPosition = 0
-            });
-        }
-
-        return result;
+            return speed;
+        }, (startTime, endTime, speed) => new OfficialSpeedEventDto
+        {
+            StartTime = startTime,
+            EndTime = endTime,
+            Value = Sanitize(speed),
+            FloorPosition = 0
+        });
     }
 
-    private static List<OfficialMoveEventDto> BuildMoveEvents(Chart chart, StandardAnimatableProperties properties, int endTick)
+    private static List<OfficialMoveEventDto> BuildMoveEvents(Chart chart, JudgementLine line, int endTick, IReadOnlyDictionary<string, JudgementLine> lineById)
     {
-        var moveKeyframes = properties.Offset.KeyFrames.OrderBy(k => k.Time).ToList();
-        var breakpoints = CollectBreakpoints(endTick, moveKeyframes.Select(k => k.Time));
-        var result = new List<OfficialMoveEventDto>(breakpoints.Count - 1);
-
-        for (int i = 0; i < breakpoints.Count - 1; i++)
+        return BakeLinearVectorEvents(endTick, tick =>
         {
-            int startTime = breakpoints[i];
-            int endTime = breakpoints[i + 1];
-
-            EasingUtils.CalculateObjectSingleTransform(
-                startTime,
-                chart.KeyFrameEasingDirection,
-                properties.Offset.InitialValue,
-                moveKeyframes,
-                MathUtils.Lerp,
-                out Vector startValue);
-
-            EasingUtils.CalculateObjectSingleTransform(
-                endTime,
-                chart.KeyFrameEasingDirection,
-                properties.Offset.InitialValue,
-                moveKeyframes,
-                MathUtils.Lerp,
-                out Vector endValue);
-
-            result.Add(new OfficialMoveEventDto
-            {
-                StartTime = startTime,
-                EndTime = endTime,
-                Start = NormalizeProjectXToViewport(startValue.X),
-                End = NormalizeProjectXToViewport(endValue.X),
-                Start2 = NormalizeProjectYToViewport(startValue.Y),
-                End2 = NormalizeProjectYToViewport(endValue.Y)
-            });
-        }
-
-        return result;
+            EvaluateLineWorldTransformAtTick(chart, line, tick, lineById, out Vector offset, out _);
+            return new Vector(
+                NormalizeProjectXToViewport(offset.X),
+                NormalizeProjectYToViewport(offset.Y));
+        }, (startTime, endTime, startValue, endValue) => new OfficialMoveEventDto
+        {
+            StartTime = startTime,
+            EndTime = endTime,
+            Start = startValue.X,
+            End = endValue.X,
+            Start2 = startValue.Y,
+            End2 = endValue.Y
+        });
     }
 
-    private static List<OfficialRotateEventDto> BuildRotateEvents(Chart chart, StandardAnimatableProperties properties, int endTick)
+    private static List<OfficialRotateEventDto> BuildRotateEvents(Chart chart, JudgementLine line, int endTick, IReadOnlyDictionary<string, JudgementLine> lineById)
     {
-        var rotationKeyframes = properties.Rotation.KeyFrames.OrderBy(k => k.Time).ToList();
-        var breakpoints = CollectBreakpoints(endTick, rotationKeyframes.Select(k => k.Time));
-        var result = new List<OfficialRotateEventDto>(breakpoints.Count - 1);
-
-        for (int i = 0; i < breakpoints.Count - 1; i++)
+        return BakeLinearScalarEvents(endTick, tick =>
         {
-            int startTime = breakpoints[i];
-            int endTime = breakpoints[i + 1];
-
-            EasingUtils.CalculateObjectSingleTransform(
-                startTime,
-                chart.KeyFrameEasingDirection,
-                properties.Rotation.InitialValue,
-                rotationKeyframes,
-                MathUtils.Lerp,
-                out double startValue);
-
-            EasingUtils.CalculateObjectSingleTransform(
-                endTime,
-                chart.KeyFrameEasingDirection,
-                properties.Rotation.InitialValue,
-                rotationKeyframes,
-                MathUtils.Lerp,
-                out double endValue);
-
-            result.Add(new OfficialRotateEventDto
-            {
-                StartTime = startTime,
-                EndTime = endTime,
-                Start = Sanitize(startValue),
-                End = Sanitize(endValue)
-            });
-        }
-
-        return result;
+            EvaluateLineWorldTransformAtTick(chart, line, tick, lineById, out _, out double rotation);
+            return rotation;
+        }, (startTime, endTime, startValue, endValue) => new OfficialRotateEventDto
+        {
+            StartTime = startTime,
+            EndTime = endTime,
+            Start = Sanitize(startValue),
+            End = Sanitize(endValue)
+        });
     }
 
-    private static List<OfficialDisappearEventDto> BuildDisappearEvents(Chart chart, StandardAnimatableProperties properties, int endTick)
+    private static List<OfficialDisappearEventDto> BuildDisappearEvents(Chart chart, JudgementLine line, int endTick)
     {
-        var opacityKeyframes = properties.Opacity.KeyFrames.OrderBy(k => k.Time).ToList();
-        var breakpoints = CollectBreakpoints(endTick, opacityKeyframes.Select(k => k.Time));
-        var result = new List<OfficialDisappearEventDto>(breakpoints.Count - 1);
-
-        for (int i = 0; i < breakpoints.Count - 1; i++)
+        return BakeLinearScalarEvents(endTick, tick =>
         {
-            int startTime = breakpoints[i];
-            int endTime = breakpoints[i + 1];
-
-            EasingUtils.CalculateObjectSingleTransform(
-                startTime,
-                chart.KeyFrameEasingDirection,
-                properties.Opacity.InitialValue,
-                opacityKeyframes,
-                MathUtils.Lerp,
-                out double startValue);
-
-            EasingUtils.CalculateObjectSingleTransform(
-                endTime,
-                chart.KeyFrameEasingDirection,
-                properties.Opacity.InitialValue,
-                opacityKeyframes,
-                MathUtils.Lerp,
-                out double endValue);
-
-            result.Add(new OfficialDisappearEventDto
-            {
-                StartTime = startTime,
-                EndTime = endTime,
-                Start = Sanitize01(startValue / 100.0),
-                End = Sanitize01(endValue / 100.0)
-            });
-        }
-
-        return result;
+            EvaluateLineTransformAtTick(chart, line, tick, out _, out _, out double opacity);
+            return Sanitize01(opacity / 100.0);
+        }, (startTime, endTime, startValue, endValue) => new OfficialDisappearEventDto
+        {
+            StartTime = startTime,
+            EndTime = endTime,
+            Start = startValue,
+            End = endValue
+        });
     }
 
-    private static List<int> CollectBreakpoints(int endTick, params IEnumerable<int>[] sequences)
+    private static List<TEvent> BakeConstantEvents<TEvent>(int endTick, Func<int, double> sampleAtTick, Func<int, int, double, TEvent> createEvent)
     {
-        var points = new HashSet<int> { 0, Math.Max(1, endTick) };
+        int maxTick = Math.Max(1, endTick);
+        var result = new List<TEvent>();
 
-        foreach (var sequence in sequences)
+        int segmentStart = 0;
+        double segmentValue = Sanitize(sampleAtTick(0));
+
+        for (int tick = 1; tick < maxTick; tick++)
         {
-            foreach (var tick in sequence)
+            double value = Sanitize(sampleAtTick(tick));
+            if (AreClose(value, segmentValue))
             {
-                int clamped = Math.Clamp(tick, 0, Math.Max(1, endTick));
-                points.Add(clamped);
+                continue;
             }
+
+            result.Add(createEvent(segmentStart, tick, segmentValue));
+            segmentStart = tick;
+            segmentValue = value;
         }
 
-        return points.OrderBy(t => t).ToList();
+        result.Add(createEvent(segmentStart, maxTick, segmentValue));
+        return result;
+    }
+
+    private static List<TEvent> BakeLinearScalarEvents<TEvent>(int endTick, Func<int, double> sampleAtTick, Func<int, int, double, double, TEvent> createEvent)
+    {
+        int maxTick = Math.Max(1, endTick);
+        var result = new List<TEvent>();
+
+        double segmentStartValue = Sanitize(sampleAtTick(0));
+        if (maxTick == 1)
+        {
+            result.Add(createEvent(0, 1, segmentStartValue, Sanitize(sampleAtTick(1))));
+            return result;
+        }
+
+        int segmentStart = 0;
+        double previousValue = Sanitize(sampleAtTick(1));
+        double slope = previousValue - segmentStartValue;
+
+        for (int tick = 2; tick <= maxTick; tick++)
+        {
+            double value = Sanitize(sampleAtTick(tick));
+            double expectedValue = segmentStartValue + (slope * (tick - segmentStart));
+
+            if (!AreClose(value, expectedValue))
+            {
+                int segmentEnd = tick - 1;
+                result.Add(createEvent(segmentStart, segmentEnd, segmentStartValue, previousValue));
+
+                segmentStart = segmentEnd;
+                segmentStartValue = previousValue;
+                slope = value - segmentStartValue;
+            }
+
+            previousValue = value;
+        }
+
+        result.Add(createEvent(segmentStart, maxTick, segmentStartValue, previousValue));
+        return result;
+    }
+
+    private static List<TEvent> BakeLinearVectorEvents<TEvent>(int endTick, Func<int, Vector> sampleAtTick, Func<int, int, Vector, Vector, TEvent> createEvent)
+    {
+        int maxTick = Math.Max(1, endTick);
+        var result = new List<TEvent>();
+
+        Vector segmentStartValue = SanitizeVector(sampleAtTick(0));
+        if (maxTick == 1)
+        {
+            result.Add(createEvent(0, 1, segmentStartValue, SanitizeVector(sampleAtTick(1))));
+            return result;
+        }
+
+        int segmentStart = 0;
+        Vector previousValue = SanitizeVector(sampleAtTick(1));
+        Vector slope = Subtract(previousValue, segmentStartValue);
+
+        for (int tick = 2; tick <= maxTick; tick++)
+        {
+            Vector value = SanitizeVector(sampleAtTick(tick));
+            Vector expectedValue = Add(segmentStartValue, Multiply(slope, tick - segmentStart));
+
+            if (!AreClose(value, expectedValue))
+            {
+                int segmentEnd = tick - 1;
+                result.Add(createEvent(segmentStart, segmentEnd, segmentStartValue, previousValue));
+
+                segmentStart = segmentEnd;
+                segmentStartValue = previousValue;
+                slope = Subtract(value, segmentStartValue);
+            }
+
+            previousValue = value;
+        }
+
+        result.Add(createEvent(segmentStart, maxTick, segmentStartValue, previousValue));
+        return result;
+    }
+
+    private static bool AreClose(double left, double right)
+    {
+        return Math.Abs(left - right) <= MergeTolerance;
+    }
+
+    private static bool AreClose(Vector left, Vector right)
+    {
+        return AreClose(left.X, right.X) && AreClose(left.Y, right.Y);
+    }
+
+    private static Vector SanitizeVector(Vector value)
+    {
+        return new Vector(Sanitize(value.X), Sanitize(value.Y));
+    }
+
+    private static Vector Add(Vector left, Vector right)
+    {
+        return new Vector(left.X + right.X, left.Y + right.Y);
+    }
+
+    private static Vector Subtract(Vector left, Vector right)
+    {
+        return new Vector(left.X - right.X, left.Y - right.Y);
+    }
+
+    private static Vector Multiply(Vector value, double scalar)
+    {
+        return new Vector(value.X * scalar, value.Y * scalar);
+    }
+
+    private static void EvaluateLineTransformAtTick(Chart chart, JudgementLine line, int tick, out Vector offset, out double rotation, out double opacity)
+    {
+        EasingUtils.CalculateObjectTransform(
+            tick,
+            chart.KeyFrameEasingDirection,
+            line.AnimatableProperties,
+            chart,
+            line,
+            out _,
+            out offset,
+            out _,
+            out rotation,
+            out opacity);
+    }
+
+    private static void EvaluateLineWorldTransformAtTick(Chart chart, JudgementLine line, int tick, IReadOnlyDictionary<string, JudgementLine> lineById, out Vector offset, out double rotation)
+    {
+        Matrix worldMatrix = BuildLineWorldMatrix(line, tick, chart, lineById, new HashSet<string>(StringComparer.Ordinal));
+        Point worldOrigin = worldMatrix.Transform(new Point(0, 0));
+        Vector worldAxis = worldMatrix.Transform(new Vector(1, 0));
+
+        offset = new Vector(worldOrigin.X, -worldOrigin.Y);
+        rotation = worldAxis.LengthSquared <= MergeTolerance
+            ? 0.0
+            : Sanitize(-Math.Atan2(worldAxis.Y, worldAxis.X) * 180.0 / Math.PI);
+    }
+
+    private static Matrix BuildLineWorldMatrix(JudgementLine line, double currentTick, Chart chart, IReadOnlyDictionary<string, JudgementLine> lineById, HashSet<string> visiting)
+    {
+        Matrix localMatrix = BuildLineLocalMatrix(line, currentTick, chart);
+
+        if (string.IsNullOrWhiteSpace(line.ParentLineId)
+            || line.ParentLineId == line.ID
+            || !visiting.Add(line.ID))
+        {
+            return localMatrix;
+        }
+
+        if (!lineById.TryGetValue(line.ParentLineId, out var parentLine))
+        {
+            visiting.Remove(line.ID);
+            return localMatrix;
+        }
+
+        Matrix parentMatrix = BuildLineWorldMatrix(parentLine, currentTick, chart, lineById, visiting);
+        localMatrix.Append(parentMatrix);
+
+        visiting.Remove(line.ID);
+        return localMatrix;
+    }
+
+    private static Matrix BuildLineLocalMatrix(JudgementLine line, double currentTick, Chart chart)
+    {
+        EasingUtils.CalculateObjectTransform(
+            currentTick,
+            chart.KeyFrameEasingDirection,
+            line.AnimatableProperties,
+            chart,
+            line,
+            out var anchor,
+            out var offset,
+            out var scale,
+            out var rotationAngle,
+            out _);
+
+        var screenAnchor = new Vector(anchor.X, -anchor.Y);
+        var screenOffset = new Vector(offset.X, -offset.Y);
+
+        var localTransform = new TransformGroup
+        {
+            Children =
+            {
+                new TranslateTransform(-screenAnchor.X, -screenAnchor.Y),
+                new ScaleTransform(scale.X, scale.Y),
+                new RotateTransform(-rotationAngle),
+                new TranslateTransform(screenAnchor.X, screenAnchor.Y),
+                new TranslateTransform(screenOffset.X, screenOffset.Y),
+            }
+        };
+
+        return localTransform.Value;
     }
 
     private static double Sanitize(double value)

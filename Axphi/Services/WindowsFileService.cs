@@ -51,5 +51,18 @@ namespace Axphi.Services
             };
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
+
+        public string? SaveOfficialChartFile(string defaultFileName)
+        {
+            var dialog = new SaveFileDialog
+            {
+                Title = "Export Official Chart",
+                FileName = defaultFileName,
+                DefaultExt = ".json",
+                Filter = "JSON File|*.json|Any File|*.*",
+                CheckPathExists = true
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
     }
 }

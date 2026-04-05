@@ -10,6 +10,7 @@ using System.Text;
 
 using CommunityToolkit.Mvvm.Messaging;
 using Axphi.Services;
+using Axphi.Utilities;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -145,6 +146,42 @@ public partial class FileActionsViewModel : ObservableObject
         catch (Exception ex)
         {
             ShowFileActionError("save project", "Save Project Failed", ProjectManager.EditingProjectFilePath, $"An unexpected error occurred while saving the project.\n\n{ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void ExportOfficialChart()
+    {
+        if (ProjectManager.EditingProject is null) return;
+
+        string defaultFileName = "officialChart";
+        if (!string.IsNullOrWhiteSpace(ProjectManager.EditingProjectFilePath))
+        {
+            defaultFileName = Path.GetFileNameWithoutExtension(ProjectManager.EditingProjectFilePath);
+        }
+
+        string? savePath = _fileService.SaveOfficialChartFile(defaultFileName);
+        if (savePath == null) return;
+
+        try
+        {
+            OfficialChartExporter.Export(ProjectManager.EditingProject, savePath);
+        }
+        catch (ArgumentException ex)
+        {
+            ShowFileActionError("export official chart", "Export Official Chart Failed", savePath, $"Export path is invalid.\n\n{ex.Message}");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            ShowFileActionError("export official chart", "Export Official Chart Failed", savePath, $"Access to the target file was denied.\n\n{ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            ShowFileActionError("export official chart", "Export Official Chart Failed", savePath, $"The official chart file could not be written.\n\n{ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            ShowFileActionError("export official chart", "Export Official Chart Failed", savePath, $"An unexpected error occurred while exporting official chart.\n\n{ex.Message}");
         }
     }
 

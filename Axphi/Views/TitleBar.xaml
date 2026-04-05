@@ -30,6 +30,8 @@
                             Header="Open"/>
                     <ws:MenuItem Command="{Binding FileActions.SaveChartCommand}"
                             Header="Save"/>
+                    <ws:MenuItem Command="{Binding FileActions.ExportOfficialChartCommand}"
+                        Header="Export Official Chart"/>
                 </ws:MenuItem>
                 <ws:MenuItem Header="Debugging">
                     <ws:MenuItem Command="{Binding LoadDemoChartCommand}"

@@ -11,5 +11,6 @@ namespace Axphi.Services
         string? OpenImageFile();
         string? OpenProjectFile();
         string? SaveProjectFile(string defaultFileName);
+        string? SaveOfficialChartFile(string defaultFileName);
     }
 }

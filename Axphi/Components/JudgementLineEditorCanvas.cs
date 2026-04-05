@@ -527,6 +527,8 @@ namespace Axphi.Components
                 double previewX = centerX + editor.PendingHoldChartX * metrics.PixelsPerChartUnit;
                 double previewY = JudgementLineEditorRenderMath.CalculateHoverY(editor.Timeline, track, currentTick, editor.PendingHoldStartTick, viewportSize, editor.ViewZoom, centerY);
                 int holdDuration = Math.Max(1, editor.HoverHitTick - editor.PendingHoldStartTick);
+                int tailTick = editor.PendingHoldStartTick + holdDuration;
+                double tailY = JudgementLineEditorRenderMath.CalculateHoverY(editor.Timeline, track, currentTick, tailTick, viewportSize, editor.ViewZoom, centerY);
                 double holdLength = CalculatePreviewHoldLength(editor, track, viewportSize, centerY, holdDuration);
                 double holdPreviewWidth = GetRenderedNotePixelWidth(metrics.NotePixelWidth, NoteKind.Hold, false);
                 double holdPreviewBounds = Math.Max(holdPreviewWidth + 12, holdLength + holdPreviewWidth);
@@ -536,6 +538,15 @@ namespace Axphi.Components
                 }
 
                 DrawPreviewHold(dc, holdPreviewWidth, previewX, previewY, holdLength, 0.58, true, false);
+
+                var tailStyle = ResolveBeatGuideVisualStyle(tailTick);
+                string tailFractionText = BuildBeatFractionText(tailTick);
+                dc.DrawLine(tailStyle.GuidePen, new Point(0, tailY), new Point(width, tailY));
+
+                FormattedText tailMarkerText = CreateLabel(tailFractionText, 11.0, tailStyle.LabelBrush);
+                double tailMarkerX = Math.Clamp(previewX + 14, 8, Math.Max(8, width - tailMarkerText.Width - 8));
+                double tailMarkerY = Math.Clamp(tailY - tailMarkerText.Height - 10, 6, Math.Max(6, height - tailMarkerText.Height - 6));
+                DrawLabelBadge(dc, tailMarkerText, new Point(tailMarkerX, tailMarkerY), tailStyle.LabelBackgroundBrush);
                 return;
             }
 

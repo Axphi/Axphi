@@ -4,11 +4,22 @@ using System.Text;
 
 namespace Axphi.Data.AnimatableProperties
 {
-    public class StandardAnimatableProperties
+    public class StandardAnimatableProperties<TOwner>
     {
-        public OffsetProperty Offset { get; } = new OffsetProperty();
-        public ScaleProperty Scale { get; } = new ScaleProperty();
-        public RotationProperty Rotation { get; } = new RotationProperty();
-        public OpacityProperty Opacity { get; } = new OpacityProperty();
+        public TOwner Owner { get; }
+
+        public OffsetProperty<StandardAnimatableProperties<TOwner>> Offset { get; }
+        public ScaleProperty<StandardAnimatableProperties<TOwner>> Scale { get; }
+        public RotationProperty<StandardAnimatableProperties<TOwner>> Rotation { get; }
+        public OpacityProperty<StandardAnimatableProperties<TOwner>> Opacity { get; }
+
+        public StandardAnimatableProperties(TOwner owner)
+        {
+            Owner = owner;
+            Offset = new OffsetProperty<StandardAnimatableProperties<TOwner>>(this);
+            Scale = new ScaleProperty<StandardAnimatableProperties<TOwner>>(this);
+            Rotation = new RotationProperty<StandardAnimatableProperties<TOwner>>(this);
+            Opacity = new OpacityProperty<StandardAnimatableProperties<TOwner>>(this);
+        }
     }
 }

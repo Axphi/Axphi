@@ -7,7 +7,7 @@ namespace Axphi.Data
     /// <summary>
     /// 判定线
     /// </summary>
-    public class JudgementLine
+    public class JudgementLine : RelationObject<Chart>
     {
         public string? Name { get; set; }
         public double Speed { get; set; } = 1;
@@ -15,11 +15,17 @@ namespace Axphi.Data
         /// <summary>
         /// 动画属性
         /// </summary>
-        public StandardAnimatableProperties AnimatableProperties { get; } = new StandardAnimatableProperties();
+        public StandardAnimatableProperties<JudgementLine> AnimatableProperties { get; }
 
         /// <summary>
         /// 音符
         /// </summary>
-        public List<Note>? Notes { get; set; }
+        public RelationObject<JudgementLine>.Collection<Note> Notes { get; }
+
+        public JudgementLine()
+        {
+            AnimatableProperties = new StandardAnimatableProperties<JudgementLine>(this);
+            Notes = new RelationObject<JudgementLine>.Collection<Note>(this);
+        }
     }
 }

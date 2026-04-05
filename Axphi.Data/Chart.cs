@@ -55,16 +55,22 @@ namespace Axphi.Data
         /// <summary>
         /// BPM 关键帧
         /// </summary>
-        public List<KeyFrame<double>>? BpmKeyFrames { get; set; }
+        public RelationObject<Chart>.Collection<BpmKeyFrame>? BpmKeyFrames { get; }
 
         /// <summary>
         /// 判定线
         /// </summary>
-        public List<JudgementLine>? JudgementLines { get; set; }
+        public RelationObject<Chart>.Collection<JudgementLine> JudgementLines { get; }
 
         /// <summary>
         /// 插值方向
         /// </summary>
         public KeyFrameEasingDirection KeyFrameEasingDirection { get; set; }
+
+        public Chart()
+        {
+            BpmKeyFrames = new RelationObject<Chart>.Collection<BpmKeyFrame>(this);
+            JudgementLines = new RelationObject<Chart>.Collection<JudgementLine>(this);
+        }
     }
 }

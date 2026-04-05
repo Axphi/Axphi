@@ -1,6 +1,7 @@
 ﻿namespace Axphi.Data.KeyFrames
 {
-    public record class KeyFrame<T>
+    public class KeyFrame<TParent, T> : RelationObject<TParent>
+        where TParent : class
         where T : struct
     {
         /// <summary>

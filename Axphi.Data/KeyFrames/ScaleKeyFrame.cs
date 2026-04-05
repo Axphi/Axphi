@@ -2,9 +2,9 @@
 
 namespace Axphi.Data.KeyFrames
 {
-    public record class ScaleKeyFrame : KeyFrame<Vector>
+    public class ScaleKeyFrame<TParent> : KeyFrame<TParent, Vector>
+        where TParent : class
     {
         public ScaleKeyFrame() { Value = new Vector(1, 1); }
     }
-
 }

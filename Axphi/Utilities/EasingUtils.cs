@@ -1,20 +1,16 @@
-﻿using Axphi.Data.KeyFrames;
+﻿using System.Windows;
 using Axphi.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 using Axphi.Data.AnimatableProperties;
+using Axphi.Data.KeyFrames;
 
 namespace Axphi.Utilities
 {
     internal static class EasingUtils
     {
-        private static void SelectTransitionKeyFrames<T>(
-            TimeSpan time, IReadOnlyList<KeyFrame<T>> keyFrames,
-            out KeyFrame<T>? firstKeyFrame, out KeyFrame<T>? secondKeyFrame, out double normalizedTime)
+        private static void SelectTransitionKeyFrames<TParent, T>(
+            TimeSpan time, IReadOnlyList<KeyFrame<TParent, T>> keyFrames,
+            out KeyFrame<TParent, T>? firstKeyFrame, out KeyFrame<TParent, T>? secondKeyFrame, out double normalizedTime)
+            where TParent : class
             where T : struct
         {
             firstKeyFrame = null;
@@ -40,10 +36,11 @@ namespace Axphi.Utilities
             }
         }
 
-        private static void SelectKeyFrameEasing<T>(
+        private static void SelectKeyFrameEasing<TParent, T>(
             KeyFrameEasingDirection easingDirection,
-            KeyFrame<T>? firstKeyFrame, KeyFrame<T>? secondKeyFrame,
+            KeyFrame<TParent, T>? firstKeyFrame, KeyFrame<TParent, T>? secondKeyFrame,
             out BezierEasing? easing)
+            where TParent : class
             where T : struct
         {
             easing = easingDirection switch
@@ -60,17 +57,18 @@ namespace Axphi.Utilities
             y = easing.HasValue ? easing.Value.Calculate(t) : 0;
         }
 
-        public static void CalculateObjectSingleTransform<T>(
+        public static void CalculateObjectSingleTransform<TParent, T>(
             TimeSpan time,
             KeyFrameEasingDirection easingDirection,
-            T initialValue, IReadOnlyList<KeyFrame<T>> keyFrames,
+            T initialValue, IReadOnlyList<KeyFrame<TParent, T>> keyFrames,
             Func<T, T, double, T> lerpFunction,
             out T finalValue)
+            where TParent : class
             where T : struct
         {
             finalValue = initialValue;
 
-            SelectTransitionKeyFrames<T>(time, keyFrames, out var firstKeyFrame, out var secondKeyFrame, out var t);
+            SelectTransitionKeyFrames(time, keyFrames, out var firstKeyFrame, out var secondKeyFrame, out var t);
             SelectKeyFrameEasing(easingDirection, firstKeyFrame, secondKeyFrame, out var easing);
 
             var start = firstKeyFrame?.Value ?? initialValue;
@@ -81,10 +79,10 @@ namespace Axphi.Utilities
             }
         }
 
-        public static void CalculateObjectTransform(
+        public static void CalculateObjectTransform<T>(
             TimeSpan time,
             KeyFrameEasingDirection easingDirection,
-            StandardAnimatableProperties properties,
+            StandardAnimatableProperties<T> properties,
             out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
             finalOffset = properties.Offset.InitialValue;

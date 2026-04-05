@@ -9,11 +9,15 @@ using System.Threading.Tasks;
 
 namespace Axphi.Data.AnimatableProperties
 {
-    public partial class AnimatableProperty<T, TKeyFrame> : ObservableObject
-        where T : struct
-        where TKeyFrame : KeyFrame<T>
+    public partial class AnimatableProperty<TOwner, TSelf, TValue, TKeyFrame>(TOwner owner) : ObservableObject
+        where TOwner : class
+        where TValue : struct
+        where TSelf : AnimatableProperty<TOwner, TSelf, TValue, TKeyFrame>
+        where TKeyFrame : KeyFrame<TSelf, TValue>
     {
-        public T InitialValue { get; set; }
+        public TOwner Owner { get; } = owner;
+
+        public TValue InitialValue { get; set; }
 
         public ObservableCollection<TKeyFrame> KeyFrames { get; } = new();
     }

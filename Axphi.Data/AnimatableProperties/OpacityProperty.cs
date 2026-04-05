@@ -2,9 +2,11 @@
 
 namespace Axphi.Data.AnimatableProperties
 {
-    public sealed class OpacityProperty : AnimatableProperty<double, OpacityKeyFrame>
+    public sealed class OpacityProperty<TOwner> :
+        AnimatableProperty<TOwner, OpacityProperty<TOwner>, double, OpacityKeyFrame<OpacityProperty<TOwner>>>
+        where TOwner : class
     {
-        public OpacityProperty()
+        public OpacityProperty(TOwner owner) : base(owner)
         {
             InitialValue = 1;
         }

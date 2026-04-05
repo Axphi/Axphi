@@ -2,6 +2,6 @@
 
 namespace Axphi.Data.KeyFrames
 {
-    public record class OffsetKeyFrame : KeyFrame<Vector>;
-
+    public class OffsetKeyFrame<TParent> : KeyFrame<TParent, Vector>
+        where TParent : class;
 }

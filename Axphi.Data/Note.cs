@@ -7,18 +7,8 @@ namespace Axphi.Data
     /// <summary>
     /// 音符
     /// </summary>
-    public class Note
+    public class Note : RelationObject<JudgementLine>
     {
-        public Note()
-        {
-        }
-
-        public Note(NoteKind kind, TimeSpan hitTime)
-        {
-            Kind = kind;
-            HitTime = hitTime;
-        }
-
         public NoteKind Kind { get; set; }
         public TimeSpan HitTime { get; set; }
         public TimeSpan HoldDuration { get; set; }
@@ -27,6 +17,17 @@ namespace Axphi.Data
         /// <summary>
         /// 动画属性
         /// </summary>
-        public StandardAnimatableProperties AnimatableProperties { get; } = new StandardAnimatableProperties();
+        public StandardAnimatableProperties<Note> AnimatableProperties { get; }
+
+        public Note()
+        {
+            AnimatableProperties = new StandardAnimatableProperties<Note>(this);
+        }
+
+        public Note(NoteKind kind, TimeSpan hitTime) : this()
+        {
+            Kind = kind;
+            HitTime = hitTime;
+        }
     }
 }

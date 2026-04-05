@@ -1,5 +1,6 @@
 ﻿namespace Axphi.Data.KeyFrames
 {
-    public record class RotationKeyFrame : KeyFrame<double>;
+    public class RotationKeyFrame<TParent> : KeyFrame<TParent, double>
+        where TParent : class;
 
 }

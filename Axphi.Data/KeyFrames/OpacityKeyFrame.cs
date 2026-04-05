@@ -1,6 +1,7 @@
 ﻿namespace Axphi.Data.KeyFrames
 {
-    public record class OpacityKeyFrame : KeyFrame<double>
+    public class OpacityKeyFrame<TParent> : KeyFrame<TParent, double>
+        where TParent : class
     {
         public OpacityKeyFrame() { Value = 1; }
     }

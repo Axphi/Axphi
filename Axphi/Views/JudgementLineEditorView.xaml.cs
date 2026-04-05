@@ -381,6 +381,7 @@ namespace Axphi.Views
             _dragStartPoint = point;
             _currentSelectionRect = new Rect(point, point);
             EditorCanvas.SelectionRect = _currentSelectionRect;
+            vm.ClearHoverPreview();
             EditorCanvas.CaptureMouse();
             EditorCanvas.Focus();
 

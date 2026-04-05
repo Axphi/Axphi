@@ -813,7 +813,10 @@ namespace Axphi.ViewModels
                 WorkspaceStartTick = metadata.WorkspaceStartTick,
                 WorkspaceEndTick = metadata.WorkspaceEndTick,
                 IsAudioTrackExpanded = metadata.IsAudioTrackExpanded,
-                IsAudioTrackLocked = metadata.IsAudioTrackLocked
+                IsAudioTrackLocked = metadata.IsAudioTrackLocked,
+                PlaybackSpeed = metadata.PlaybackSpeed,
+                BackgroundDimOpacity = metadata.BackgroundDimOpacity,
+                PreserveAudioPitch = metadata.PreserveAudioPitch
             };
         }
 

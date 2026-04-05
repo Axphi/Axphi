@@ -74,6 +74,7 @@ public partial class MainWindow : Window
 
         WeakReferenceMessenger.Default.Register<ProjectLoadedMessage>(this, (r, message) =>
         {
+            ApplyDisplaySettingsFromMetadata();
             MainChartDisplay.LoadAudio(_mainViewModel.ProjectManager.EditingProject.EncodedAudio);
             MainChartDisplay.LoadIllustration(_mainViewModel.ProjectManager.EditingProject.EncodedIllustration);
             Dispatcher.BeginInvoke(new Action(RestoreHorizontalScrollFromTimeline), DispatcherPriority.Loaded);
@@ -128,7 +129,48 @@ public partial class MainWindow : Window
             RestoreHorizontalScrollFromTimeline();
         };
 
+        RegisterDisplayMetadataSync();
+        ApplyDisplaySettingsFromMetadata();
+
         
+    }
+
+    private void RegisterDisplayMetadataSync()
+    {
+        DependencyPropertyDescriptor
+            .FromProperty(ChartDisplay.PlaybackSpeedProperty, typeof(ChartDisplay))
+            ?.AddValueChanged(MainChartDisplay, (_, _) => PersistDisplaySettingsToMetadata());
+
+        DependencyPropertyDescriptor
+            .FromProperty(ChartDisplay.BackgroundDimOpacityProperty, typeof(ChartDisplay))
+            ?.AddValueChanged(MainChartDisplay, (_, _) => PersistDisplaySettingsToMetadata());
+
+        DependencyPropertyDescriptor
+            .FromProperty(ChartDisplay.PreserveAudioPitchProperty, typeof(ChartDisplay))
+            ?.AddValueChanged(MainChartDisplay, (_, _) => PersistDisplaySettingsToMetadata());
+    }
+
+    private void ApplyDisplaySettingsFromMetadata()
+    {
+        var metadata = GetOrCreateProjectMetadata();
+        MainChartDisplay.PlaybackSpeed = metadata.PlaybackSpeed;
+        MainChartDisplay.BackgroundDimOpacity = metadata.BackgroundDimOpacity;
+        MainChartDisplay.PreserveAudioPitch = metadata.PreserveAudioPitch;
+    }
+
+    private void PersistDisplaySettingsToMetadata()
+    {
+        var metadata = GetOrCreateProjectMetadata();
+        metadata.PlaybackSpeed = MainChartDisplay.PlaybackSpeed;
+        metadata.BackgroundDimOpacity = MainChartDisplay.BackgroundDimOpacity;
+        metadata.PreserveAudioPitch = MainChartDisplay.PreserveAudioPitch;
+    }
+
+    private ProjectMetadata GetOrCreateProjectMetadata()
+    {
+        _mainViewModel.ProjectManager.EditingProject ??= new Project();
+        _mainViewModel.ProjectManager.EditingProject.Metadata ??= new ProjectMetadata();
+        return _mainViewModel.ProjectManager.EditingProject.Metadata;
     }
 
     private TrackViewModel? ResolveTrackFromWindowPoint(Point windowPoint)

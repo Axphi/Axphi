@@ -21,5 +21,11 @@ namespace Axphi.Data
         public bool IsAudioTrackExpanded { get; set; }
 
         public bool IsAudioTrackLocked { get; set; }
+
+        public double PlaybackSpeed { get; set; } = 1.0;
+
+        public double BackgroundDimOpacity { get; set; } = 0.3;
+
+        public bool PreserveAudioPitch { get; set; } = true;
     }
 }

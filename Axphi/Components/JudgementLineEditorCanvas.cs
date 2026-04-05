@@ -621,6 +621,23 @@ namespace Axphi.Components
             double noteMarkerX = Math.Clamp(noteCenter.X + 14, 8, Math.Max(8, width - markerText.Width - 8));
             double noteMarkerY = Math.Clamp(noteCenter.Y - markerText.Height - 10, 6, Math.Max(6, height - markerText.Height - 6));
             DrawLabelBadge(dc, markerText, new Point(noteMarkerX, noteMarkerY), style.LabelBackgroundBrush);
+
+            if (renderState.Kind == NoteKind.Hold)
+            {
+                int tailTick = hoveredNote.HitTime + Math.Max(1, hoveredNote.HoldDuration);
+                double tailY = JudgementLineEditorRenderMath.CalculateHoverY(editor.Timeline, track, currentTick, tailTick, viewportSize, editor.ViewZoom, centerY);
+                if (tailY >= -4 && tailY <= height + 4)
+                {
+                    var tailStyle = ResolveBeatGuideVisualStyle(tailTick);
+                    string tailFractionText = BuildBeatFractionText(tailTick);
+                    dc.DrawLine(tailStyle.GuidePen, new Point(0, tailY), new Point(width, tailY));
+
+                    FormattedText tailMarkerText = CreateLabel(tailFractionText, 11.5, tailStyle.LabelBrush);
+                    double tailMarkerX = Math.Clamp(noteCenter.X - tailMarkerText.Width - 14, 8, Math.Max(8, width - tailMarkerText.Width - 8));
+                    double tailMarkerY = Math.Clamp(tailY - tailMarkerText.Height - 10, 6, Math.Max(6, height - tailMarkerText.Height - 6));
+                    DrawLabelBadge(dc, tailMarkerText, new Point(tailMarkerX, tailMarkerY), tailStyle.LabelBackgroundBrush);
+                }
+            }
         }
 
         private static void DrawRenderedNote(DrawingContext dc, JudgementLineEditorViewModel editor, TrackViewModel track, NoteViewModel note, Size viewportSize, JudgementLineEditorRenderMath.ViewMetrics metrics, double currentTick, double centerX, double centerY, double judgementLineY, double opacityMultiplier, bool isMultiHit, NoteRenderState renderState)

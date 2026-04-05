@@ -161,7 +161,7 @@ internal static class OfficialChartExporter
         return new OfficialChartDto
         {
             FormatVersion = 3,
-            Offset = Sanitize(offsetSeconds),
+            Offset = Sanitize(-offsetSeconds),
             JudgeLineList = judgeLines
         };
     }

@@ -169,6 +169,105 @@ public class OfficialChartExporterTests
         AssertRangeEvent(rotateEvents[0], 0, 4, 0, 40);
     }
 
+    [TestMethod]
+    public void Export_SplitsNoteWithXKeyframesIntoCarrierLine()
+    {
+        var note = new Note(NoteKind.Tap, 4);
+        note.AnimatableProperties.Offset.KeyFrames.AddRange(
+        [
+            new OffsetKeyFrame { Time = 0, Value = new Vector(0, 0) },
+            new OffsetKeyFrame { Time = 4, Value = new Vector(2, 0) }
+        ]);
+
+        var line = new JudgementLine
+        {
+            Notes = [note]
+        };
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 4,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 4
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+
+        Assert.AreEqual(2, lines.GetArrayLength());
+        Assert.AreEqual(0, lines[0].GetProperty("notesAbove").GetArrayLength());
+        Assert.AreEqual(0, lines[0].GetProperty("notesBelow").GetArrayLength());
+
+        JsonElement carrier = lines[1];
+        JsonElement carrierNote = carrier.GetProperty("notesAbove")[0];
+        Assert.AreEqual(0, carrierNote.GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(1, carrierNote.GetProperty("speed").GetDouble(), 0.0001);
+
+        JsonElement moveEvents = carrier.GetProperty("judgeLineMoveEvents");
+        Assert.AreEqual(1, moveEvents.GetArrayLength());
+        AssertMoveEvent(moveEvents[0], 0, 4, 0.5, 0.625, 0.5, 0.5);
+
+        JsonElement disappearEvents = carrier.GetProperty("judgeLineDisappearEvents");
+        Assert.AreEqual(1, disappearEvents.GetArrayLength());
+        AssertRangeEvent(disappearEvents[0], 0, 4, 0, 0);
+    }
+
+    [TestMethod]
+    public void Export_SplitsRotatingNoteIntoFallingCarrierLine()
+    {
+        var note = new Note(NoteKind.Tap, 4);
+        note.AnimatableProperties.Rotation.KeyFrames.AddRange(
+        [
+            new RotationKeyFrame { Time = 0, Value = 0 },
+            new RotationKeyFrame { Time = 4, Value = 40 }
+        ]);
+
+        var line = new JudgementLine
+        {
+            Notes = [note]
+        };
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 4,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 4
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+
+        Assert.AreEqual(2, lines.GetArrayLength());
+        JsonElement carrier = lines[1];
+        JsonElement carrierNote = carrier.GetProperty("notesAbove")[0];
+        Assert.AreEqual(0, carrierNote.GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(0, carrierNote.GetProperty("speed").GetDouble(), 0.0001);
+
+        JsonElement speedEvents = carrier.GetProperty("speedEvents");
+        Assert.AreEqual(1, speedEvents.GetArrayLength());
+        AssertEvent(speedEvents[0], 0, 4, "value", 0);
+
+        JsonElement rotateEvents = carrier.GetProperty("judgeLineRotateEvents");
+        Assert.AreEqual(1, rotateEvents.GetArrayLength());
+        AssertRangeEvent(rotateEvents[0], 0, 4, 0, -40);
+
+        JsonElement moveEvents = carrier.GetProperty("judgeLineMoveEvents");
+        Assert.AreEqual(1, moveEvents.GetArrayLength());
+        AssertMoveEvent(moveEvents[0], 0, 4, 0.5, 0.5, 0.5375, 0.5);
+    }
+
     private static JsonDocument ExportOfficialChart(Project project)
     {
         string outputPath = Path.Combine(Path.GetTempPath(), $"axphi-export-{Guid.NewGuid():N}.json");

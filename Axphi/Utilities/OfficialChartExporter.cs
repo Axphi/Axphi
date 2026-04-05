@@ -18,7 +18,17 @@ internal static class OfficialChartExporter
     private const double ProjectViewportWidthUnits = 16.0;
     private const double ProjectViewportHeightUnits = 9.0;
     private const double OfficialNoteXUnitSpan = 18.0;
+    private const double BaseVerticalFlowChartUnitsPerSecond = 5.4;
     private const double MergeTolerance = 1e-6;
+
+    private enum NoteExportStrategy
+    {
+        Inline,
+        OffsetCarrier,
+        FullCarrier,
+    }
+
+    private readonly record struct NotePlacement(OfficialNoteDto Note, bool IsAbove);
 
     public static void Export(Project project, string path)
     {
@@ -52,18 +62,7 @@ internal static class OfficialChartExporter
         var judgeLines = new List<OfficialJudgeLineDto>();
         foreach (var line in chart.JudgementLines)
         {
-            BuildLineNotes(chart, line, out var notesAbove, out var notesBelow);
-
-            judgeLines.Add(new OfficialJudgeLineDto
-            {
-                Bpm = defaultBpm,
-                NotesAbove = notesAbove,
-                NotesBelow = notesBelow,
-                SpeedEvents = BuildSpeedEvents(chart, line, endTick),
-                JudgeLineMoveEvents = BuildMoveEvents(chart, line, endTick, lineById),
-                JudgeLineRotateEvents = BuildRotateEvents(chart, line, endTick, lineById),
-                JudgeLineDisappearEvents = BuildDisappearEvents(chart, line, endTick)
-            });
+            judgeLines.AddRange(BuildExportJudgeLines(chart, line, endTick, defaultBpm, lineById));
         }
 
         double offsetSeconds = TimeTickConverter.TickToTime(
@@ -102,7 +101,11 @@ internal static class OfficialChartExporter
         {
             latestNoteTick = project.Chart.JudgementLines
                 .SelectMany(line => line.Notes)
-                .Select(note => note.HitTime + Math.Max(0, note.HoldDuration))
+                .Select(note =>
+                {
+                    NoteKind kind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, note.HitTime, note.InitialKind);
+                    return note.HitTime + (kind == NoteKind.Hold ? Math.Max(0, note.HoldDuration) : 0);
+                })
                 .DefaultIfEmpty(0)
                 .Max();
         }
@@ -110,26 +113,132 @@ internal static class OfficialChartExporter
         return Math.Max(1, Math.Max(metadataDuration, Math.Max(chartDuration, latestNoteTick)));
     }
 
-    private static void BuildLineNotes(Chart chart, JudgementLine line, out List<OfficialNoteDto> notesAbove, out List<OfficialNoteDto> notesBelow)
+    private static List<OfficialJudgeLineDto> BuildExportJudgeLines(Chart chart, JudgementLine line, int endTick, double defaultBpm, IReadOnlyDictionary<string, JudgementLine> lineById)
     {
-        notesAbove = new List<OfficialNoteDto>();
-        notesBelow = new List<OfficialNoteDto>();
+        var notesAbove = new List<OfficialNoteDto>();
+        var notesBelow = new List<OfficialNoteDto>();
+        var result = new List<OfficialJudgeLineDto>();
 
         foreach (var note in line.Notes)
         {
-            EasingUtils.CalculateObjectTransform(
-                note.HitTime,
-                chart.KeyFrameEasingDirection,
-                note.AnimatableProperties,
-                chart,
-                out _,
-                out Vector notePosition,
-                out _,
-                out _,
-                out _);
+            NoteExportStrategy strategy = DetermineNoteExportStrategy(note);
+            if (strategy == NoteExportStrategy.Inline)
+            {
+                AddNotePlacement(BuildInlineNotePlacement(chart, note), notesAbove, notesBelow);
+            }
+            else
+            {
+                result.Add(BuildCarrierJudgeLine(chart, line, note, strategy, endTick, defaultBpm, lineById));
+            }
+        }
 
-            var kind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, note.HitTime, note.InitialKind);
-            var officialNote = new OfficialNoteDto
+        notesAbove.Sort((a, b) => a.Time.CompareTo(b.Time));
+        notesBelow.Sort((a, b) => a.Time.CompareTo(b.Time));
+
+        result.Insert(0, new OfficialJudgeLineDto
+        {
+            Bpm = defaultBpm,
+            NotesAbove = notesAbove,
+            NotesBelow = notesBelow,
+            SpeedEvents = BuildSpeedEvents(chart, line, endTick),
+            JudgeLineMoveEvents = BuildMoveEvents(chart, line, endTick, lineById),
+            JudgeLineRotateEvents = BuildRotateEvents(chart, line, endTick, lineById),
+            JudgeLineDisappearEvents = BuildDisappearEvents(chart, line, endTick)
+        });
+
+        return result;
+    }
+
+    private static OfficialJudgeLineDto BuildCarrierJudgeLine(Chart chart, JudgementLine sourceLine, Note note, NoteExportStrategy strategy, int endTick, double defaultBpm, IReadOnlyDictionary<string, JudgementLine> lineById)
+    {
+        NotePlacement placement = BuildCarrierNotePlacement(chart, note, strategy);
+        var notesAbove = new List<OfficialNoteDto>();
+        var notesBelow = new List<OfficialNoteDto>();
+        AddNotePlacement(placement, notesAbove, notesBelow);
+
+        return new OfficialJudgeLineDto
+        {
+            Bpm = defaultBpm,
+            NotesAbove = notesAbove,
+            NotesBelow = notesBelow,
+            SpeedEvents = strategy == NoteExportStrategy.FullCarrier
+                ? BuildFlatSpeedEvents(endTick, 0.0)
+                : BuildSpeedEvents(chart, sourceLine, endTick),
+            JudgeLineMoveEvents = BuildCarrierMoveEvents(chart, sourceLine, note, strategy, endTick, lineById),
+            JudgeLineRotateEvents = BuildCarrierRotateEvents(chart, sourceLine, note, strategy, endTick, lineById),
+            JudgeLineDisappearEvents = BuildFlatDisappearEvents(endTick, 0.0)
+        };
+    }
+
+    private static NoteExportStrategy DetermineNoteExportStrategy(Note note)
+    {
+        var properties = note.AnimatableProperties;
+        bool hasRotationChange = HasScalarPropertyChange(properties.Rotation, 0.0);
+        bool hasAnchorChange = HasVectorPropertyChange(properties.Anchor, default);
+        bool hasScaleChange = HasVectorPropertyChange(properties.Scale, new Vector(1, 1));
+        bool hasOpacityChange = HasScalarPropertyChange(properties.Opacity, 100.0);
+        bool hasOffsetExpression = properties.Offset.ExpressionEnabled && !string.IsNullOrWhiteSpace(properties.Offset.ExpressionText);
+        bool hasOffsetKeyframes = properties.Offset.KeyFrames.Count > 0;
+        bool hasOffsetYChange = !AreClose(properties.Offset.InitialValue.Y, 0.0)
+            || properties.Offset.KeyFrames.Any(frame => !AreClose(frame.Value.Y, 0.0));
+
+        if (hasRotationChange || hasAnchorChange || hasScaleChange || hasOpacityChange || hasOffsetExpression || hasOffsetYChange)
+        {
+            return NoteExportStrategy.FullCarrier;
+        }
+
+        if (hasOffsetKeyframes)
+        {
+            return NoteExportStrategy.OffsetCarrier;
+        }
+
+        return NoteExportStrategy.Inline;
+    }
+
+    private static bool HasScalarPropertyChange<TKeyFrame>(AnimatableProperty<double, TKeyFrame> property, double defaultValue)
+        where TKeyFrame : KeyFrame<double>
+    {
+        return !AreClose(property.InitialValue, defaultValue)
+            || (property.ExpressionEnabled && !string.IsNullOrWhiteSpace(property.ExpressionText))
+            || property.KeyFrames.Any(frame => !AreClose(frame.Value, defaultValue));
+    }
+
+    private static bool HasVectorPropertyChange<TKeyFrame>(AnimatableProperty<Vector, TKeyFrame> property, Vector defaultValue)
+        where TKeyFrame : KeyFrame<Vector>
+    {
+        return !AreClose(property.InitialValue, defaultValue)
+            || (property.ExpressionEnabled && !string.IsNullOrWhiteSpace(property.ExpressionText))
+            || property.KeyFrames.Any(frame => !AreClose(frame.Value, defaultValue));
+    }
+
+    private static void AddNotePlacement(NotePlacement placement, List<OfficialNoteDto> notesAbove, List<OfficialNoteDto> notesBelow)
+    {
+        if (placement.IsAbove)
+        {
+            notesAbove.Add(placement.Note);
+        }
+        else
+        {
+            notesBelow.Add(placement.Note);
+        }
+    }
+
+    private static NotePlacement BuildInlineNotePlacement(Chart chart, Note note)
+    {
+        EasingUtils.CalculateObjectTransform(
+            note.HitTime,
+            chart.KeyFrameEasingDirection,
+            note.AnimatableProperties,
+            chart,
+            out _,
+            out Vector notePosition,
+            out _,
+            out _,
+            out _);
+
+        var kind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, note.HitTime, note.InitialKind);
+        return new NotePlacement(
+            new OfficialNoteDto
             {
                 Type = ConvertNoteKind(kind),
                 Time = note.HitTime,
@@ -137,20 +246,24 @@ internal static class OfficialChartExporter
                 PositionX = ConvertProjectXToOfficialX(notePosition.X),
                 Speed = Sanitize(note.CustomSpeed ?? 1.0),
                 FloorPosition = 0
-            };
+            },
+            notePosition.Y >= 0);
+    }
 
-            if (notePosition.Y >= 0)
+    private static NotePlacement BuildCarrierNotePlacement(Chart chart, Note note, NoteExportStrategy strategy)
+    {
+        NotePlacement inlinePlacement = BuildInlineNotePlacement(chart, note);
+        return new NotePlacement(
+            new OfficialNoteDto
             {
-                notesAbove.Add(officialNote);
-            }
-            else
-            {
-                notesBelow.Add(officialNote);
-            }
-        }
-
-        notesAbove.Sort((a, b) => a.Time.CompareTo(b.Time));
-        notesBelow.Sort((a, b) => a.Time.CompareTo(b.Time));
+                Type = inlinePlacement.Note.Type,
+                Time = inlinePlacement.Note.Time,
+                HoldTime = inlinePlacement.Note.HoldTime,
+                PositionX = 0.0,
+                Speed = strategy == NoteExportStrategy.FullCarrier ? 0.0 : inlinePlacement.Note.Speed,
+                FloorPosition = 0.0
+            },
+            strategy == NoteExportStrategy.FullCarrier ? true : inlinePlacement.IsAbove);
     }
 
     private static int ConvertNoteKind(NoteKind kind)
@@ -238,6 +351,62 @@ internal static class OfficialChartExporter
             EndTime = endTime,
             Start = startValue,
             End = endValue
+        });
+    }
+
+    private static List<OfficialSpeedEventDto> BuildFlatSpeedEvents(int endTick, double value)
+    {
+        return BakeConstantEvents(endTick, _ => value, (startTime, endTime, speed) => new OfficialSpeedEventDto
+        {
+            StartTime = startTime,
+            EndTime = endTime,
+            Value = Sanitize(speed),
+            FloorPosition = 0.0
+        });
+    }
+
+    private static List<OfficialDisappearEventDto> BuildFlatDisappearEvents(int endTick, double value)
+    {
+        return BakeLinearScalarEvents(endTick, _ => value, (startTime, endTime, startValue, endValue) => new OfficialDisappearEventDto
+        {
+            StartTime = startTime,
+            EndTime = endTime,
+            Start = Sanitize01(startValue),
+            End = Sanitize01(endValue)
+        });
+    }
+
+    private static List<OfficialMoveEventDto> BuildCarrierMoveEvents(Chart chart, JudgementLine sourceLine, Note note, NoteExportStrategy strategy, int endTick, IReadOnlyDictionary<string, JudgementLine> lineById)
+    {
+        return BakeLinearVectorEvents(endTick, tick =>
+        {
+            EvaluateCarrierWorldTransformAtTick(chart, sourceLine, note, strategy, tick, lineById, out Vector offset, out _);
+            return new Vector(
+                NormalizeProjectXToViewport(offset.X),
+                NormalizeProjectYToViewport(offset.Y));
+        }, (startTime, endTime, startValue, endValue) => new OfficialMoveEventDto
+        {
+            StartTime = startTime,
+            EndTime = endTime,
+            Start = startValue.X,
+            End = endValue.X,
+            Start2 = startValue.Y,
+            End2 = endValue.Y
+        });
+    }
+
+    private static List<OfficialRotateEventDto> BuildCarrierRotateEvents(Chart chart, JudgementLine sourceLine, Note note, NoteExportStrategy strategy, int endTick, IReadOnlyDictionary<string, JudgementLine> lineById)
+    {
+        return BakeLinearScalarEvents(endTick, tick =>
+        {
+            EvaluateCarrierWorldTransformAtTick(chart, sourceLine, note, strategy, tick, lineById, out _, out double rotation);
+            return rotation;
+        }, (startTime, endTime, startValue, endValue) => new OfficialRotateEventDto
+        {
+            StartTime = startTime,
+            EndTime = endTime,
+            Start = Sanitize(startValue),
+            End = Sanitize(endValue)
         });
     }
 
@@ -350,6 +519,118 @@ internal static class OfficialChartExporter
     private static bool AreClose(Vector left, Vector right)
     {
         return AreClose(left.X, right.X) && AreClose(left.Y, right.Y);
+    }
+
+    private static void EvaluateCarrierWorldTransformAtTick(Chart chart, JudgementLine sourceLine, Note note, NoteExportStrategy strategy, int tick, IReadOnlyDictionary<string, JudgementLine> lineById, out Vector offset, out double rotation)
+    {
+        Matrix lineWorldMatrix = BuildLineWorldMatrix(sourceLine, tick, chart, lineById, new HashSet<string>(StringComparer.Ordinal));
+        Matrix noteLocalMatrix = BuildNoteLocalMatrix(chart, sourceLine, note, tick, includeFall: strategy == NoteExportStrategy.FullCarrier);
+        noteLocalMatrix.Append(lineWorldMatrix);
+
+        Point worldOrigin = noteLocalMatrix.Transform(new Point(0, 0));
+        Vector worldAxis = noteLocalMatrix.Transform(new Vector(1, 0));
+
+        offset = new Vector(worldOrigin.X, -worldOrigin.Y);
+        rotation = worldAxis.LengthSquared <= MergeTolerance
+            ? 0.0
+            : Sanitize(-Math.Atan2(worldAxis.Y, worldAxis.X) * 180.0 / Math.PI);
+    }
+
+    private static Matrix BuildNoteLocalMatrix(Chart chart, JudgementLine sourceLine, Note note, double currentTick, bool includeFall)
+    {
+        EasingUtils.CalculateObjectTransform(
+            currentTick,
+            chart.KeyFrameEasingDirection,
+            note.AnimatableProperties,
+            out var anchor,
+            out var offset,
+            out var scale,
+            out var rotationAngle,
+            out _);
+
+        double fallDistance = includeFall
+            ? CalculateNoteTravelDistanceChartUnits(chart, sourceLine, currentTick, note)
+            : 0.0;
+
+        var localTransform = new TransformGroup
+        {
+            Children =
+            {
+                new TranslateTransform(-anchor.X, -anchor.Y),
+                new ScaleTransform(scale.X, scale.Y),
+                new RotateTransform(rotationAngle),
+                new TranslateTransform(anchor.X, anchor.Y),
+                new TranslateTransform(offset.X, offset.Y + fallDistance),
+            }
+        };
+
+        return localTransform.Value;
+    }
+
+    private static double CalculateNoteTravelDistanceChartUnits(Chart chart, JudgementLine line, double currentTick, Note note)
+    {
+        double noteSpeedMultiplier = note.CustomSpeed ?? 1.0;
+
+        if (line.SpeedMode == "Realtime")
+        {
+            double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, chart.InitialBpm);
+            double hitTimeSeconds = TimeTickConverter.TickToTime(note.HitTime, chart.BpmKeyFrames, chart.InitialBpm);
+            EasingUtils.CalculateObjectSingleTransform(
+                currentTick,
+                chart.KeyFrameEasingDirection,
+                line.InitialSpeed,
+                line.SpeedKeyFrames,
+                MathUtils.Lerp,
+                line.SpeedExpressionEnabled,
+                line.SpeedExpressionText,
+                chart,
+                line,
+                out double currentRealtimeSpeed);
+
+            return -BaseVerticalFlowChartUnitsPerSecond * currentRealtimeSpeed * noteSpeedMultiplier * (hitTimeSeconds - currentSeconds);
+        }
+
+        return -CalculateIntegralDistanceChartUnits(currentTick, note.HitTime, line, chart, noteSpeedMultiplier);
+    }
+
+    private static double CalculateIntegralDistanceChartUnits(double startTick, double endTick, JudgementLine line, Chart chart, double noteSpeedMultiplier)
+    {
+        if (Math.Abs(startTick - endTick) < double.Epsilon)
+        {
+            return 0.0;
+        }
+
+        int steps = 150;
+        double totalDistance = 0.0;
+        double tMin = Math.Min(startTick, endTick);
+        double tMax = Math.Max(startTick, endTick);
+        double stepTick = (tMax - tMin) / steps;
+
+        for (int index = 0; index < steps; index++)
+        {
+            double t1 = tMin + index * stepTick;
+            double t2 = tMin + (index + 1) * stepTick;
+            double sec1 = TimeTickConverter.TickToTime(t1, chart.BpmKeyFrames, chart.InitialBpm);
+            double sec2 = TimeTickConverter.TickToTime(t2, chart.BpmKeyFrames, chart.InitialBpm);
+            double midTick = (t1 + t2) * 0.5;
+
+            EasingUtils.CalculateObjectSingleTransform(
+                midTick,
+                chart.KeyFrameEasingDirection,
+                line.InitialSpeed,
+                line.SpeedKeyFrames,
+                MathUtils.Lerp,
+                line.SpeedExpressionEnabled,
+                line.SpeedExpressionText,
+                chart,
+                line,
+                out double midSpeed);
+
+            totalDistance += midSpeed * (sec2 - sec1);
+        }
+
+        double chartUnitDistance = totalDistance * BaseVerticalFlowChartUnitsPerSecond * noteSpeedMultiplier;
+        return startTick <= endTick ? chartUnitDistance : -chartUnitDistance;
     }
 
     private static Vector SanitizeVector(Vector value)

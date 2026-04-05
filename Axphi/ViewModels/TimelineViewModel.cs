@@ -94,7 +94,8 @@ namespace Axphi.ViewModels
         private static readonly JsonSerializerOptions HistoryJsonSerializerOptions = new()
         {
             IncludeFields = true,
-            PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate
+            PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate,
+            Converters = { new VectorJsonConverter() }
         };
 
         // 核心数据：需要暴露给界面的谱面对象

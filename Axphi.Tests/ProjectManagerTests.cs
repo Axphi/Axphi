@@ -289,6 +289,61 @@ public class ProjectManagerTests
         }
     }
 
+    [TestMethod]
+    public void SaveProject_VectorSerialization_DoesNotWriteLengthFields()
+    {
+        var projectManager = new ProjectManager();
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                JudgementLines =
+                [
+                    new JudgementLine
+                    {
+                        AnimatableProperties =
+                        {
+                            Offset =
+                            {
+                                InitialValue = new Vector(0.1, 0.24),
+                                KeyFrames =
+                                {
+                                    new OffsetKeyFrame
+                                    {
+                                        Time = 1,
+                                        Value = new Vector(0.2, 0.4)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        };
+
+        string path = CreateTemporaryProjectPath();
+
+        try
+        {
+            projectManager.SaveProject(project, path);
+
+            using var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var archive = new ZipArchive(fileStream, ZipArchiveMode.Read);
+            using var chartStream = archive.GetEntry("chart.json")!.Open();
+            using var reader = new StreamReader(chartStream);
+            string chartJson = reader.ReadToEnd();
+
+            Assert.IsFalse(chartJson.Contains("\"Length\"", StringComparison.Ordinal));
+            Assert.IsFalse(chartJson.Contains("\"LengthSquared\"", StringComparison.Ordinal));
+            StringAssert.Contains(chartJson, "\"X\"");
+            StringAssert.Contains(chartJson, "\"Y\"");
+        }
+        finally
+        {
+            DeleteFileIfExists(path);
+        }
+    }
+
     private static string CreateTemporaryProjectPath()
     {
         return Path.Combine(Path.GetTempPath(), $"axphi-tests-{Guid.NewGuid():N}.axp");

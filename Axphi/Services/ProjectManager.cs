@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Axphi.Utilities;
 
 namespace Axphi.Services;
 
@@ -18,7 +19,8 @@ public partial class ProjectManager : ObservableObject
     private static readonly JsonSerializerOptions ProjectJsonSerializerOptions = new()
     {
         IncludeFields = true,
-        PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate
+        PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate,
+        Converters = { new VectorJsonConverter() }
     };
 
     [ObservableProperty]

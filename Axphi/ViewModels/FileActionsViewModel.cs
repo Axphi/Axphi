@@ -11,9 +11,11 @@ using System.Text;
 using CommunityToolkit.Mvvm.Messaging;
 using Axphi.Services;
 using Axphi.Utilities;
+using Axphi.Views.Dialogs;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
+using System.Threading.Tasks;
 
 namespace Axphi.ViewModels;
 
@@ -150,7 +152,7 @@ public partial class FileActionsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ExportOfficialChart()
+    private async Task ExportOfficialChart()
     {
         if (ProjectManager.EditingProject is null) return;
 
@@ -163,9 +165,23 @@ public partial class FileActionsViewModel : ObservableObject
         string? savePath = _fileService.SaveOfficialChartFile(defaultFileName);
         if (savePath == null) return;
 
+        var progressDialog = new OfficialChartExportProgressDialog();
+        if (Application.Current?.MainWindow is Window mainWindow)
+        {
+            progressDialog.Owner = mainWindow;
+        }
+
+        progressDialog.UpdateProgress(0.0, "准备导出官谱...");
+
+        var progress = new Progress<OfficialChartExporter.ExportProgress>(update =>
+        {
+            progressDialog.UpdateProgress(update.Fraction, update.Message);
+        });
+
         try
         {
-            OfficialChartExporter.Export(ProjectManager.EditingProject, savePath);
+            progressDialog.Show();
+            await Task.Run(() => OfficialChartExporter.ExportWithProgress(ProjectManager.EditingProject, savePath, progress));
         }
         catch (ArgumentException ex)
         {
@@ -182,6 +198,13 @@ public partial class FileActionsViewModel : ObservableObject
         catch (Exception ex)
         {
             ShowFileActionError("export official chart", "Export Official Chart Failed", savePath, $"An unexpected error occurred while exporting official chart.\n\n{ex.Message}");
+        }
+        finally
+        {
+            if (progressDialog.IsVisible)
+            {
+                progressDialog.Close();
+            }
         }
     }
 

@@ -181,6 +181,7 @@ public class OfficialChartExporterTests
 
         var line = new JudgementLine
         {
+            SpeedMode = "Integral",
             Notes = [note]
         };
 
@@ -219,6 +220,103 @@ public class OfficialChartExporterTests
     }
 
     [TestMethod]
+    public void Export_KeepsHoldWithSingleXKeyframeInline()
+    {
+        var hold = new Note(NoteKind.Hold, 64)
+        {
+            HoldDuration = 32
+        };
+        hold.AnimatableProperties.Offset.KeyFrames.Add(
+            new OffsetKeyFrame { Time = 64, Value = new Vector(2, 0) });
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Integral",
+            Notes = [hold]
+        };
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 96,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 96
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+
+        Assert.AreEqual(1, lines.GetArrayLength());
+
+        JsonElement notesAbove = lines[0].GetProperty("notesAbove");
+        Assert.AreEqual(1, notesAbove.GetArrayLength());
+        Assert.AreEqual(2.25, notesAbove[0].GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(1, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+        Assert.AreEqual(32, notesAbove[0].GetProperty("holdTime").GetInt32());
+    }
+
+    [TestMethod]
+    public void Export_SplitsIntegralHoldWithXMotionIntoDedicatedCarrierLine()
+    {
+        var hold = new Note(NoteKind.Hold, 64)
+        {
+            HoldDuration = 32
+        };
+        hold.AnimatableProperties.Offset.KeyFrames.AddRange(
+        [
+            new OffsetKeyFrame { Time = 0, Value = new Vector(-1, 0) },
+            new OffsetKeyFrame { Time = 64, Value = new Vector(2, 0) },
+            new OffsetKeyFrame { Time = 96, Value = new Vector(2, 0) }
+        ]);
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Integral",
+            InitialSpeed = 1.5,
+            Notes = [hold]
+        };
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 96,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 96
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+
+        Assert.AreEqual(2, lines.GetArrayLength());
+        Assert.AreEqual(0, lines[0].GetProperty("notesAbove").GetArrayLength());
+
+        JsonElement carrier = lines[1];
+        JsonElement notesAbove = carrier.GetProperty("notesAbove");
+        Assert.AreEqual(1, notesAbove.GetArrayLength());
+        Assert.AreEqual(0, notesAbove[0].GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(1, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+        Assert.AreEqual(32, notesAbove[0].GetProperty("holdTime").GetInt32());
+
+        JsonElement speedEvents = carrier.GetProperty("speedEvents");
+        Assert.AreEqual(1, speedEvents.GetArrayLength());
+        AssertEvent(speedEvents[0], 0, 96, "value", 1.5);
+
+        JsonElement moveEvents = carrier.GetProperty("judgeLineMoveEvents");
+        Assert.IsTrue(moveEvents.GetArrayLength() >= 1);
+        AssertMoveEvent(moveEvents[0], 0, 64, 0.4375, 0.625, 0.5, 0.5);
+    }
+
+    [TestMethod]
     public void Export_SplitsRotatingNoteIntoFallingCarrierLine()
     {
         var note = new Note(NoteKind.Tap, 4);
@@ -230,6 +328,7 @@ public class OfficialChartExporterTests
 
         var line = new JudgementLine
         {
+            SpeedMode = "Integral",
             Notes = [note]
         };
 
@@ -280,6 +379,7 @@ public class OfficialChartExporterTests
 
         var line = new JudgementLine
         {
+            SpeedMode = "Integral",
             Notes = [note]
         };
 
@@ -316,6 +416,461 @@ public class OfficialChartExporterTests
         JsonElement moveEvents = carrier.GetProperty("judgeLineMoveEvents");
         Assert.AreEqual(1, moveEvents.GetArrayLength());
         AssertMoveEvent(moveEvents[0], 0, 4, 0.5, 0.5, 0.5375, 0.3888888889);
+    }
+
+    [TestMethod]
+    public void Export_BindsRealtimeLineNotesToSharedCarrierLinePerTick()
+    {
+        var leftNote = new Note(NoteKind.Tap, 64);
+        leftNote.AnimatableProperties.Offset.InitialValue = new Vector(-1, 0);
+
+        var rightNote = new Note(NoteKind.Flick, 64);
+        rightNote.AnimatableProperties.Offset.InitialValue = new Vector(2, 0);
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Realtime",
+            Notes = [leftNote, rightNote]
+        };
+        line.SpeedKeyFrames.AddRange(
+        [
+            new KeyFrame<double> { Time = 0, Value = 1.0 },
+            new KeyFrame<double> { Time = 48, Value = 2.0 },
+            new KeyFrame<double> { Time = 64, Value = 2.0 }
+        ]);
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 64,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 64
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+
+        Assert.AreEqual(2, lines.GetArrayLength());
+        Assert.AreEqual(0, lines[0].GetProperty("notesAbove").GetArrayLength());
+        Assert.AreEqual(0, lines[0].GetProperty("notesBelow").GetArrayLength());
+
+        JsonElement carrier = lines[1];
+        JsonElement carrierNotes = carrier.GetProperty("notesAbove");
+        Assert.AreEqual(2, carrierNotes.GetArrayLength());
+        Assert.AreEqual(-1.125, carrierNotes[0].GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(0, carrierNotes[0].GetProperty("speed").GetDouble(), 0.0001);
+        Assert.AreEqual(2.25, carrierNotes[1].GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(0, carrierNotes[1].GetProperty("speed").GetDouble(), 0.0001);
+
+        JsonElement speedEvents = carrier.GetProperty("speedEvents");
+        Assert.AreEqual(1, speedEvents.GetArrayLength());
+        AssertEvent(speedEvents[0], 0, 64, "value", 0);
+
+        JsonElement rotateEvents = carrier.GetProperty("judgeLineRotateEvents");
+        Assert.AreEqual(1, rotateEvents.GetArrayLength());
+        AssertRangeEvent(rotateEvents[0], 0, 64, 0, 0);
+
+        JsonElement moveEvents = carrier.GetProperty("judgeLineMoveEvents");
+        Assert.IsTrue(moveEvents.GetArrayLength() >= 2);
+        Assert.AreEqual(0, moveEvents[0].GetProperty("startTime").GetInt32());
+        Assert.AreEqual(64, moveEvents[moveEvents.GetArrayLength() - 1].GetProperty("endTime").GetInt32());
+        Assert.AreEqual(0.5, moveEvents[0].GetProperty("start").GetDouble(), 0.0001);
+        Assert.AreEqual(0.5, moveEvents[moveEvents.GetArrayLength() - 1].GetProperty("end").GetDouble(), 0.0001);
+        Assert.IsTrue(moveEvents[0].GetProperty("start2").GetDouble() > 0.5);
+        Assert.AreEqual(0.5, moveEvents[moveEvents.GetArrayLength() - 1].GetProperty("end2").GetDouble(), 0.0001);
+
+        JsonElement disappearEvents = carrier.GetProperty("judgeLineDisappearEvents");
+        Assert.AreEqual(1, disappearEvents.GetArrayLength());
+        AssertRangeEvent(disappearEvents[0], 0, 64, 0, 0);
+    }
+
+    [TestMethod]
+    public void Export_BoundRealtimeHoldUsesOriginalLineSpeedAfterHit()
+    {
+        var hold = new Note(NoteKind.Hold, 64)
+        {
+            HoldDuration = 32
+        };
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Realtime",
+            InitialSpeed = 1.0,
+            Notes = [hold]
+        };
+        line.SpeedKeyFrames.AddRange(
+        [
+            new KeyFrame<double> { Time = 0, Value = 1.0 },
+            new KeyFrame<double> { Time = 48, Value = 2.0 },
+            new KeyFrame<double> { Time = 80, Value = 2.0 },
+            new KeyFrame<double> { Time = 81, Value = 3.0 },
+            new KeyFrame<double> { Time = 96, Value = 3.0 }
+        ]);
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 96,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 96
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+
+        Assert.AreEqual(2, lines.GetArrayLength());
+
+        JsonElement carrier = lines[1];
+        JsonElement notesAbove = carrier.GetProperty("notesAbove");
+        Assert.AreEqual(1, notesAbove.GetArrayLength());
+        Assert.AreEqual(32, notesAbove[0].GetProperty("holdTime").GetInt32());
+        Assert.AreEqual(0, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+
+        JsonElement speedEvents = carrier.GetProperty("speedEvents");
+        Assert.AreEqual(3, speedEvents.GetArrayLength());
+        AssertEvent(speedEvents[0], 0, 64, "value", 0);
+        AssertEvent(speedEvents[1], 64, 81, "value", 2);
+        AssertEvent(speedEvents[2], 81, 96, "value", 3);
+
+        JsonElement moveEvents = carrier.GetProperty("judgeLineMoveEvents");
+        Assert.IsTrue(moveEvents.GetArrayLength() >= 2);
+        Assert.AreEqual(96, moveEvents[moveEvents.GetArrayLength() - 1].GetProperty("endTime").GetInt32());
+        Assert.AreEqual(0.5, moveEvents[moveEvents.GetArrayLength() - 1].GetProperty("start").GetDouble(), 0.0001);
+        Assert.AreEqual(0.5, moveEvents[moveEvents.GetArrayLength() - 1].GetProperty("end").GetDouble(), 0.0001);
+        Assert.AreEqual(0.5, moveEvents[moveEvents.GetArrayLength() - 1].GetProperty("start2").GetDouble(), 0.0001);
+        Assert.AreEqual(0.5, moveEvents[moveEvents.GetArrayLength() - 1].GetProperty("end2").GetDouble(), 0.0001);
+    }
+
+    [TestMethod]
+    public void Export_BindsRealtimeHoldWithXMotionIntoDedicatedCarrierLine()
+    {
+        var hold = new Note(NoteKind.Hold, 64)
+        {
+            HoldDuration = 32
+        };
+        hold.AnimatableProperties.Offset.KeyFrames.AddRange(
+        [
+            new OffsetKeyFrame { Time = 0, Value = new Vector(-1, 0) },
+            new OffsetKeyFrame { Time = 64, Value = new Vector(2, 0) },
+            new OffsetKeyFrame { Time = 96, Value = new Vector(2, 0) }
+        ]);
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Realtime",
+            InitialSpeed = 1.0,
+            Notes = [hold]
+        };
+        line.SpeedKeyFrames.AddRange(
+        [
+            new KeyFrame<double> { Time = 0, Value = 1.0 },
+            new KeyFrame<double> { Time = 48, Value = 2.0 },
+            new KeyFrame<double> { Time = 80, Value = 2.0 },
+            new KeyFrame<double> { Time = 81, Value = 3.0 },
+            new KeyFrame<double> { Time = 96, Value = 3.0 }
+        ]);
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 96,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 96
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+
+        Assert.AreEqual(2, lines.GetArrayLength());
+        Assert.AreEqual(0, lines[0].GetProperty("notesAbove").GetArrayLength());
+        Assert.AreEqual(0, lines[0].GetProperty("notesBelow").GetArrayLength());
+
+        JsonElement carrier = lines[1];
+        JsonElement notesAbove = carrier.GetProperty("notesAbove");
+        Assert.AreEqual(1, notesAbove.GetArrayLength());
+        Assert.AreEqual(0, notesAbove[0].GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(0, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+        Assert.AreEqual(32, notesAbove[0].GetProperty("holdTime").GetInt32());
+
+        JsonElement speedEvents = carrier.GetProperty("speedEvents");
+        Assert.AreEqual(3, speedEvents.GetArrayLength());
+        AssertEvent(speedEvents[0], 0, 64, "value", 0);
+        AssertEvent(speedEvents[1], 64, 81, "value", 2);
+        AssertEvent(speedEvents[2], 81, 96, "value", 3);
+
+        JsonElement moveEvents = carrier.GetProperty("judgeLineMoveEvents");
+        Assert.IsTrue(moveEvents.GetArrayLength() >= 2);
+        Assert.AreEqual(0.625, moveEvents[moveEvents.GetArrayLength() - 1].GetProperty("end").GetDouble(), 0.0001);
+        Assert.AreEqual(0.5, moveEvents[moveEvents.GetArrayLength() - 1].GetProperty("end2").GetDouble(), 0.0001);
+    }
+
+    [TestMethod]
+    public void Export_BindsRealtimeHoldWithSingleXKeyframeToSharedCarrierLine()
+    {
+        var hold = new Note(NoteKind.Hold, 64)
+        {
+            HoldDuration = 32
+        };
+        hold.AnimatableProperties.Offset.KeyFrames.Add(
+            new OffsetKeyFrame { Time = 64, Value = new Vector(2, 0) });
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Realtime",
+            InitialSpeed = 1.0,
+            Notes = [hold]
+        };
+        line.SpeedKeyFrames.AddRange(
+        [
+            new KeyFrame<double> { Time = 0, Value = 1.0 },
+            new KeyFrame<double> { Time = 48, Value = 2.0 },
+            new KeyFrame<double> { Time = 80, Value = 2.0 },
+            new KeyFrame<double> { Time = 81, Value = 3.0 },
+            new KeyFrame<double> { Time = 96, Value = 3.0 }
+        ]);
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 96,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 96
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+
+        Assert.AreEqual(2, lines.GetArrayLength());
+        Assert.AreEqual(0, lines[0].GetProperty("notesAbove").GetArrayLength());
+
+        JsonElement carrier = lines[1];
+        JsonElement notesAbove = carrier.GetProperty("notesAbove");
+        Assert.AreEqual(1, notesAbove.GetArrayLength());
+        Assert.AreEqual(2.25, notesAbove[0].GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(0, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+        Assert.AreEqual(32, notesAbove[0].GetProperty("holdTime").GetInt32());
+
+        JsonElement speedEvents = carrier.GetProperty("speedEvents");
+        Assert.AreEqual(3, speedEvents.GetArrayLength());
+        AssertEvent(speedEvents[0], 0, 64, "value", 0);
+        AssertEvent(speedEvents[1], 64, 81, "value", 2);
+        AssertEvent(speedEvents[2], 81, 96, "value", 3);
+    }
+
+    [TestMethod]
+    public void Export_FullCarrierHoldRestoresOriginalSpeedAfterHit()
+    {
+        var hold = new Note(NoteKind.Hold, 64)
+        {
+            HoldDuration = 32
+        };
+        hold.AnimatableProperties.Rotation.KeyFrames.AddRange(
+        [
+            new RotationKeyFrame { Time = 0, Value = 0 },
+            new RotationKeyFrame { Time = 64, Value = 45 },
+            new RotationKeyFrame { Time = 96, Value = 45 }
+        ]);
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Integral",
+            InitialSpeed = 1.5,
+            Notes = [hold]
+        };
+        line.SpeedKeyFrames.AddRange(
+        [
+            new KeyFrame<double> { Time = 0, Value = 1.5 },
+            new KeyFrame<double> { Time = 80, Value = 1.5 },
+            new KeyFrame<double> { Time = 81, Value = 2.5 },
+            new KeyFrame<double> { Time = 96, Value = 2.5 }
+        ]);
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 96,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 96
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement carrier = document.RootElement.GetProperty("judgeLineList")[1];
+        JsonElement notesAbove = carrier.GetProperty("notesAbove");
+        Assert.AreEqual(1, notesAbove.GetArrayLength());
+        Assert.AreEqual(0, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+
+        JsonElement speedEvents = carrier.GetProperty("speedEvents");
+        Assert.AreEqual(3, speedEvents.GetArrayLength());
+        AssertEvent(speedEvents[0], 0, 64, "value", 0);
+        AssertEvent(speedEvents[1], 64, 81, "value", 1.5);
+        AssertEvent(speedEvents[2], 81, 96, "value", 2.5);
+    }
+
+    [TestMethod]
+    public void Export_RealtimeMixedNotesShareOnlyUnaffectedCarrier()
+    {
+        var sharedTap = new Note(NoteKind.Tap, 64);
+        sharedTap.AnimatableProperties.Offset.InitialValue = new Vector(-1, 0);
+
+        var xMotionTap = new Note(NoteKind.Tap, 64);
+        xMotionTap.AnimatableProperties.Offset.KeyFrames.AddRange(
+        [
+            new OffsetKeyFrame { Time = 0, Value = new Vector(0, 0) },
+            new OffsetKeyFrame { Time = 64, Value = new Vector(2, 0) },
+            new OffsetKeyFrame { Time = 96, Value = new Vector(2, 0) }
+        ]);
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Realtime",
+            Notes = [sharedTap, xMotionTap]
+        };
+        line.SpeedKeyFrames.AddRange(
+        [
+            new KeyFrame<double> { Time = 0, Value = 1.0 },
+            new KeyFrame<double> { Time = 48, Value = 2.0 },
+            new KeyFrame<double> { Time = 64, Value = 2.0 },
+            new KeyFrame<double> { Time = 96, Value = 2.0 }
+        ]);
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 96,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 96
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+        Assert.AreEqual(3, lines.GetArrayLength());
+        Assert.AreEqual(0, lines[0].GetProperty("notesAbove").GetArrayLength());
+
+        JsonElement dedicatedCarrier = lines[1];
+        JsonElement dedicatedNotes = dedicatedCarrier.GetProperty("notesAbove");
+        Assert.AreEqual(1, dedicatedNotes.GetArrayLength());
+        Assert.AreEqual(0, dedicatedNotes[0].GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(0, dedicatedNotes[0].GetProperty("speed").GetDouble(), 0.0001);
+
+        JsonElement sharedCarrier = lines[2];
+        JsonElement sharedNotes = sharedCarrier.GetProperty("notesAbove");
+        Assert.AreEqual(1, sharedNotes.GetArrayLength());
+        Assert.AreEqual(-1.125, sharedNotes[0].GetProperty("positionX").GetDouble(), 0.0001);
+    }
+
+    [TestMethod]
+    public void Export_DoesNotBindRealtimeLineNotesWhenVisibleWindowHasNoSpeedChange()
+    {
+        var note = new Note(NoteKind.Tap, 64);
+        note.AnimatableProperties.Offset.InitialValue = new Vector(1, 0);
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Realtime",
+            Notes = [note]
+        };
+        line.SpeedKeyFrames.AddRange(
+        [
+            new KeyFrame<double> { Time = 0, Value = 2.0 },
+            new KeyFrame<double> { Time = 16, Value = 2.0 }
+        ]);
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 64,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 64
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+
+        Assert.AreEqual(1, lines.GetArrayLength());
+        JsonElement originalLine = lines[0];
+        JsonElement notesAbove = originalLine.GetProperty("notesAbove");
+        Assert.AreEqual(1, notesAbove.GetArrayLength());
+        Assert.AreEqual(1.125, notesAbove[0].GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(1, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+    }
+
+    [TestMethod]
+    public void Export_BindsRealtimeNoteWhenOnlySlightlyVisibleInsideExpandedBuffer()
+    {
+        var note = new Note(NoteKind.Tap, 64);
+        note.AnimatableProperties.Offset.InitialValue = new Vector(8.95, 0);
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Realtime",
+            Notes = [note]
+        };
+        line.SpeedKeyFrames.AddRange(
+        [
+            new KeyFrame<double> { Time = 0, Value = 1.0 },
+            new KeyFrame<double> { Time = 63, Value = 2.0 },
+            new KeyFrame<double> { Time = 64, Value = 2.0 }
+        ]);
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 64,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 64
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project);
+        JsonElement lines = document.RootElement.GetProperty("judgeLineList");
+
+        Assert.AreEqual(2, lines.GetArrayLength());
+        Assert.AreEqual(0, lines[0].GetProperty("notesAbove").GetArrayLength());
+
+        JsonElement carrier = lines[1];
+        JsonElement notesAbove = carrier.GetProperty("notesAbove");
+        Assert.AreEqual(1, notesAbove.GetArrayLength());
+        Assert.AreEqual(10.06875, notesAbove[0].GetProperty("positionX").GetDouble(), 0.0001);
+        Assert.AreEqual(0, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
     }
 
     private static JsonDocument ExportOfficialChart(Project project)

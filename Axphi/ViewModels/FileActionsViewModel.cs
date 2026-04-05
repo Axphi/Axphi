@@ -165,10 +165,24 @@ public partial class FileActionsViewModel : ObservableObject
         string? savePath = _fileService.SaveOfficialChartFile(defaultFileName);
         if (savePath == null) return;
 
-        var progressDialog = new OfficialChartExportProgressDialog();
+        var setupDialog = new OfficialChartExportProgressDialog(setupMode: true);
         if (Application.Current?.MainWindow is Window mainWindow)
         {
-            progressDialog.Owner = mainWindow;
+            setupDialog.Owner = mainWindow;
+        }
+
+        bool? confirmed = setupDialog.ShowDialog();
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var exportOptions = new OfficialChartExporter.ExportOptions(setupDialog.CalculateFloorPosition);
+
+        var progressDialog = new OfficialChartExportProgressDialog();
+        if (Application.Current?.MainWindow is Window progressOwner)
+        {
+            progressDialog.Owner = progressOwner;
         }
 
         progressDialog.UpdateProgress(0.0, "准备导出官谱...");
@@ -181,7 +195,7 @@ public partial class FileActionsViewModel : ObservableObject
         try
         {
             progressDialog.Show();
-            await Task.Run(() => OfficialChartExporter.ExportWithProgress(ProjectManager.EditingProject, savePath, progress));
+            await Task.Run(() => OfficialChartExporter.ExportWithProgress(ProjectManager.EditingProject, savePath, progress, exportOptions));
         }
         catch (ArgumentException ex)
         {

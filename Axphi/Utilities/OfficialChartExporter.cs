@@ -34,6 +34,7 @@ internal static class OfficialChartExporter
     private readonly record struct NotePlacement(OfficialNoteDto Note, bool IsAbove);
     private readonly record struct RealtimeCarrierGroup(int HitTime, double SpeedMultiplier, List<Note> Notes);
     internal readonly record struct ExportProgress(double Fraction, string Message);
+    internal readonly record struct ExportOptions(bool CalculateFloorPosition);
 
     private sealed class ExportProgressTracker
     {
@@ -97,10 +98,10 @@ internal static class OfficialChartExporter
 
     public static void Export(Project project, string path)
     {
-        ExportWithProgress(project, path, progress: null);
+        ExportWithProgress(project, path, progress: null, options: default);
     }
 
-    public static void ExportWithProgress(Project project, string path, IProgress<ExportProgress>? progress)
+    public static void ExportWithProgress(Project project, string path, IProgress<ExportProgress>? progress, ExportOptions options = default)
     {
         ArgumentNullException.ThrowIfNull(project);
 
@@ -111,7 +112,7 @@ internal static class OfficialChartExporter
 
         var tracker = new ExportProgressTracker(progress, EstimateTotalWork(project));
         tracker.SetMessage("准备导出官谱...", forceReport: true);
-        var officialChart = BuildOfficialChart(project, tracker);
+        var officialChart = BuildOfficialChart(project, tracker, options);
         var jsonOptions = new JsonSerializerOptions
         {
             WriteIndented = true
@@ -123,7 +124,7 @@ internal static class OfficialChartExporter
         tracker.Complete("官谱导出完成");
     }
 
-    private static OfficialChartDto BuildOfficialChart(Project project, ExportProgressTracker tracker)
+    private static OfficialChartDto BuildOfficialChart(Project project, ExportProgressTracker tracker, ExportOptions options)
     {
         var chart = project.Chart ?? new Chart();
         int endTick = GetExportEndTick(project);
@@ -140,6 +141,16 @@ internal static class OfficialChartExporter
             tracker.SetMessage($"烘焙判定线 {index + 1}/{chart.JudgementLines.Count}...", forceReport: true);
             judgeLines.AddRange(BuildExportJudgeLines(chart, line, endTick, defaultBpm, lineById, tracker));
             tracker.Advance();
+        }
+
+        if (options.CalculateFloorPosition)
+        {
+            tracker.SetMessage("计算 floorPosition...", forceReport: true);
+            foreach (OfficialJudgeLineDto judgeLine in judgeLines)
+            {
+                ApplyFloorPositions(judgeLine, chart);
+                tracker.Advance();
+            }
         }
 
         double offsetSeconds = TimeTickConverter.TickToTime(
@@ -184,6 +195,64 @@ internal static class OfficialChartExporter
             .OrderBy(k => k.Time)
             .First()
             .Value;
+    }
+
+    private static void ApplyFloorPositions(OfficialJudgeLineDto judgeLine, Chart chart)
+    {
+        if (judgeLine.SpeedEvents.Count == 0)
+        {
+            foreach (OfficialNoteDto note in judgeLine.NotesAbove)
+            {
+                note.FloorPosition = 0.0;
+            }
+
+            foreach (OfficialNoteDto note in judgeLine.NotesBelow)
+            {
+                note.FloorPosition = 0.0;
+            }
+
+            return;
+        }
+
+        List<OfficialSpeedEventDto> orderedEvents = judgeLine.SpeedEvents.OrderBy(evt => evt.StartTime).ToList();
+        double cumulativeFloorPosition = 0.0;
+        foreach (OfficialSpeedEventDto speedEvent in orderedEvents)
+        {
+            speedEvent.FloorPosition = Sanitize(cumulativeFloorPosition);
+            double segmentSeconds = TickToTimeSeconds(speedEvent.EndTime, chart) - TickToTimeSeconds(speedEvent.StartTime, chart);
+            cumulativeFloorPosition += speedEvent.Value * segmentSeconds;
+        }
+
+        foreach (OfficialNoteDto note in judgeLine.NotesAbove)
+        {
+            note.FloorPosition = Sanitize(EvaluateFloorPositionAtTick(orderedEvents, note.Time, chart));
+        }
+
+        foreach (OfficialNoteDto note in judgeLine.NotesBelow)
+        {
+            note.FloorPosition = Sanitize(EvaluateFloorPositionAtTick(orderedEvents, note.Time, chart));
+        }
+    }
+
+    private static double EvaluateFloorPositionAtTick(IReadOnlyList<OfficialSpeedEventDto> speedEvents, int tick, Chart chart)
+    {
+        OfficialSpeedEventDto speedEvent = speedEvents[^1];
+        foreach (OfficialSpeedEventDto candidate in speedEvents)
+        {
+            if (tick < candidate.EndTime)
+            {
+                speedEvent = candidate;
+                break;
+            }
+        }
+
+        double deltaSeconds = TickToTimeSeconds(Math.Max(speedEvent.StartTime, tick), chart) - TickToTimeSeconds(speedEvent.StartTime, chart);
+        return speedEvent.FloorPosition + (speedEvent.Value * Math.Max(0.0, deltaSeconds));
+    }
+
+    private static double TickToTimeSeconds(double tick, Chart chart)
+    {
+        return TimeTickConverter.TickToTime(tick, chart.BpmKeyFrames, chart.InitialBpm);
     }
 
     private static int GetExportEndTick(Project project)
@@ -241,7 +310,7 @@ internal static class OfficialChartExporter
                     }
                     else
                     {
-                        AddNotePlacement(BuildInlineNotePlacement(chart, note), notesAbove, notesBelow);
+                        AddNotePlacement(BuildInlineNotePlacement(chart, line, note), notesAbove, notesBelow);
                     }
 
                     tracker.Advance();
@@ -263,7 +332,7 @@ internal static class OfficialChartExporter
 
             if (strategy == NoteExportStrategy.Inline)
             {
-                AddNotePlacement(BuildInlineNotePlacement(chart, note), notesAbove, notesBelow);
+                AddNotePlacement(BuildInlineNotePlacement(chart, line, note), notesAbove, notesBelow);
             }
             else
             {
@@ -406,7 +475,7 @@ internal static class OfficialChartExporter
 
         foreach (Note note in group.Notes)
         {
-            AddNotePlacement(BuildRealtimeCarrierNotePlacement(chart, note), notesAbove, notesBelow);
+            AddNotePlacement(BuildRealtimeCarrierNotePlacement(chart, sourceLine, note), notesAbove, notesBelow);
         }
 
         notesAbove.Sort((a, b) => a.PositionX.CompareTo(b.PositionX));
@@ -426,7 +495,7 @@ internal static class OfficialChartExporter
 
     private static OfficialJudgeLineDto BuildCarrierJudgeLine(Chart chart, JudgementLine sourceLine, Note note, NoteExportStrategy strategy, int endTick, double defaultBpm, IReadOnlyDictionary<string, JudgementLine> lineById, ExportProgressTracker tracker)
     {
-        NotePlacement placement = BuildCarrierNotePlacement(chart, note, strategy);
+        NotePlacement placement = BuildCarrierNotePlacement(chart, sourceLine, note, strategy);
         var notesAbove = new List<OfficialNoteDto>();
         var notesBelow = new List<OfficialNoteDto>();
         AddNotePlacement(placement, notesAbove, notesBelow);
@@ -518,7 +587,7 @@ internal static class OfficialChartExporter
         }
     }
 
-    private static NotePlacement BuildInlineNotePlacement(Chart chart, Note note)
+    private static NotePlacement BuildInlineNotePlacement(Chart chart, JudgementLine line, Note note)
     {
         EasingUtils.CalculateObjectTransform(
             note.HitTime,
@@ -539,15 +608,15 @@ internal static class OfficialChartExporter
                 Time = note.HitTime,
                 HoldTime = kind == NoteKind.Hold ? Math.Max(0, note.HoldDuration) : 0,
                 PositionX = ConvertProjectXToOfficialX(notePosition.X),
-                Speed = Sanitize(note.CustomSpeed ?? 1.0),
+                Speed = EvaluateExportedNoteSpeed(chart, line, note, kind),
                 FloorPosition = 0
             },
             notePosition.Y >= 0);
     }
 
-    private static NotePlacement BuildCarrierNotePlacement(Chart chart, Note note, NoteExportStrategy strategy)
+    private static NotePlacement BuildCarrierNotePlacement(Chart chart, JudgementLine line, Note note, NoteExportStrategy strategy)
     {
-        NotePlacement inlinePlacement = BuildInlineNotePlacement(chart, note);
+        NotePlacement inlinePlacement = BuildInlineNotePlacement(chart, line, note);
         return new NotePlacement(
             new OfficialNoteDto
             {
@@ -555,15 +624,15 @@ internal static class OfficialChartExporter
                 Time = inlinePlacement.Note.Time,
                 HoldTime = inlinePlacement.Note.HoldTime,
                 PositionX = 0.0,
-                Speed = strategy == NoteExportStrategy.FullCarrier ? 0.0 : inlinePlacement.Note.Speed,
+                Speed = strategy == NoteExportStrategy.FullCarrier && inlinePlacement.Note.HoldTime == 0 ? 0.0 : inlinePlacement.Note.Speed,
                 FloorPosition = 0.0
             },
             strategy == NoteExportStrategy.FullCarrier ? true : inlinePlacement.IsAbove);
     }
 
-    private static NotePlacement BuildRealtimeCarrierNotePlacement(Chart chart, Note note)
+    private static NotePlacement BuildRealtimeCarrierNotePlacement(Chart chart, JudgementLine line, Note note)
     {
-        NotePlacement inlinePlacement = BuildInlineNotePlacement(chart, note);
+        NotePlacement inlinePlacement = BuildInlineNotePlacement(chart, line, note);
         return new NotePlacement(
             new OfficialNoteDto
             {
@@ -571,10 +640,21 @@ internal static class OfficialChartExporter
                 Time = inlinePlacement.Note.Time,
                 HoldTime = inlinePlacement.Note.HoldTime,
                 PositionX = inlinePlacement.Note.PositionX,
-                Speed = 0.0,
+                Speed = inlinePlacement.Note.HoldTime == 0 ? 0.0 : inlinePlacement.Note.Speed,
                 FloorPosition = 0.0
             },
             inlinePlacement.IsAbove);
+    }
+
+    private static double EvaluateExportedNoteSpeed(Chart chart, JudgementLine line, Note note, NoteKind kind)
+    {
+        double speedMultiplier = Sanitize(note.CustomSpeed ?? 1.0);
+        if (kind != NoteKind.Hold)
+        {
+            return speedMultiplier;
+        }
+
+        return Sanitize(EvaluateLineSpeedAtTick(chart, line, note.HitTime) * speedMultiplier);
     }
 
     private static int ConvertNoteKind(NoteKind kind)

@@ -46,6 +46,43 @@ public class OfficialChartExporterTests
     }
 
     [TestMethod]
+    public void Export_ComputesFloorPositionWhenEnabled()
+    {
+        var note = new Note(NoteKind.Tap, 64);
+
+        var line = new JudgementLine
+        {
+            SpeedMode = "Integral",
+            InitialSpeed = 2.0,
+            Notes = [note]
+        };
+
+        var project = new Project
+        {
+            Chart = new Chart
+            {
+                Duration = 96,
+                JudgementLines = [line]
+            },
+            Metadata = new ProjectMetadata
+            {
+                TotalDurationTicks = 96
+            }
+        };
+
+        using JsonDocument document = ExportOfficialChart(project, calculateFloorPosition: true);
+        JsonElement exportedLine = document.RootElement.GetProperty("judgeLineList")[0];
+
+        JsonElement speedEvents = exportedLine.GetProperty("speedEvents");
+        Assert.AreEqual(1, speedEvents.GetArrayLength());
+        Assert.AreEqual(0, speedEvents[0].GetProperty("floorPosition").GetDouble(), 0.0001);
+
+        JsonElement notesAbove = exportedLine.GetProperty("notesAbove");
+        Assert.AreEqual(1, notesAbove.GetArrayLength());
+        Assert.AreEqual(2.0, notesAbove[0].GetProperty("floorPosition").GetDouble(), 0.0001);
+    }
+
+    [TestMethod]
     public void Export_BakesCrossLineReferencesUsingReferencedLineChanges()
     {
         var sourceLine = new JudgementLine
@@ -304,7 +341,7 @@ public class OfficialChartExporterTests
         JsonElement notesAbove = carrier.GetProperty("notesAbove");
         Assert.AreEqual(1, notesAbove.GetArrayLength());
         Assert.AreEqual(0, notesAbove[0].GetProperty("positionX").GetDouble(), 0.0001);
-        Assert.AreEqual(1, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+        Assert.AreEqual(1.5, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
         Assert.AreEqual(32, notesAbove[0].GetProperty("holdTime").GetInt32());
 
         JsonElement speedEvents = carrier.GetProperty("speedEvents");
@@ -534,7 +571,7 @@ public class OfficialChartExporterTests
         JsonElement notesAbove = carrier.GetProperty("notesAbove");
         Assert.AreEqual(1, notesAbove.GetArrayLength());
         Assert.AreEqual(32, notesAbove[0].GetProperty("holdTime").GetInt32());
-        Assert.AreEqual(0, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+        Assert.AreEqual(2, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
 
         JsonElement speedEvents = carrier.GetProperty("speedEvents");
         Assert.AreEqual(3, speedEvents.GetArrayLength());
@@ -604,7 +641,7 @@ public class OfficialChartExporterTests
         JsonElement notesAbove = carrier.GetProperty("notesAbove");
         Assert.AreEqual(1, notesAbove.GetArrayLength());
         Assert.AreEqual(0, notesAbove[0].GetProperty("positionX").GetDouble(), 0.0001);
-        Assert.AreEqual(0, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+        Assert.AreEqual(2, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
         Assert.AreEqual(32, notesAbove[0].GetProperty("holdTime").GetInt32());
 
         JsonElement speedEvents = carrier.GetProperty("speedEvents");
@@ -667,7 +704,7 @@ public class OfficialChartExporterTests
         JsonElement notesAbove = carrier.GetProperty("notesAbove");
         Assert.AreEqual(1, notesAbove.GetArrayLength());
         Assert.AreEqual(2.25, notesAbove[0].GetProperty("positionX").GetDouble(), 0.0001);
-        Assert.AreEqual(0, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+        Assert.AreEqual(2, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
         Assert.AreEqual(32, notesAbove[0].GetProperty("holdTime").GetInt32());
 
         JsonElement speedEvents = carrier.GetProperty("speedEvents");
@@ -722,7 +759,7 @@ public class OfficialChartExporterTests
         JsonElement carrier = document.RootElement.GetProperty("judgeLineList")[1];
         JsonElement notesAbove = carrier.GetProperty("notesAbove");
         Assert.AreEqual(1, notesAbove.GetArrayLength());
-        Assert.AreEqual(0, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
+        Assert.AreEqual(1.5, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
 
         JsonElement speedEvents = carrier.GetProperty("speedEvents");
         Assert.AreEqual(3, speedEvents.GetArrayLength());
@@ -873,15 +910,26 @@ public class OfficialChartExporterTests
         Assert.AreEqual(0, notesAbove[0].GetProperty("speed").GetDouble(), 0.0001);
     }
 
-    private static JsonDocument ExportOfficialChart(Project project)
+    private static JsonDocument ExportOfficialChart(Project project, bool calculateFloorPosition = false)
     {
         string outputPath = Path.Combine(Path.GetTempPath(), $"axphi-export-{Guid.NewGuid():N}.json");
 
         try
         {
             Type exporterType = typeof(Project).Assembly.GetType("Axphi.Utilities.OfficialChartExporter", throwOnError: true)!;
-            MethodInfo exportMethod = exporterType.GetMethod("Export", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)!;
-            exportMethod.Invoke(null, [project, outputPath]);
+            if (!calculateFloorPosition)
+            {
+                MethodInfo exportMethod = exporterType.GetMethod("Export", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)!;
+                exportMethod.Invoke(null, [project, outputPath]);
+            }
+            else
+            {
+                MethodInfo exportMethod = exporterType.GetMethod("ExportWithProgress", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)!;
+                Type optionsType = typeof(Project).Assembly.GetType("Axphi.Utilities.OfficialChartExporter+ExportOptions", throwOnError: true)!;
+                object options = Activator.CreateInstance(optionsType, [true])!;
+                exportMethod.Invoke(null, [project, outputPath, null, options]);
+            }
+
             return JsonDocument.Parse(File.ReadAllText(outputPath));
         }
         finally

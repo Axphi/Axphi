@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="导出官谱"
         Width="380"
-        Height="150"
+        Height="210"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
@@ -30,21 +30,33 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock Text="导出官谱中"
+            <TextBlock x:Name="TitleTextBlock"
+                       Text="导出官谱"
                        FontSize="18"
                        FontWeight="SemiBold"
                        Foreground="#f2f2f2" />
 
+            <StackPanel x:Name="SetupPanel"
+                        Grid.Row="1"
+                        Margin="0,14,0,12">
+                <CheckBox x:Name="CalculateFloorPositionCheckBox"
+                          Foreground="#d6d6d6"
+                          Content="计算 floorPosition"
+                          IsChecked="False" />
+            </StackPanel>
+
             <TextBlock x:Name="StatusTextBlock"
-                       Grid.Row="1"
-                       Margin="0,14,0,10"
+                       Grid.Row="2"
+                       Margin="0,0,0,10"
                        Text="准备导出官谱..."
                        Foreground="#d6d6d6"
                        TextTrimming="CharacterEllipsis" />
 
-            <Grid Grid.Row="2">
+            <Grid x:Name="ProgressPanel"
+                  Grid.Row="3">
                 <ProgressBar x:Name="ProgressBar"
                              Minimum="0"
                              Maximum="100"
@@ -56,6 +68,18 @@
                            Foreground="#9f9f9f"
                            Text="0%" />
             </Grid>
+
+            <Button x:Name="RenderButton"
+                    Grid.Row="3"
+                    HorizontalAlignment="Right"
+                    MinWidth="92"
+                    Padding="14,5"
+                    Margin="0,14,0,0"
+                    Background="#d9a441"
+                    Foreground="#111111"
+                    BorderBrush="#e0b45f"
+                    Click="RenderButton_Click"
+                    Content="渲染" />
         </Grid>
     </Border>
 </Window>

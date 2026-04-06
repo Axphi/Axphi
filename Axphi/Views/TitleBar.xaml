@@ -8,7 +8,7 @@
     xmlns:ws="https://schemas.elecho.dev/wpfsuite"
     mc:Ignorable="d">
 
-    <Grid d:Width="500"
+    <Grid d:MinWidth="500"
           UseLayoutRounding="True"
           SnapsToDevicePixels="True">
         <StackPanel

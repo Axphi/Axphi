@@ -49,9 +49,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Thumb Cursor="Hand" ToolTip="BPM 突变帧"
-                                       DragStarted="KeyframeThumb_DragStarted"
-                                       DragDelta="KeyframeThumb_DragDelta"
-                                       DragCompleted="KeyframeThumb_DragCompleted">
+                                       comp:TimelineThumbInteraction.EnableDrag="True">
 
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">

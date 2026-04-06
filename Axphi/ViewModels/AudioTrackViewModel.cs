@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Axphi.ViewModels
 {
-    public partial class AudioTrackViewModel : ObservableObject, ISelectionNode
+    public partial class AudioTrackViewModel : ObservableObject, ISelectionNode, ITimelineDraggable, ILayerPointerInteractable
     {
         public TimelineViewModel _timeline;
         public TimelineViewModel Timeline => _timeline;
@@ -235,6 +235,12 @@ namespace Axphi.ViewModels
 
             ReceiveLayerDragCompleted();
         }
+
+        public void OnDragStarted() => OnLayerDragStarted();
+
+        public void OnDragDelta(double horizontalChange) => OnLayerDragDelta(horizontalChange);
+
+        public void OnDragCompleted() => OnLayerDragCompleted();
 
         private void ReceiveLayerDragStarted()
         {

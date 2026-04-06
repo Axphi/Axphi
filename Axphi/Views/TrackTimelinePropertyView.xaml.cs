@@ -1,5 +1,4 @@
 ﻿using Axphi.ViewModels;
-using Axphi.Utilities;
 using System.Collections;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,7 +9,6 @@ namespace Axphi.Views
 {
     public partial class TrackTimelinePropertyView : UserControl
     {
-        private readonly HorizontalDragTracker _dragTracker = new();
         private Window? _parentWindow;
         private TextBox? _activeExpressionEditor;
 
@@ -164,52 +162,6 @@ namespace Axphi.Views
             set => SetValue(ExpressionEditorTextBoxStyleProperty, value);
         }
 
-        private void KeyframeThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
-        {
-            _dragTracker.Start(this);
-            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
-            {
-                draggable.OnDragStarted();
-            }
-        }
-
-        private void KeyframeThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
-        {
-            double stableDelta = _dragTracker.GetDeltaX(this);
-
-            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
-            {
-                draggable.OnDragDelta(stableDelta);
-            }
-        }
-
-        private void KeyframeThumb_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
-        {
-            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
-            {
-                draggable.OnDragCompleted();
-            }
-        }
-
-        private void KeyframeThumb_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (!EnableRightClick)
-            {
-                return;
-            }
-
-            if (sender is not FrameworkElement fe)
-            {
-                return;
-            }
-
-            if (fe.DataContext is IRightClickableTimelineItem item)
-            {
-                item.OnRightClick();
-                e.Handled = true;
-            }
-        }
-
         private void ExpressionEditorHost_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             ExpressionSlot?.UpdatePanelHeight(e.NewSize.Height);
@@ -234,6 +186,28 @@ namespace Axphi.Views
             }
 
             UnhookWindowClick();
+        }
+
+        private void ExpressionEditorTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitExpressionEditor(sender as FrameworkElement);
+        }
+
+        private void ExpressionEditorTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                CommitExpressionEditor(sender as FrameworkElement);
+                e.Handled = true;
+            }
+        }
+
+        private static void CommitExpressionEditor(FrameworkElement? element)
+        {
+            if (element?.DataContext is TrackExpressionSlot slot)
+            {
+                slot.CommitNow();
+            }
         }
 
         private void HookWindowClick()

@@ -32,10 +32,8 @@
                     <DataTemplate>
                         <Thumb Cursor="Hand"
                                ToolTip="{Binding KeyframeToolTip, ElementName=Root}"
-                               PreviewMouseRightButtonDown="KeyframeThumb_PreviewMouseRightButtonDown"
-                               DragStarted="KeyframeThumb_DragStarted"
-                               DragDelta="KeyframeThumb_DragDelta"
-                               DragCompleted="KeyframeThumb_DragCompleted">
+                               comp:TimelineThumbInteraction.EnableDrag="True"
+                               comp:TimelineThumbInteraction.EnableRightClick="{Binding EnableRightClick, ElementName=Root}">
                             <Thumb.Template>
                                 <ControlTemplate TargetType="Thumb">
                                     <Rectangle x:Name="KeyframeRect"
@@ -108,6 +106,8 @@
                     <TextBox Style="{Binding ExpressionEditorTextBoxStyle, ElementName=Root}"
                              GotKeyboardFocus="ExpressionEditorTextBox_GotKeyboardFocus"
                              LostKeyboardFocus="ExpressionEditorTextBox_LostKeyboardFocus"
+                             LostFocus="ExpressionEditorTextBox_LostFocus"
+                             PreviewKeyDown="ExpressionEditorTextBox_PreviewKeyDown"
                              MinHeight="28"
                              Padding="6,4"
                              AcceptsReturn="True"

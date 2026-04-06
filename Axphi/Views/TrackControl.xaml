@@ -23,8 +23,6 @@
         </Style>
 
         <Style x:Key="ExpressionEditorTextBoxStyle" TargetType="TextBox">
-            <EventSetter Event="LostFocus" Handler="ExpressionEditorTextBox_LostFocus" />
-            <EventSetter Event="PreviewKeyDown" Handler="ExpressionEditorTextBox_PreviewKeyDown" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="#DDEBFF" />
@@ -65,7 +63,12 @@
             </Border.Style>
             <StackPanel x:Name="JudgementLineLayer">
                 <!--  图层条  -->
-                <Grid x:Name="LayerHeaderGrid" Height="20" ClipToBounds="False" PreviewMouseLeftButtonDown="LayerHeader_PreviewMouseLeftButtonDown" PreviewMouseLeftButtonUp="LayerHeader_PreviewMouseLeftButtonUp">
+                <Grid x:Name="LayerHeaderGrid" Height="20" ClipToBounds="False"
+                      comp:LayerPointerInteraction.Enable="True"
+                      comp:LayerPointerInteraction.IgnoreDoubleClick="True">
+                    <Grid.InputBindings>
+                        <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding EnterJudgementLineEditorCommand}" />
+                    </Grid.InputBindings>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="4" />
                         <ColumnDefinition Width="20" />
@@ -103,6 +106,7 @@
                             BorderThickness="1"
                             CornerRadius="1"
                             Cursor="Cross"
+                            comp:LayerPointerInteraction.IgnorePointerSelection="True"
                             PreviewMouseLeftButtonDown="ParentLinkHandle_PreviewMouseLeftButtonDown" />
 
                     <Grid Grid.Column="4"
@@ -119,6 +123,7 @@
                                       FontSize="10"
                                       Padding="2,0"
                                       HorizontalContentAlignment="Left"
+                                      comp:LayerPointerInteraction.IgnorePointerSelection="True"
                                       ToolTip="父线">
                             <StackPanel Orientation="Horizontal"
                                         HorizontalAlignment="Left">
@@ -619,11 +624,12 @@
                     <Canvas Margin="8,0,0,0" Width="{Binding Timeline.TotalPixelWidth}" Height="20" HorizontalAlignment="Left">
 
                         <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
-                               PreviewMouseLeftButtonDown="LayerThumb_PreviewMouseLeftButtonDown"
-                               PreviewMouseLeftButtonUp="LayerThumb_PreviewMouseLeftButtonUp"
-                               DragStarted="LayerThumb_DragStarted"
-                               DragDelta="LayerThumb_DragDelta"
-                               DragCompleted="LayerThumb_DragCompleted">
+                               comp:LayerPointerInteraction.Enable="True"
+                               comp:LayerPointerInteraction.IgnoreDoubleClick="True"
+                               comp:TimelineThumbInteraction.EnableDrag="True">
+                            <Thumb.InputBindings>
+                                <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding EnterJudgementLineEditorCommand}" />
+                            </Thumb.InputBindings>
                             <Thumb.Template>
                                 <ControlTemplate TargetType="Thumb">
 
@@ -632,9 +638,7 @@
                                         <Rectangle x:Name="LayerRect" Fill="#374561" />
 
                                         <Thumb Width="8" HorizontalAlignment="Left" Cursor="SizeWE"
-                                               DragStarted="LayerLeftHandle_DragStarted"
-                                               DragDelta="LayerLeftHandle_DragDelta"
-                                               DragCompleted="LayerLeftHandle_DragCompleted">
+                                               comp:LayerResizeThumbInteraction.Edge="Left">
                                             <Thumb.Template>
                                                 <ControlTemplate TargetType="Thumb">
                                                     <Rectangle Fill="Transparent" />
@@ -643,9 +647,7 @@
                                         </Thumb>
 
                                         <Thumb Width="8" HorizontalAlignment="Right" Cursor="SizeWE"
-                                               DragStarted="LayerRightHandle_DragStarted"
-                                               DragDelta="LayerRightHandle_DragDelta"
-                                               DragCompleted="LayerRightHandle_DragCompleted">
+                                               comp:LayerResizeThumbInteraction.Edge="Right">
                                             <Thumb.Template>
                                                 <ControlTemplate TargetType="Thumb">
                                                     <Rectangle Fill="Transparent" />
@@ -769,9 +771,7 @@
 
                                             <Thumb Cursor="Hand" ToolTip="音符本体"
                                                    Canvas.Left="-4" Canvas.Top="6"
-                                                   DragStarted="NoteThumb_DragStarted"
-                                                   DragDelta="NoteThumb_DragDelta"
-                                                   DragCompleted="NoteThumb_DragCompleted">
+                                                   comp:TimelineThumbInteraction.EnableDrag="True">
                                                 <Thumb.Template>
                                                     <ControlTemplate TargetType="Thumb">
                                                         <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#1ccbe9">

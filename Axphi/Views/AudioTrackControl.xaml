@@ -30,7 +30,7 @@
                 </Style>
             </Border.Style>
             <StackPanel x:Name="AudioLayerPanel">
-                <Grid Height="20" PreviewMouseLeftButtonDown="AudioHeader_PreviewMouseLeftButtonDown" PreviewMouseLeftButtonUp="AudioHeader_PreviewMouseLeftButtonUp">
+                <Grid Height="20" comp:LayerPointerInteraction.Enable="True">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="4" />
                         <ColumnDefinition Width="20" />
@@ -154,11 +154,8 @@
                     </Canvas.Style>
 
                               <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
-                              PreviewMouseLeftButtonDown="AudioThumb_PreviewMouseLeftButtonDown"
-                                  PreviewMouseLeftButtonUp="AudioThumb_PreviewMouseLeftButtonUp"
-                           DragStarted="AudioThumb_DragStarted"
-                           DragDelta="AudioThumb_DragDelta"
-                           DragCompleted="AudioThumb_DragCompleted">
+                              comp:LayerPointerInteraction.Enable="True"
+                              comp:TimelineThumbInteraction.EnableDrag="True">
                         <Thumb.Style>
                             <Style TargetType="Thumb">
                                 <Setter Property="Cursor" Value="SizeWE" />

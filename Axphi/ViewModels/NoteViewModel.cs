@@ -730,6 +730,8 @@ namespace Axphi.ViewModels
 
         public void OnDragStarted()
         {
+            ParentTrack.IsNoteExpanded = true;
+
             // 自己做好准备
             ReceiveDragStarted();
 
@@ -743,6 +745,8 @@ namespace Axphi.ViewModels
             {
                 WeakReferenceMessenger.Default.Send(new NotesDragStartedMessage(this));
             }
+
+            ParentTrack.Timeline.RefreshNoteSelectionState(ParentTrack, this);
         }
 
         public void OnDragDelta(double horizontalChange)

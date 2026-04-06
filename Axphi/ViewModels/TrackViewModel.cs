@@ -14,7 +14,7 @@ using Axphi.Utilities; // 引入 EasingUtils 所在的命名空间
 
 namespace Axphi.ViewModels
 {
-    public partial class TrackViewModel : ObservableObject, ISelectionNode
+    public partial class TrackViewModel : ObservableObject, ISelectionNode, ILayerPointerInteractable, ITimelineDraggable, ILayerResizable
     {
         public sealed record ParentLineOption(string? LineId, string DisplayName)
         {
@@ -1038,6 +1038,9 @@ namespace Axphi.ViewModels
         private int _lastAppliedTick;
         private bool _wasSelectedBeforeLayerGesture;
         private double _layerGestureDistance;
+        private double _leftResizeVirtualX;
+        private double _leftResizeVirtualWidth;
+        private double _rightResizeVirtualWidth;
 
         public void HandleLayerPointerDown()
         {
@@ -1090,6 +1093,134 @@ namespace Axphi.ViewModels
             }
 
             ReceiveLayerDragCompleted();
+        }
+
+        public void OnDragStarted() => OnLayerDragStarted();
+
+        public void OnDragDelta(double horizontalChange) => OnLayerDragDelta(horizontalChange);
+
+        public void OnDragCompleted() => OnLayerDragCompleted();
+
+        public void BeginResizeLeft()
+        {
+            _leftResizeVirtualX = LayerPixelXOffset;
+            _leftResizeVirtualWidth = LayerPixelWidth;
+        }
+
+        public void ResizeLeft(double horizontalChange)
+        {
+            _leftResizeVirtualX += horizontalChange;
+            _leftResizeVirtualWidth -= horizontalChange;
+
+            double minWidthPixel = _timeline.TickToPixel(1);
+            if (_leftResizeVirtualWidth < minWidthPixel)
+            {
+                _leftResizeVirtualX += _leftResizeVirtualWidth - minWidthPixel;
+                _leftResizeVirtualWidth = minWidthPixel;
+            }
+
+            double exactLeftTick = _timeline.PixelToTick(_leftResizeVirtualX);
+            int snappedLeftTick = _timeline.SnapToClosest(exactLeftTick, isPlayhead: false);
+            int rightTick = LayerStartTick + LayerDurationTicks;
+
+            if (snappedLeftTick > rightTick - 1)
+            {
+                snappedLeftTick = rightTick - 1;
+            }
+
+            if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
+            {
+                LayerPixelXOffset = _timeline.TickToPixel(snappedLeftTick);
+                LayerPixelWidth = _timeline.TickToPixel(rightTick - snappedLeftTick);
+                Data.StartTick = snappedLeftTick;
+                Data.DurationTicks = rightTick - snappedLeftTick;
+            }
+            else
+            {
+                LayerPixelXOffset = _leftResizeVirtualX;
+                LayerPixelWidth = _leftResizeVirtualWidth;
+
+                int tempStartTick = (int)Math.Round(exactLeftTick, MidpointRounding.AwayFromZero);
+                if (tempStartTick > rightTick - 1)
+                {
+                    tempStartTick = rightTick - 1;
+                }
+
+                Data.StartTick = tempStartTick;
+                Data.DurationTicks = rightTick - tempStartTick;
+            }
+
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        public void EndResizeLeft()
+        {
+            double exactLeftTick = _timeline.PixelToTick(LayerPixelXOffset);
+            int finalLeftTick = (int)Math.Round(exactLeftTick, MidpointRounding.AwayFromZero);
+            int rightTick = LayerStartTick + LayerDurationTicks;
+
+            LayerStartTick = finalLeftTick;
+            LayerDurationTicks = Math.Max(1, rightTick - finalLeftTick);
+
+            LayerPixelXOffset = _timeline.TickToPixel(LayerStartTick);
+            LayerPixelWidth = _timeline.TickToPixel(LayerDurationTicks);
+
+            Data.StartTick = LayerStartTick;
+            Data.DurationTicks = LayerDurationTicks;
+        }
+
+        public void BeginResizeRight()
+        {
+            _rightResizeVirtualWidth = LayerPixelWidth;
+        }
+
+        public void ResizeRight(double horizontalChange)
+        {
+            _rightResizeVirtualWidth += horizontalChange;
+
+            double minWidthPixel = _timeline.TickToPixel(1);
+            if (_rightResizeVirtualWidth < minWidthPixel)
+            {
+                _rightResizeVirtualWidth = minWidthPixel;
+            }
+
+            double exactRightTick = LayerStartTick + _timeline.PixelToTick(_rightResizeVirtualWidth);
+            int snappedRightTick = _timeline.SnapToClosest(exactRightTick, isPlayhead: false);
+            int newDurationTicks = snappedRightTick - LayerStartTick;
+
+            if (newDurationTicks < 1)
+            {
+                newDurationTicks = 1;
+            }
+
+            if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
+            {
+                LayerPixelWidth = _timeline.TickToPixel(newDurationTicks);
+                Data.DurationTicks = newDurationTicks;
+            }
+            else
+            {
+                LayerPixelWidth = _rightResizeVirtualWidth;
+                int tempDuration = (int)Math.Round(exactRightTick - LayerStartTick, MidpointRounding.AwayFromZero);
+                if (tempDuration < 1)
+                {
+                    tempDuration = 1;
+                }
+
+                Data.DurationTicks = tempDuration;
+            }
+
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+        }
+
+        public void EndResizeRight()
+        {
+            double exactRightTick = LayerStartTick + _timeline.PixelToTick(LayerPixelWidth);
+            int finalRightTick = (int)Math.Round(exactRightTick, MidpointRounding.AwayFromZero);
+
+            LayerDurationTicks = Math.Max(1, finalRightTick - LayerStartTick);
+            LayerPixelWidth = _timeline.TickToPixel(LayerDurationTicks);
+            Data.DurationTicks = LayerDurationTicks;
         }
 
         private void ReceiveLayerDragStarted()

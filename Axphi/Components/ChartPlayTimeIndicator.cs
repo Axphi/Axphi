@@ -80,10 +80,10 @@ namespace Axphi.Components
             set { SetValue(PlayTimeProperty, value); }
         }
 
-        public bool AllowDragMove
+        public bool AllowDragAdjustPlayTime
         {
-            get { return (bool)GetValue(AllowDragMoveProperty); }
-            set { SetValue(AllowDragMoveProperty, value); }
+            get { return (bool)GetValue(AllowDragAdjustPlayTimeProperty); }
+            set { SetValue(AllowDragAdjustPlayTimeProperty, value); }
         }
 
         public ChartPlayTimeIndicator()
@@ -98,8 +98,8 @@ namespace Axphi.Components
                 new FrameworkPropertyMetadata(default(TimeSpan), FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         // Using a DependencyProperty as the backing store for AllowDragMove.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty AllowDragMoveProperty =
-            DependencyProperty.Register(nameof(AllowDragMove), typeof(bool), typeof(ChartPlayTimeIndicator), new PropertyMetadata(false));
+        public static readonly DependencyProperty AllowDragAdjustPlayTimeProperty =
+            DependencyProperty.Register(nameof(AllowDragAdjustPlayTime), typeof(bool), typeof(ChartPlayTimeIndicator), new PropertyMetadata(false));
 
         protected override void OnRender(DrawingContext dc)
         {
@@ -118,7 +118,7 @@ namespace Axphi.Components
 
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
-            if (AllowDragMove &&
+            if (AllowDragAdjustPlayTime &&
                 Context is { } context &&
                 CaptureMouse())
             {

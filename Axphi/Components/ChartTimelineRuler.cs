@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -84,9 +85,18 @@ namespace Axphi.Components
             set { SetValue(ContextProperty, value); }
         }
 
-        // Using a DependencyProperty as the backing store for Context.  This enables animation, styling, binding, etc...
+        public bool AllowTapAdjustPlayTime
+        {
+            get { return (bool)GetValue(AllowTapAdjustPlayTimeProperty); }
+            set { SetValue(AllowTapAdjustPlayTimeProperty, value); }
+        }
+
+
         public static readonly DependencyProperty ContextProperty =
             DependencyProperty.Register(nameof(Context), typeof(ChartTimeline), typeof(ChartTimelineRuler), new PropertyMetadata(null, OnContextChanged));
+
+        public static readonly DependencyProperty AllowTapAdjustPlayTimeProperty =
+            DependencyProperty.Register(nameof(AllowTapAdjustPlayTime), typeof(bool), typeof(ChartTimelineRuler), new PropertyMetadata(false));
 
         private static void OnContextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -115,6 +125,44 @@ namespace Axphi.Components
             base.OnApplyTemplate();
 
             InvalidateVisual();
+        }
+
+        protected override void OnMouseDown(MouseButtonEventArgs e)
+        {
+            if (AllowTapAdjustPlayTime &&
+                Context is { } context)
+            {
+                context.PlayTime = context.GetTimeAtTimelineX(e.GetPosition(this).X);
+                CaptureMouse();
+                e.Handled = true;
+                return;
+            }
+
+            base.OnMouseDown(e);
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            if (AllowTapAdjustPlayTime &&
+                IsMouseCaptured &&
+                Context is { } context)
+            {
+                context.PlayTime = context.GetTimeAtTimelineX(e.GetPosition(this).X);
+                e.Handled = true;
+                return;
+            }
+
+            base.OnMouseMove(e);
+        }
+
+        protected override void OnMouseUp(MouseButtonEventArgs e)
+        {
+            if (IsMouseCaptured)
+            {
+                ReleaseMouseCapture();
+            }
+
+            base.OnMouseUp(e);
         }
 
         protected override void OnRender(DrawingContext drawingContext)

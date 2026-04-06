@@ -70,7 +70,8 @@
                                               VerticalAlignment="Stretch"
                                               HorizontalAlignment="Stretch"/>
                                     <Border Grid.Column="2">
-                                        <comp:ChartTimelineRuler Context="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}"/>
+                                        <comp:ChartTimelineRuler Context="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}"
+                                                                 AllowTapAdjustPlayTime="True"/>
                                     </Border>
                                 </Grid>
                                 <ItemsControl ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=Chart.JudgementLines}">
@@ -215,7 +216,7 @@
                                 <comp:ChartPlayTimeIndicator Grid.Column="2"
                                                              Context="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}"
                                                              PlayTime="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=PlayTime,Mode=TwoWay}"
-                                                             AllowDragMove="True"/>
+                                                             AllowDragAdjustPlayTime="True"/>
                             </Grid>
                         </Grid>
                     </Border>

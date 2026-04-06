@@ -71,7 +71,6 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void ApplyBezierToSelected()
         {
-            // 1. 抓取当前 BezierCurveEditor 里的 4 个参数，实例化一个干净的底层结构体
             var newEasing = new BezierEasing(
                 BezierViewModel.X1,
                 BezierViewModel.Y1,
@@ -79,119 +78,11 @@ namespace Axphi.ViewModels
                 BezierViewModel.Y2
             );
 
-            bool hasModified = false;
+            bool hasModified = Timeline.ApplyEasingToSelectedKeyframes(newEasing);
 
-            // 2. 扫荡 BPM 轨道
-            if (Timeline.BpmTrack != null)
-            {
-                var selectedBpm = Timeline.BpmTrack.UIBpmKeyframes.Where(k => k.IsSelected);
-                foreach (var wrapper in selectedBpm)
-                {
-                    wrapper.Model.Easing = newEasing; // 直接修改底层纯净数据
-                    hasModified = true;
-                }
-            }
-
-            // 3. 扫荡所有判定线图层，以及里面的音符！
-            foreach (var track in Timeline.Tracks)
-            {
-                // ================= A. 判定线自己的关键帧 =================
-                // Anchor
-                foreach (var wrapper in track.UIAnchorKeyframes.Where(k => k.IsSelected))
-                {
-                    wrapper.Model.Easing = newEasing;
-                    hasModified = true;
-                }
-
-                // Offset
-                foreach (var wrapper in track.UIOffsetKeyframes.Where(k => k.IsSelected))
-                {
-                    wrapper.Model.Easing = newEasing;
-                    hasModified = true;
-                }
-
-                // Scale
-                foreach (var wrapper in track.UIScaleKeyframes.Where(k => k.IsSelected))
-                {
-                    wrapper.Model.Easing = newEasing;
-                    hasModified = true;
-                }
-
-                // Rotation
-                foreach (var wrapper in track.UIRotationKeyframes.Where(k => k.IsSelected))
-                {
-                    wrapper.Model.Easing = newEasing;
-                    hasModified = true;
-                }
-
-                // Opacity
-                foreach (var wrapper in track.UIOpacityKeyframes.Where(k => k.IsSelected))
-                {
-                    wrapper.Model.Easing = newEasing;
-                    hasModified = true;
-                }
-
-                // ================= B. 新增：扫荡音符自己的关键帧 =================
-                foreach (var note in track.UINotes)
-                {
-                    // Note Anchor
-                    foreach (var wrapper in note.UIAnchorKeyframes.Where(k => k.IsSelected))
-                    {
-                        wrapper.Model.Easing = newEasing;
-                        hasModified = true;
-                    }
-
-                    // Note Offset
-                    foreach (var wrapper in note.UIOffsetKeyframes.Where(k => k.IsSelected))
-                    {
-                        wrapper.Model.Easing = newEasing;
-                        hasModified = true;
-                    }
-
-                    // Note Scale
-                    foreach (var wrapper in note.UIScaleKeyframes.Where(k => k.IsSelected))
-                    {
-                        wrapper.Model.Easing = newEasing;
-                        hasModified = true;
-                    }
-
-                    // Note Rotation
-                    foreach (var wrapper in note.UIRotationKeyframes.Where(k => k.IsSelected))
-                    {
-                        wrapper.Model.Easing = newEasing;
-                        hasModified = true;
-                    }
-
-                    // Note Opacity
-                    foreach (var wrapper in note.UIOpacityKeyframes.Where(k => k.IsSelected))
-                    {
-                        wrapper.Model.Easing = newEasing;
-                        hasModified = true;
-                    }
-
-                    // ✨ 新增：Note Kind 关键帧应用缓动 (虽然是阶跃突变，但也保持底层数据格式统一)
-                    foreach (var wrapper in note.UINoteKindKeyframes.Where(k => k.IsSelected))
-                    {
-                        wrapper.Model.Easing = newEasing;
-                        hasModified = true;
-                    }
-
-                    // ✨ 🌟 加上这段：扫荡判定线的新属性 Speed 的关键帧！
-                    foreach (var wrapper in track.UISpeedKeyframes.Where(k => k.IsSelected))
-                    {
-                        wrapper.Model.Easing = newEasing;
-                        hasModified = true;
-                    }
-                }
-            }
-
-            // 4. 如果确实修改了数据，发信让右侧播放器/渲染器重绘！
             if (hasModified)
             {
-                // 强制暂停一下，防止渲染器一边算一边改导致数值抖动
                 WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-
-                // 通知渲染器重绘画面
                 WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             }
         }

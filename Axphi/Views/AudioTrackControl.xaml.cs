@@ -1,17 +1,16 @@
 ﻿using Axphi.ViewModels;
+using Axphi.Utilities;
 using CommunityToolkit.Mvvm.Messaging;
 using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 
 namespace Axphi.Views
 {
     public partial class AudioTrackControl : UserControl
     {
-        // ================= 拖拽核心状态变量 =================
-        private Point _layerLastMousePos;
+        private readonly HorizontalDragTracker _layerDragTracker = new();
 
         public AudioTrackControl()
         {
@@ -39,20 +38,7 @@ namespace Axphi.Views
         // ================= 滚轮事件透传 (完美适配 Alt 缩放) =================
         private void InnerTrack_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            // 🌟 如果按下了 Alt（缩放）或 Shift（横向滚动），直接放行给大管家，不要内部消化！
-            if (Keyboard.Modifiers == ModifierKeys.Alt || Keyboard.Modifiers == ModifierKeys.Shift) return;
-
-            e.Handled = true;
-            var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
-            {
-                RoutedEvent = UIElement.MouseWheelEvent,
-                Source = sender
-            };
-            if (sender is UIElement element)
-            {
-                var parent = VisualTreeHelper.GetParent(element) as UIElement;
-                parent?.RaiseEvent(eventArg);
-            }
+            MouseWheelPassthrough.TryHandle(sender as UIElement, e);
         }
 
         // ================= 音频块完美拖拽 & 吸附 =================
@@ -66,7 +52,7 @@ namespace Axphi.Views
                     return;
                 }
 
-                _layerLastMousePos = Mouse.GetPosition(this);
+                _layerDragTracker.Start(this);
                 vm.OnLayerDragStarted();
             }
             e.Handled = true;
@@ -80,9 +66,7 @@ namespace Axphi.Views
                 return;
             }
 
-            Point currentPos = Mouse.GetPosition(this);
-            double stableDeltaX = currentPos.X - _layerLastMousePos.X;
-            _layerLastMousePos = currentPos;
+            double stableDeltaX = _layerDragTracker.GetDeltaX(this);
 
             if (this.DataContext is AudioTrackViewModel vm)
             {

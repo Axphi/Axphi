@@ -1,4 +1,5 @@
 ﻿using Axphi.ViewModels;
+using Axphi.Utilities;
 using CommunityToolkit.Mvvm.Messaging;
 using System;
 using System.Collections.Generic;
@@ -22,9 +23,8 @@ namespace Axphi.Views
     public partial class TrackControl : UserControl
     {
 
-
-        // 加在类里面，用来记录绝对静止的屏幕坐标
-        private Point _trackLastMousePos;
+        private readonly HorizontalDragTracker _keyframeDragTracker = new();
+        private readonly HorizontalDragTracker _layerDragTracker = new();
         private bool _isParentLinkDragging;
         private Window? _parentLinkWindow;
 
@@ -57,54 +57,35 @@ namespace Axphi.Views
         // 3. 原封不动地把鼠标滚轮穿透代码搬过来
         private void InnerTrack_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            if (Keyboard.Modifiers == ModifierKeys.Alt || Keyboard.Modifiers == ModifierKeys.Shift) return;
-
-            e.Handled = true;
-
-            var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
-            {
-                RoutedEvent = UIElement.MouseWheelEvent,
-                Source = sender
-            };
-
-            if (sender is UIElement element)
-            {
-                var parent = VisualTreeHelper.GetParent(element) as UIElement;
-                parent?.RaiseEvent(eventArg);
-            }
+            MouseWheelPassthrough.TryHandle(sender as UIElement, e);
         }
 
 
 
         private void KeyframeThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            _trackLastMousePos = Mouse.GetPosition(this); // 🌟 取相对于外层绝对静止画板的位置！
-            if (sender is FrameworkElement fe && fe.DataContext != null)
+            _keyframeDragTracker.Start(this);
+            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
             {
-                dynamic wrapper = fe.DataContext;
-                wrapper.OnDragStarted();
+                draggable.OnDragStarted();
             }
         }
 
         private void KeyframeThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
         {
-            Point currentPos = Mouse.GetPosition(this);
-            double stableDelta = currentPos.X - _trackLastMousePos.X; // 🌟 自己算稳定位移！
-            _trackLastMousePos = currentPos;
+            double stableDelta = _keyframeDragTracker.GetDeltaX(this);
 
-            if (sender is FrameworkElement fe && fe.DataContext != null)
+            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
             {
-                dynamic wrapper = fe.DataContext;
-                wrapper.OnDragDelta(stableDelta); // 丢弃 e.HorizontalChange，传入稳定值！
+                draggable.OnDragDelta(stableDelta);
             }
         }
 
         private void KeyframeThumb_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.DataContext != null)
+            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
             {
-                dynamic wrapper = fe.DataContext;
-                wrapper.OnDragCompleted();
+                draggable.OnDragCompleted();
             }
         }
 
@@ -120,9 +101,11 @@ namespace Axphi.Views
                 return;
             }
 
-            dynamic wrapper = fe.DataContext;
-            wrapper.OnRightClick();
-            e.Handled = true;
+            if (fe.DataContext is IRightClickableTimelineItem item)
+            {
+                item.OnRightClick();
+                e.Handled = true;
+            }
         }
 
         private void ExpressionIndicator_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -178,7 +161,7 @@ namespace Axphi.Views
 
         private void NoteThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            _trackLastMousePos = Mouse.GetPosition(this);
+            _keyframeDragTracker.Start(this);
             if (sender is FrameworkElement fe && fe.DataContext is NoteViewModel noteVM)
             {
                 if (this.DataContext is TrackViewModel trackVM)
@@ -192,9 +175,7 @@ namespace Axphi.Views
 
         private void NoteThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
         {
-            Point currentPos = Mouse.GetPosition(this);
-            double stableDelta = currentPos.X - _trackLastMousePos.X;
-            _trackLastMousePos = currentPos;
+            double stableDelta = _keyframeDragTracker.GetDeltaX(this);
 
             if (sender is FrameworkElement fe && fe.DataContext is NoteViewModel noteVM)
             {
@@ -241,26 +222,20 @@ namespace Axphi.Views
         }
 
 
-
-
-
         // ================= 图层块 (LayerRect) 实时拖拽逻辑 =================
-        private Point _layerLastMousePos;
 
         private void LayerThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
             if (this.DataContext is TrackViewModel trackVM)
             {
-                _layerLastMousePos = Mouse.GetPosition(this);
+                _layerDragTracker.Start(this);
                 trackVM.OnLayerDragStarted();
             }
         }
 
         private void LayerThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
         {
-            Point currentPos = Mouse.GetPosition(this);
-            double stableDeltaX = currentPos.X - _layerLastMousePos.X;
-            _layerLastMousePos = currentPos;
+            double stableDeltaX = _layerDragTracker.GetDeltaX(this);
 
             if (this.DataContext is TrackViewModel trackVM)
             {

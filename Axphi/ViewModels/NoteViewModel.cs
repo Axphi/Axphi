@@ -12,7 +12,7 @@ using System.Windows.Input;
 
 namespace Axphi.ViewModels
 {
-    public partial class NoteViewModel : ObservableObject
+    public partial class NoteViewModel : ObservableObject, ISelectionNode, ITimelineDraggable
     {
         public Note Model { get; }
         private readonly TimelineViewModel _timeline;
@@ -50,6 +50,12 @@ namespace Axphi.ViewModels
         {
             _timeline.RefreshNoteSelectionState(ParentTrack, value ? this : null);
             _timeline.RefreshLayerSelectionVisuals();
+        }
+
+        bool ISelectionNode.IsSelected
+        {
+            get => IsSelected;
+            set => IsSelected = value;
         }
 
         [ObservableProperty]

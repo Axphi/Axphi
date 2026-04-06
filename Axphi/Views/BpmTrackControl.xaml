@@ -42,7 +42,7 @@
                     <ItemsControl ItemsSource="{Binding UIBpmKeyframes}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <Canvas Margin="8,0,0,0"/>
+                                <comp:TimelineTickPanel Timeline="{Binding Timeline}" LeftPadding="8" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
 
@@ -81,7 +81,7 @@
 
                         <ItemsControl.ItemContainerStyle>
                             <Style TargetType="ContentPresenter">
-                                <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                <Setter Property="comp:TimelineTickPanel.Tick" Value="{Binding Time}" />
                             </Style>
                         </ItemsControl.ItemContainerStyle>
                     </ItemsControl>

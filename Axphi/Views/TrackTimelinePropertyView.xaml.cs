@@ -1,4 +1,5 @@
-using Axphi.ViewModels;
+﻿using Axphi.ViewModels;
+using Axphi.Utilities;
 using System.Collections;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,7 +10,7 @@ namespace Axphi.Views
 {
     public partial class TrackTimelinePropertyView : UserControl
     {
-        private Point _lastMousePos;
+        private readonly HorizontalDragTracker _dragTracker = new();
         private Window? _parentWindow;
         private TextBox? _activeExpressionEditor;
 
@@ -54,6 +55,12 @@ namespace Axphi.Views
             typeof(double),
             typeof(TrackTimelinePropertyView),
             new PropertyMetadata(double.NaN));
+
+        public static readonly DependencyProperty TimelineProperty = DependencyProperty.Register(
+            nameof(Timeline),
+            typeof(TimelineViewModel),
+            typeof(TrackTimelinePropertyView),
+            new PropertyMetadata(null));
 
         public static readonly DependencyProperty ShowExpressionEditorProperty = DependencyProperty.Register(
             nameof(ShowExpressionEditor),
@@ -127,6 +134,12 @@ namespace Axphi.Views
             set => SetValue(TimelineWidthProperty, value);
         }
 
+        public TimelineViewModel? Timeline
+        {
+            get => (TimelineViewModel?)GetValue(TimelineProperty);
+            set => SetValue(TimelineProperty, value);
+        }
+
         public bool ShowExpressionEditor
         {
             get => (bool)GetValue(ShowExpressionEditorProperty);
@@ -153,33 +166,28 @@ namespace Axphi.Views
 
         private void KeyframeThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            _lastMousePos = Mouse.GetPosition(this);
-            if (sender is FrameworkElement fe && fe.DataContext != null)
+            _dragTracker.Start(this);
+            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
             {
-                dynamic wrapper = fe.DataContext;
-                wrapper.OnDragStarted();
+                draggable.OnDragStarted();
             }
         }
 
         private void KeyframeThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
         {
-            Point currentPos = Mouse.GetPosition(this);
-            double stableDelta = currentPos.X - _lastMousePos.X;
-            _lastMousePos = currentPos;
+            double stableDelta = _dragTracker.GetDeltaX(this);
 
-            if (sender is FrameworkElement fe && fe.DataContext != null)
+            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
             {
-                dynamic wrapper = fe.DataContext;
-                wrapper.OnDragDelta(stableDelta);
+                draggable.OnDragDelta(stableDelta);
             }
         }
 
         private void KeyframeThumb_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.DataContext != null)
+            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
             {
-                dynamic wrapper = fe.DataContext;
-                wrapper.OnDragCompleted();
+                draggable.OnDragCompleted();
             }
         }
 
@@ -190,14 +198,16 @@ namespace Axphi.Views
                 return;
             }
 
-            if (sender is not FrameworkElement fe || fe.DataContext == null)
+            if (sender is not FrameworkElement fe)
             {
                 return;
             }
 
-            dynamic wrapper = fe.DataContext;
-            wrapper.OnRightClick();
-            e.Handled = true;
+            if (fe.DataContext is IRightClickableTimelineItem item)
+            {
+                item.OnRightClick();
+                e.Handled = true;
+            }
         }
 
         private void ExpressionEditorHost_SizeChanged(object sender, SizeChangedEventArgs e)

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Axphi.ViewModels
 {
-    public partial class AudioTrackViewModel : ObservableObject
+    public partial class AudioTrackViewModel : ObservableObject, ISelectionNode
     {
         public TimelineViewModel _timeline;
         public TimelineViewModel Timeline => _timeline;
@@ -52,6 +52,12 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsLayerHighlighted))]
         private bool _isLayerSelected;
+
+        bool ISelectionNode.IsSelected
+        {
+            get => IsLayerSelected;
+            set => IsLayerSelected = value;
+        }
 
         [ObservableProperty]
         private bool _isDragLocked;

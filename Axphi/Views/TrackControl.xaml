@@ -676,6 +676,7 @@
 
                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                         <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         Timeline="{Binding Timeline}"
                                                          KeyframesSource="{Binding UIAnchorKeyframes}"
                                                          ExpressionSlot="{Binding AnchorExpression}"
                                                          KeyframeToolTip="Anchor 关键帧"
@@ -683,6 +684,7 @@
                                                          ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
 
                         <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         Timeline="{Binding Timeline}"
                                                          KeyframesSource="{Binding UIOffsetKeyframes}"
                                                          ExpressionSlot="{Binding PositionExpression}"
                                                          KeyframeToolTip="Position 关键帧"
@@ -690,6 +692,7 @@
                                                          ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
 
                         <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         Timeline="{Binding Timeline}"
                                                          KeyframesSource="{Binding UIScaleKeyframes}"
                                                          ExpressionSlot="{Binding ScaleExpression}"
                                                          KeyframeToolTip="Scale 关键帧"
@@ -697,6 +700,7 @@
                                                          ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
 
                         <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         Timeline="{Binding Timeline}"
                                                          KeyframesSource="{Binding UIRotationKeyframes}"
                                                          ExpressionSlot="{Binding RotationExpression}"
                                                          KeyframeToolTip="Rotation 关键帧"
@@ -704,6 +708,7 @@
                                                          ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
 
                         <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         Timeline="{Binding Timeline}"
                                                          KeyframesSource="{Binding UIOpacityKeyframes}"
                                                          ExpressionSlot="{Binding OpacityExpression}"
                                                          KeyframeToolTip="Opacity 关键帧"
@@ -711,6 +716,7 @@
                                                          ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
 
                         <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
+                                                         Timeline="{Binding Timeline}"
                                                          KeyframesSource="{Binding UISpeedKeyframes}"
                                                          ExpressionSlot="{Binding SpeedExpression}"
                                                          KeyframeToolTip="Speed 关键帧"
@@ -725,15 +731,15 @@
                             <ItemsControl ItemsSource="{Binding UINotes}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <Canvas Height="{Binding UITrackHeight}" Background="#2A2A2A" Margin="8,0,0,0" />
+                                        <comp:TimelineTickPanel Timeline="{Binding Timeline}" LeftPadding="8" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
 
 
                                 <ItemsControl.ItemContainerStyle>
                                     <Style TargetType="ContentPresenter">
-                                        <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                                        <Setter Property="Canvas.Top" Value="{Binding PixelY}" />
+                                        <Setter Property="comp:TimelineTickPanel.Tick" Value="{Binding HitTime}" />
+                                        <Setter Property="comp:TimelineTickPanel.Top" Value="{Binding PixelY}" />
                                     </Style>
                                 </ItemsControl.ItemContainerStyle>
 
@@ -821,6 +827,7 @@
                                 </Style>
                             </StackPanel.Style>
                             <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                              KeyframesSource="{Binding UINoteKindKeyframes}"
                                                              KeyframeToolTip="Note 关键帧"
                                                              RowBackground="#1a1a1a"
@@ -829,6 +836,7 @@
                                                              EnableRightClick="False" />
 
                             <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                              KeyframesSource="{Binding UIAnchorKeyframes}"
                                                              KeyframeToolTip="Anchor 关键帧"
                                                              RowBackground="#1a1a1a"
@@ -837,6 +845,7 @@
                                                              EnableRightClick="False" />
 
                             <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                              KeyframesSource="{Binding UIOffsetKeyframes}"
                                                              KeyframeToolTip="Position 关键帧"
                                                              RowBackground="#1a1a1a"
@@ -845,6 +854,7 @@
                                                              EnableRightClick="False" />
 
                             <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                              KeyframesSource="{Binding UIScaleKeyframes}"
                                                              KeyframeToolTip="Scale 关键帧"
                                                              RowBackground="#1a1a1a"
@@ -853,6 +863,7 @@
                                                              EnableRightClick="False" />
 
                             <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                              KeyframesSource="{Binding UIRotationKeyframes}"
                                                              KeyframeToolTip="Rotation 关键帧"
                                                              RowBackground="#1a1a1a"
@@ -861,6 +872,7 @@
                                                              EnableRightClick="False" />
 
                             <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                              KeyframesSource="{Binding UIOpacityKeyframes}"
                                                              KeyframeToolTip="Opacity 关键帧"
                                                              RowBackground="#1a1a1a"

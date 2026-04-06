@@ -365,41 +365,84 @@ namespace Axphi.ViewModels
 
         public bool IsTrackLevelKeyframeWrapperSelected(object wrapper)
         {
-            return Tracks.Any(track =>
-                track.UIAnchorKeyframes.Any(k => ReferenceEquals(k, wrapper)) ||
-                track.UIOffsetKeyframes.Any(k => ReferenceEquals(k, wrapper)) ||
-                track.UIScaleKeyframes.Any(k => ReferenceEquals(k, wrapper)) ||
-                track.UIRotationKeyframes.Any(k => ReferenceEquals(k, wrapper)) ||
-                track.UIOpacityKeyframes.Any(k => ReferenceEquals(k, wrapper)) ||
-                track.UISpeedKeyframes.Any(k => ReferenceEquals(k, wrapper)));
+            return Tracks
+                .SelectMany(EnumerateTrackLevelKeyframes)
+                .Any(keyframe => ReferenceEquals(keyframe, wrapper));
         }
 
         public int GetSelectedTrackLevelKeyframeCount()
         {
-            int count = 0;
-            foreach (var track in Tracks)
-            {
-                count += track.UIAnchorKeyframes.Count(k => k.IsSelected);
-                count += track.UIOffsetKeyframes.Count(k => k.IsSelected);
-                count += track.UIScaleKeyframes.Count(k => k.IsSelected);
-                count += track.UIRotationKeyframes.Count(k => k.IsSelected);
-                count += track.UIOpacityKeyframes.Count(k => k.IsSelected);
-                count += track.UISpeedKeyframes.Count(k => k.IsSelected);
-            }
-
-            return count;
+            return Tracks
+                .SelectMany(EnumerateTrackLevelKeyframes)
+                .Count(keyframe => keyframe.IsSelected);
         }
 
         public void SetFreezeStateForSelectedTrackLevelKeyframes(bool isFreeze)
         {
+            foreach (var keyframe in Tracks
+                .SelectMany(EnumerateTrackLevelKeyframes)
+                .Where(keyframe => keyframe.IsSelected))
+            {
+                keyframe.IsFreezeKeyframe = isFreeze;
+            }
+        }
+
+        public bool ApplyEasingToSelectedKeyframes(BezierEasing easing)
+        {
+            bool hasModified = false;
+            foreach (var keyframe in EnumerateAllEditableKeyframes().Where(item => item.IsSelected))
+            {
+                keyframe.ApplyEasing(easing);
+                hasModified = true;
+            }
+
+            return hasModified;
+        }
+
+        private static IEnumerable<IKeyFrameUiItem> EnumerateTrackLevelKeyframes(TrackViewModel track)
+        {
+            foreach (var keyframe in track.UIAnchorKeyframes) yield return keyframe;
+            foreach (var keyframe in track.UIOffsetKeyframes) yield return keyframe;
+            foreach (var keyframe in track.UIScaleKeyframes) yield return keyframe;
+            foreach (var keyframe in track.UIRotationKeyframes) yield return keyframe;
+            foreach (var keyframe in track.UIOpacityKeyframes) yield return keyframe;
+            foreach (var keyframe in track.UISpeedKeyframes) yield return keyframe;
+        }
+
+        private static IEnumerable<IKeyFrameUiItem> EnumerateNoteLevelKeyframes(NoteViewModel note)
+        {
+            foreach (var keyframe in note.UIAnchorKeyframes) yield return keyframe;
+            foreach (var keyframe in note.UIOffsetKeyframes) yield return keyframe;
+            foreach (var keyframe in note.UIScaleKeyframes) yield return keyframe;
+            foreach (var keyframe in note.UIRotationKeyframes) yield return keyframe;
+            foreach (var keyframe in note.UIOpacityKeyframes) yield return keyframe;
+            foreach (var keyframe in note.UINoteKindKeyframes) yield return keyframe;
+        }
+
+        private IEnumerable<IKeyFrameUiItem> EnumerateAllEditableKeyframes()
+        {
+            if (BpmTrack != null)
+            {
+                foreach (var keyframe in BpmTrack.UIBpmKeyframes)
+                {
+                    yield return keyframe;
+                }
+            }
+
             foreach (var track in Tracks)
             {
-                foreach (var keyframe in track.UIAnchorKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
-                foreach (var keyframe in track.UIOffsetKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
-                foreach (var keyframe in track.UIScaleKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
-                foreach (var keyframe in track.UIRotationKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
-                foreach (var keyframe in track.UIOpacityKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
-                foreach (var keyframe in track.UISpeedKeyframes.Where(k => k.IsSelected)) keyframe.IsFreezeKeyframe = isFreeze;
+                foreach (var keyframe in EnumerateTrackLevelKeyframes(track))
+                {
+                    yield return keyframe;
+                }
+
+                foreach (var note in track.UINotes)
+                {
+                    foreach (var keyframe in EnumerateNoteLevelKeyframes(note))
+                    {
+                        yield return keyframe;
+                    }
+                }
             }
         }
 
@@ -911,6 +954,59 @@ namespace Axphi.ViewModels
 
         private bool CanDuplicateSelectedLayers() => GetSelectedJudgementLineTracks().Count > 0;
 
+        private void AddClipboardItem(
+            HashSet<string> copiedKeys,
+            KeyframeClipboardTarget target,
+            object? owner,
+            int time,
+            object value,
+            BezierEasing easing,
+            bool isFreezeKeyframe = false,
+            string? uniqueKey = null)
+        {
+            string key = uniqueKey ?? $"{target}|{owner?.GetHashCode() ?? 0}|{time}";
+            if (copiedKeys.Add(key))
+            {
+                _keyframeClipboard.Add(new KeyframeClipboardItem(target, owner, time, value, easing, isFreezeKeyframe));
+            }
+        }
+
+        private void AddSelectedWrappersToClipboard<T>(
+            IEnumerable<KeyFrameUIWrapper<T>> wrappers,
+            KeyframeClipboardTarget target,
+            object? owner,
+            HashSet<string> copiedKeys)
+            where T : struct
+        {
+            foreach (var wrapper in wrappers.Where(w => w.IsSelected))
+            {
+                AddClipboardItem(copiedKeys, target, owner, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
+            }
+        }
+
+        private void AddNoteSelectionToClipboard(NoteViewModel note, TrackViewModel track, HashSet<string> copiedKeys)
+        {
+            if (note.IsSelected)
+            {
+                AddClipboardItem(
+                    copiedKeys,
+                    KeyframeClipboardTarget.NoteBody,
+                    track,
+                    note.HitTime,
+                    CloneNote(note.Model),
+                    default,
+                    uniqueKey: $"{KeyframeClipboardTarget.NoteBody}|{track.GetHashCode()}|{note.Model.ID}");
+                return;
+            }
+
+            AddSelectedWrappersToClipboard(note.UIOffsetKeyframes, KeyframeClipboardTarget.NoteOffset, note, copiedKeys);
+            AddSelectedWrappersToClipboard(note.UIAnchorKeyframes, KeyframeClipboardTarget.NoteAnchor, note, copiedKeys);
+            AddSelectedWrappersToClipboard(note.UIScaleKeyframes, KeyframeClipboardTarget.NoteScale, note, copiedKeys);
+            AddSelectedWrappersToClipboard(note.UIRotationKeyframes, KeyframeClipboardTarget.NoteRotation, note, copiedKeys);
+            AddSelectedWrappersToClipboard(note.UIOpacityKeyframes, KeyframeClipboardTarget.NoteOpacity, note, copiedKeys);
+            AddSelectedWrappersToClipboard(note.UINoteKindKeyframes, KeyframeClipboardTarget.NoteKind, note, copiedKeys);
+        }
+
         [RelayCommand(CanExecute = nameof(CanDuplicateSelectedLayers))]
         private void DuplicateSelectedLayers()
         {
@@ -955,92 +1051,23 @@ namespace Axphi.ViewModels
             _keyframeClipboard.Clear();
             var copiedKeys = new HashSet<string>();
 
-            void AddClipboardItem(KeyframeClipboardTarget target, object? owner, int time, object value, BezierEasing easing, bool isFreezeKeyframe = false, string? uniqueKey = null)
-            {
-                string key = uniqueKey ?? $"{target}|{owner?.GetHashCode() ?? 0}|{time}";
-                if (copiedKeys.Add(key))
-                {
-                    _keyframeClipboard.Add(new KeyframeClipboardItem(target, owner, time, value, easing, isFreezeKeyframe));
-                }
-            }
-
             if (BpmTrack != null)
             {
-                foreach (var wrapper in BpmTrack.UIBpmKeyframes.Where(k => k.IsSelected))
-                {
-                    AddClipboardItem(KeyframeClipboardTarget.Bpm, null, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-                }
+                AddSelectedWrappersToClipboard(BpmTrack.UIBpmKeyframes, KeyframeClipboardTarget.Bpm, null, copiedKeys);
             }
 
             foreach (var track in Tracks)
             {
-                foreach (var wrapper in track.UIAnchorKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackAnchor, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-
-                foreach (var wrapper in track.UIOffsetKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackOffset, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-
-                foreach (var wrapper in track.UIScaleKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackScale, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-
-                foreach (var wrapper in track.UIRotationKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackRotation, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-
-                foreach (var wrapper in track.UIOpacityKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackOpacity, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-
-                foreach (var wrapper in track.UISpeedKeyframes.Where(k => k.IsSelected))
-                    AddClipboardItem(KeyframeClipboardTarget.TrackSpeed, track, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
+                AddSelectedWrappersToClipboard(track.UIAnchorKeyframes, KeyframeClipboardTarget.TrackAnchor, track, copiedKeys);
+                AddSelectedWrappersToClipboard(track.UIOffsetKeyframes, KeyframeClipboardTarget.TrackOffset, track, copiedKeys);
+                AddSelectedWrappersToClipboard(track.UIScaleKeyframes, KeyframeClipboardTarget.TrackScale, track, copiedKeys);
+                AddSelectedWrappersToClipboard(track.UIRotationKeyframes, KeyframeClipboardTarget.TrackRotation, track, copiedKeys);
+                AddSelectedWrappersToClipboard(track.UIOpacityKeyframes, KeyframeClipboardTarget.TrackOpacity, track, copiedKeys);
+                AddSelectedWrappersToClipboard(track.UISpeedKeyframes, KeyframeClipboardTarget.TrackSpeed, track, copiedKeys);
 
                 foreach (var note in track.UINotes)
                 {
-                    if (note.IsSelected)
-                    {
-                        AddClipboardItem(
-                            KeyframeClipboardTarget.NoteBody,
-                            track,
-                            note.HitTime,
-                            CloneNote(note.Model),
-                            default,
-                            uniqueKey: $"{KeyframeClipboardTarget.NoteBody}|{track.GetHashCode()}|{note.Model.ID}");
-                        continue;
-                    }
-
-                    IEnumerable<KeyFrameUIWrapper<System.Windows.Vector>> offsetWrappers = note.IsSelected
-                        ? note.UIOffsetKeyframes
-                        : note.UIOffsetKeyframes.Where(k => k.IsSelected);
-                    foreach (var wrapper in offsetWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteOffset, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-
-                    IEnumerable<KeyFrameUIWrapper<System.Windows.Vector>> anchorWrappers = note.IsSelected
-                        ? note.UIAnchorKeyframes
-                        : note.UIAnchorKeyframes.Where(k => k.IsSelected);
-                    foreach (var wrapper in anchorWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteAnchor, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-
-                    IEnumerable<KeyFrameUIWrapper<System.Windows.Vector>> scaleWrappers = note.IsSelected
-                        ? note.UIScaleKeyframes
-                        : note.UIScaleKeyframes.Where(k => k.IsSelected);
-                    foreach (var wrapper in scaleWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteScale, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-
-                    IEnumerable<KeyFrameUIWrapper<double>> rotationWrappers = note.IsSelected
-                        ? note.UIRotationKeyframes
-                        : note.UIRotationKeyframes.Where(k => k.IsSelected);
-                    foreach (var wrapper in rotationWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteRotation, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-
-                    IEnumerable<KeyFrameUIWrapper<double>> opacityWrappers = note.IsSelected
-                        ? note.UIOpacityKeyframes
-                        : note.UIOpacityKeyframes.Where(k => k.IsSelected);
-                    foreach (var wrapper in opacityWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteOpacity, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
-
-                    IEnumerable<KeyFrameUIWrapper<NoteKind>> kindWrappers = note.IsSelected
-                        ? note.UINoteKindKeyframes
-                        : note.UINoteKindKeyframes.Where(k => k.IsSelected);
-                    foreach (var wrapper in kindWrappers)
-                        AddClipboardItem(KeyframeClipboardTarget.NoteKind, note, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
+                    AddNoteSelectionToClipboard(note, track, copiedKeys);
                 }
             }
 
@@ -1331,139 +1358,24 @@ namespace Axphi.ViewModels
         private void DeleteSelectedKeyframes()
         {
             var layersToSelectAfterDelete = new HashSet<TrackViewModel>();
-            bool hasDeletedChildren = false;
+            int deletedChildCount = 0;
 
-            // 1. 扫荡全局 BPM 轨道
             if (BpmTrack != null)
             {
-                // 找出所有 IsSelected == true 的保镖
-                var bpmToDelete = BpmTrack.UIBpmKeyframes.Where(k => k.IsSelected).ToList();
-                foreach (var wrapper in bpmToDelete)
-                {
-                    // 把底层数据和 UI 保镖一起做掉
-                    CurrentChart.BpmKeyFrames.Remove(wrapper.Model);
-                    BpmTrack.UIBpmKeyframes.Remove(wrapper);
-                    hasDeletedChildren = true;
-                }
+                deletedChildCount += RemoveSelectedKeyframes(CurrentChart.BpmKeyFrames, BpmTrack.UIBpmKeyframes);
             }
 
-            // 2. 扫荡所有判定线图层，以及里面的音符！
             foreach (var track in Tracks)
             {
-                // ================= A. 删判定线自己的关键帧 =================
-                // Anchor
-                var anchorToDelete = track.UIAnchorKeyframes.Where(k => k.IsSelected).ToList();
-                foreach (var wrapper in anchorToDelete)
+                int deletedInTrack = DeleteSelectedChildrenInTrack(track);
+                if (deletedInTrack > 0)
                 {
-                    track.Data.AnimatableProperties.Anchor.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model);
-                    track.UIAnchorKeyframes.Remove(wrapper);
-                    hasDeletedChildren = true;
+                    deletedChildCount += deletedInTrack;
                     layersToSelectAfterDelete.Add(track);
-                }
-
-                // Position (Offset)
-                var offsetToDelete = track.UIOffsetKeyframes.Where(k => k.IsSelected).ToList();
-                foreach (var wrapper in offsetToDelete)
-                {
-                    track.Data.AnimatableProperties.Offset.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model);
-                    track.UIOffsetKeyframes.Remove(wrapper);
-                    hasDeletedChildren = true;
-                    layersToSelectAfterDelete.Add(track);
-                }
-                // Scale
-                var scaleToDelete = track.UIScaleKeyframes.Where(k => k.IsSelected).ToList();
-                foreach (var wrapper in scaleToDelete)
-                {
-                    track.Data.AnimatableProperties.Scale.KeyFrames.Remove((ScaleKeyFrame)wrapper.Model);
-                    track.UIScaleKeyframes.Remove(wrapper);
-                    hasDeletedChildren = true;
-                    layersToSelectAfterDelete.Add(track);
-                }
-                // Rotation
-                var rotationToDelete = track.UIRotationKeyframes.Where(k => k.IsSelected).ToList();
-                foreach (var wrapper in rotationToDelete)
-                {
-                    track.Data.AnimatableProperties.Rotation.KeyFrames.Remove((RotationKeyFrame)wrapper.Model);
-                    track.UIRotationKeyframes.Remove(wrapper);
-                    hasDeletedChildren = true;
-                    layersToSelectAfterDelete.Add(track);
-                }
-                // Opacity
-                var opacityToDelete = track.UIOpacityKeyframes.Where(k => k.IsSelected).ToList();
-                foreach (var wrapper in opacityToDelete)
-                {
-                    track.Data.AnimatableProperties.Opacity.KeyFrames.Remove((OpacityKeyFrame)wrapper.Model);
-                    track.UIOpacityKeyframes.Remove(wrapper);
-                    hasDeletedChildren = true;
-                    layersToSelectAfterDelete.Add(track);
-                }
-
-                var speedToDelete = track.UISpeedKeyframes.Where(k => k.IsSelected).ToList();
-                foreach (var wrapper in speedToDelete)
-                {
-                    track.Data.SpeedKeyFrames.Remove(wrapper.Model);
-                    track.UISpeedKeyframes.Remove(wrapper);
-                    hasDeletedChildren = true;
-                    layersToSelectAfterDelete.Add(track);
-                }
-
-                // ================= B. 删音符自己的关键帧 =================
-                foreach (var note in track.UINotes)
-                {
-                    // Note Anchor
-                    var noteAnchorDel = note.UIAnchorKeyframes.Where(k => k.IsSelected).ToList();
-                    foreach (var wrapper in noteAnchorDel) { note.Model.AnimatableProperties.Anchor.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model); note.UIAnchorKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
-
-                    // Note Offset
-                    var noteOffsetDel = note.UIOffsetKeyframes.Where(k => k.IsSelected).ToList();
-                    foreach (var wrapper in noteOffsetDel) { note.Model.AnimatableProperties.Offset.KeyFrames.Remove((OffsetKeyFrame)wrapper.Model); note.UIOffsetKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
-
-                    // Note Scale
-                    var noteScaleDel = note.UIScaleKeyframes.Where(k => k.IsSelected).ToList();
-                    foreach (var wrapper in noteScaleDel) { note.Model.AnimatableProperties.Scale.KeyFrames.Remove((ScaleKeyFrame)wrapper.Model); note.UIScaleKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
-
-                    // Note Rotation
-                    var noteRotDel = note.UIRotationKeyframes.Where(k => k.IsSelected).ToList();
-                    foreach (var wrapper in noteRotDel) { note.Model.AnimatableProperties.Rotation.KeyFrames.Remove((RotationKeyFrame)wrapper.Model); note.UIRotationKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
-
-                    // Note Opacity
-                    var noteOpaDel = note.UIOpacityKeyframes.Where(k => k.IsSelected).ToList();
-                    foreach (var wrapper in noteOpaDel) { note.Model.AnimatableProperties.Opacity.KeyFrames.Remove((OpacityKeyFrame)wrapper.Model); note.UIOpacityKeyframes.Remove(wrapper); hasDeletedChildren = true; layersToSelectAfterDelete.Add(track); }
-
-                    // ✨ 新增：Note Kind 关键帧删除
-                    if (note.Model.KindKeyFrames != null)
-                    {
-                        var noteKindDel = note.UINoteKindKeyframes.Where(k => k.IsSelected).ToList();
-                        foreach (var wrapper in noteKindDel)
-                        {
-                            note.Model.KindKeyFrames.Remove((NoteKindKeyFrame)wrapper.Model);
-                            note.UINoteKindKeyframes.Remove(wrapper);
-                            hasDeletedChildren = true;
-                            layersToSelectAfterDelete.Add(track);
-                        }
-                    }
-                }
-
-                
-
-                // ================= C. 直接删掉被选中的音符本体！ =================
-                var notesToDelete = track.UINotes.Where(n => n.IsSelected).ToList();
-                foreach (var note in notesToDelete)
-                {
-                    track.Data.Notes.Remove(note.Model);
-                    track.UINotes.Remove(note);
-                    hasDeletedChildren = true;
-                    layersToSelectAfterDelete.Add(track);
-
-                    // 安全防护：如果删掉的正好是正在属性面板显示的那个音符，把面板清空
-                    if (track.SelectedNote == note)
-                    {
-                        track.SelectedNote = null;
-                    }
                 }
             }
 
-            if (hasDeletedChildren)
+            if (deletedChildCount > 0)
             {
                 foreach (var track in layersToSelectAfterDelete)
                 {
@@ -1501,6 +1413,64 @@ namespace Axphi.ViewModels
             }
         }
 
+        private int DeleteSelectedChildrenInTrack(TrackViewModel track)
+        {
+            int deletedCount = 0;
+
+            deletedCount += RemoveSelectedKeyframes(track.Data.AnimatableProperties.Anchor.KeyFrames, track.UIAnchorKeyframes);
+            deletedCount += RemoveSelectedKeyframes(track.Data.AnimatableProperties.Offset.KeyFrames, track.UIOffsetKeyframes);
+            deletedCount += RemoveSelectedKeyframes(track.Data.AnimatableProperties.Scale.KeyFrames, track.UIScaleKeyframes);
+            deletedCount += RemoveSelectedKeyframes(track.Data.AnimatableProperties.Rotation.KeyFrames, track.UIRotationKeyframes);
+            deletedCount += RemoveSelectedKeyframes(track.Data.AnimatableProperties.Opacity.KeyFrames, track.UIOpacityKeyframes);
+            deletedCount += RemoveSelectedKeyframes(track.Data.SpeedKeyFrames, track.UISpeedKeyframes);
+
+            foreach (var note in track.UINotes)
+            {
+                deletedCount += RemoveSelectedKeyframes(note.Model.AnimatableProperties.Anchor.KeyFrames, note.UIAnchorKeyframes);
+                deletedCount += RemoveSelectedKeyframes(note.Model.AnimatableProperties.Offset.KeyFrames, note.UIOffsetKeyframes);
+                deletedCount += RemoveSelectedKeyframes(note.Model.AnimatableProperties.Scale.KeyFrames, note.UIScaleKeyframes);
+                deletedCount += RemoveSelectedKeyframes(note.Model.AnimatableProperties.Rotation.KeyFrames, note.UIRotationKeyframes);
+                deletedCount += RemoveSelectedKeyframes(note.Model.AnimatableProperties.Opacity.KeyFrames, note.UIOpacityKeyframes);
+                deletedCount += RemoveSelectedKeyframes(note.Model.KindKeyFrames, note.UINoteKindKeyframes);
+            }
+
+            var notesToDelete = track.UINotes.Where(note => note.IsSelected).ToList();
+            foreach (var note in notesToDelete)
+            {
+                track.Data.Notes.Remove(note.Model);
+                track.UINotes.Remove(note);
+                deletedCount++;
+
+                if (track.SelectedNote == note)
+                {
+                    track.SelectedNote = null;
+                }
+            }
+
+            return deletedCount;
+        }
+
+        private static int RemoveSelectedKeyframes<T, TKeyFrame>(
+            List<TKeyFrame>? dataList,
+            ObservableCollection<KeyFrameUIWrapper<T>> uiList)
+            where T : struct
+            where TKeyFrame : KeyFrame<T>
+        {
+            if (dataList == null || uiList.Count == 0)
+            {
+                return 0;
+            }
+
+            var wrappersToDelete = uiList.Where(wrapper => wrapper.IsSelected).ToList();
+            foreach (var wrapper in wrappersToDelete)
+            {
+                dataList.Remove((TKeyFrame)wrapper.Model);
+                uiList.Remove(wrapper);
+            }
+
+            return wrappersToDelete.Count;
+        }
+
         public void RefreshLayerSelectionVisuals()
         {
             foreach (var track in Tracks)
@@ -1513,25 +1483,14 @@ namespace Axphi.ViewModels
 
         private bool TrackHasSelectedChildren(TrackViewModel track)
         {
-            if (track.UIAnchorKeyframes.Any(k => k.IsSelected) ||
-                track.UIOffsetKeyframes.Any(k => k.IsSelected) ||
-                track.UIScaleKeyframes.Any(k => k.IsSelected) ||
-                track.UIRotationKeyframes.Any(k => k.IsSelected) ||
-                track.UIOpacityKeyframes.Any(k => k.IsSelected) ||
-                track.UISpeedKeyframes.Any(k => k.IsSelected))
+            if (EnumerateTrackLevelKeyframes(track).Any(keyframe => keyframe.IsSelected))
             {
                 return true;
             }
 
             foreach (var note in track.UINotes)
             {
-                if (note.IsSelected ||
-                    note.UIAnchorKeyframes.Any(k => k.IsSelected) ||
-                    note.UIOffsetKeyframes.Any(k => k.IsSelected) ||
-                    note.UIScaleKeyframes.Any(k => k.IsSelected) ||
-                    note.UIRotationKeyframes.Any(k => k.IsSelected) ||
-                    note.UIOpacityKeyframes.Any(k => k.IsSelected) ||
-                    note.UINoteKindKeyframes.Any(k => k.IsSelected))
+                if (note.IsSelected || EnumerateNoteLevelKeyframes(note).Any(keyframe => keyframe.IsSelected))
                 {
                     return true;
                 }

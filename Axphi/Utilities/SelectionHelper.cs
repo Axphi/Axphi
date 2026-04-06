@@ -1,12 +1,20 @@
 ﻿using Axphi.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
 using System;
+using System.Collections.Generic;
 using System.Windows.Input; // 必须引入这个才能读取键盘状态
 
 namespace Axphi.Utilities
 {
+    public interface ISelectionNode
+    {
+        bool IsSelected { get; set; }
+    }
+
     public static class SelectionHelper
     {
+        private static readonly Dictionary<string, List<WeakReference<ISelectionNode>>> SelectedNodesByGroup = new();
+
         /// <summary>
         /// 处理专业级的修饰键选中逻辑
         /// </summary>
@@ -23,21 +31,24 @@ namespace Axphi.Utilities
             if (isCtrlDown)
             {
                 // Ctrl：仅仅切换自己的状态，绝对不碰其他人（筛选）
-                setIsSelected(!isCurrentlySelected);
+                ApplySelectionState(groupName, sender, !isCurrentlySelected, setIsSelected);
             }
             else if (isShiftDown)
             {
                 // Shift：加选，不影响其他人
-                setIsSelected(true);
+                ApplySelectionState(groupName, sender, true, setIsSelected);
             }
             else
             {
                 // 什么都没按：排他选中（独占）
-                // 先发大喇叭，让同组的其他人全部暗下去
-                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage(groupName, sender));
+                bool hasManagedSelection = ClearManagedSelection(groupName, sender);
+                if (!hasManagedSelection)
+                {
+                    WeakReferenceMessenger.Default.Send(new ClearSelectionMessage(groupName, sender));
+                }
 
                 // 再把自己点亮
-                setIsSelected(true);
+                ApplySelectionState(groupName, sender, true, setIsSelected);
             }
         }
 
@@ -65,24 +76,105 @@ namespace Axphi.Utilities
 
             if (isCtrlDown)
             {
-                setIsSelected(false);
+                ApplySelectionState(groupName, sender, false, setIsSelected);
                 return;
             }
 
             if (isShiftDown)
             {
-                setIsSelected(true);
+                ApplySelectionState(groupName, sender, true, setIsSelected);
                 return;
             }
 
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage(groupName, sender));
+            bool hasManagedSelection = ClearManagedSelection(groupName, sender);
+            if (!hasManagedSelection)
+            {
+                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage(groupName, sender));
+            }
 
             foreach (var clearAction in extraClearActions)
             {
                 clearAction();
             }
 
-            setIsSelected(true);
+            ApplySelectionState(groupName, sender, true, setIsSelected);
+        }
+
+        private static void ApplySelectionState(string groupName, object sender, bool isSelected, Action<bool> setIsSelected)
+        {
+            setIsSelected(isSelected);
+            TrackManagedSelection(groupName, sender, isSelected);
+        }
+
+        private static void TrackManagedSelection(string groupName, object sender, bool isSelected)
+        {
+            if (sender is not ISelectionNode node)
+            {
+                return;
+            }
+
+            if (!SelectedNodesByGroup.TryGetValue(groupName, out var entries))
+            {
+                if (!isSelected)
+                {
+                    return;
+                }
+
+                entries = new List<WeakReference<ISelectionNode>>();
+                SelectedNodesByGroup[groupName] = entries;
+            }
+
+            RemoveNode(entries, node);
+
+            if (isSelected)
+            {
+                entries.Add(new WeakReference<ISelectionNode>(node));
+            }
+        }
+
+        private static bool ClearManagedSelection(string groupName, object senderToIgnore)
+        {
+            if (!SelectedNodesByGroup.TryGetValue(groupName, out var entries) || entries.Count == 0)
+            {
+                return false;
+            }
+
+            bool hasManagedSelection = false;
+            for (int i = entries.Count - 1; i >= 0; i--)
+            {
+                if (!entries[i].TryGetTarget(out var node))
+                {
+                    entries.RemoveAt(i);
+                    continue;
+                }
+
+                if (ReferenceEquals(node, senderToIgnore))
+                {
+                    continue;
+                }
+
+                hasManagedSelection = true;
+                node.IsSelected = false;
+                entries.RemoveAt(i);
+            }
+
+            if (entries.Count == 0)
+            {
+                SelectedNodesByGroup.Remove(groupName);
+            }
+
+            return hasManagedSelection;
+        }
+
+        private static void RemoveNode(List<WeakReference<ISelectionNode>> entries, ISelectionNode target)
+        {
+            for (int i = entries.Count - 1; i >= 0; i--)
+            {
+                if (!entries[i].TryGetTarget(out var node) || ReferenceEquals(node, target))
+                {
+                    entries.RemoveAt(i);
+                }
+            }
         }
     }
 }

@@ -14,7 +14,7 @@ using Axphi.Utilities; // 引入 EasingUtils 所在的命名空间
 
 namespace Axphi.ViewModels
 {
-    public partial class TrackViewModel : ObservableObject
+    public partial class TrackViewModel : ObservableObject, ISelectionNode
     {
         public sealed record ParentLineOption(string? LineId, string DisplayName)
         {
@@ -1012,6 +1012,12 @@ namespace Axphi.ViewModels
         partial void OnIsLayerSelectedChanged(bool value)
         {
             _timeline.RefreshLayerSelectionVisuals();
+        }
+
+        bool ISelectionNode.IsSelected
+        {
+            get => IsLayerSelected;
+            set => IsLayerSelected = value;
         }
 
         [ObservableProperty]

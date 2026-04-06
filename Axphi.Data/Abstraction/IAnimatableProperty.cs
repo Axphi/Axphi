@@ -6,5 +6,6 @@
         public IReadOnlyList<IKeyFrame<TValue>> KeyFrames { get; }
 
         public void AddKeyFrame(TimeSpan time, TValue value, BezierEasing? easing);
+        public bool RemoveKeyFrame(TimeSpan time);
     }
 }

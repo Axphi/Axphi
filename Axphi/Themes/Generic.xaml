@@ -105,7 +105,8 @@
                                                             <ColumnDefinition Width="3"/>
                                                             <ColumnDefinition/>
                                                         </Grid.ColumnDefinitions>
-                                                        <Grid Grid.Row="0" Grid.Column="0">
+                                                        <Grid Grid.Row="0" Grid.Column="0"
+                                                              Margin="8 0 0 0">
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="Auto"/>
                                                                 <ColumnDefinition Width="Auto"/>
@@ -136,26 +137,20 @@
                                                                RadiusX="2"
                                                                RadiusY="2"/>
                                                         <StackPanel Grid.Row="1"
-                                                                Grid.ColumnSpan="3">
+                                                                    Grid.ColumnSpan="3">
                                                             <comp:TimelineExpander Header="Notes"
-                                                                             IndicatorFill="#1e88da"
-                                                                             HeaderBackground="Transparent"
-                                                                             IsExpanded="True">
-                                                                <Grid>
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="Auto" SharedSizeGroup="Left"/>
-                                                                        <ColumnDefinition Width="3" SharedSizeGroup="Splitter"/>
-                                                                        <ColumnDefinition/>
-                                                                    </Grid.ColumnDefinitions>
+                                                                                   IndicatorFill="#1e88da"
+                                                                                   HeaderBackground="Transparent">
+                                                                <comp:TimelineExpander.HeaderBackgroundSlot>
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="Left"/>
+                                                                            <ColumnDefinition Width="3" SharedSizeGroup="Splitter"/>
+                                                                            <ColumnDefinition/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Rectangle Fill="#2d4f84"/>
 
-                                                                    <Border Grid.Column="2" 
-                                                                        Margin="0 4 4 4"
-                                                                        Height="20"
-                                                                        Background="#151515"
-                                                                        BorderBrush="#262626"
-                                                                        BorderThickness="1"
-                                                                        ClipToBounds="True">
-                                                                        <ItemsControl ItemsSource="{Binding Notes}">
+                                                                        <ItemsControl Grid.Column="2" ItemsSource="{Binding Notes}">
                                                                             <ItemsControl.ItemsPanel>
                                                                                 <ItemsPanelTemplate>
                                                                                     <comp:TimelineTrack Context="{Binding RelativeSource={RelativeSource AncestorType={x:Type comp:ChartTimeline}}}"/>
@@ -170,9 +165,8 @@
                                                                             <ItemsControl.ItemTemplate>
                                                                                 <DataTemplate DataType="{x:Type data:Note}">
                                                                                     <Border Width="10"
-                                                                                    Height="12"
-                                                                                    Margin="0 4 0 0"
-                                                                                    CornerRadius="2">
+                                                                                            Height="12"
+                                                                                            CornerRadius="2">
                                                                                         <Border.Style>
                                                                                             <Style TargetType="{x:Type Border}">
                                                                                                 <Setter Property="Background" Value="#5285f3"/>
@@ -193,7 +187,15 @@
                                                                                 </DataTemplate>
                                                                             </ItemsControl.ItemTemplate>
                                                                         </ItemsControl>
-                                                                    </Border>
+                                                                    </Grid>
+                                                                </comp:TimelineExpander.HeaderBackgroundSlot>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="Auto" SharedSizeGroup="Left"/>
+                                                                        <ColumnDefinition Width="3" SharedSizeGroup="Splitter"/>
+                                                                        <ColumnDefinition/>
+                                                                    </Grid.ColumnDefinitions>
+
                                                                 </Grid>
                                                             </comp:TimelineExpander>
                                                         </StackPanel>
@@ -326,6 +328,6 @@
     </Style>
 
     <Style TargetType="{x:Type comp:ChartPlayTimeIndicator}">
-        
+
     </Style>
 </ResourceDictionary>

@@ -15,7 +15,7 @@ namespace Axphi.Data.AnimatableProperties
         where TOwner : class
         where TValue : struct
         where TSelf : AnimatableProperty<TOwner, TSelf, TValue, TKeyFrame>
-        where TKeyFrame : KeyFrame<TSelf, TValue>
+        where TKeyFrame : KeyFrame<TSelf, TValue>, new()
     {
         [JsonIgnore]
         public TOwner Owner { get; }
@@ -30,6 +30,18 @@ namespace Axphi.Data.AnimatableProperties
         {
             Owner = owner;
             KeyFrames = new RelationObject<TSelf>.Collection<TKeyFrame>((TSelf)this);
+        }
+
+        public void AddKeyFrame(TimeSpan time, TValue value, BezierEasing? easing)
+        {
+            var keyFrame = new TKeyFrame
+            {
+                Time = time,
+                Value = value,
+                Easing = easing
+            };
+
+            KeyFrames.Add(keyFrame);
         }
     }
 }

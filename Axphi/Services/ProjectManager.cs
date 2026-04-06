@@ -1,13 +1,9 @@
-﻿using Axphi.Data;
-using Axphi.Extensions;
-using CommunityToolkit.Mvvm.ComponentModel;
-using System;
-using System.Collections.Generic;
-using System.IO.Packaging;
-using System.Linq;
+﻿using System.IO.Packaging;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
+using Axphi.Data;
+using Axphi.Extensions;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Axphi.Services
 {

@@ -28,9 +28,13 @@ namespace Axphi.ViewModels
         private readonly IProjectSession _projectSession;
         private readonly ITimelineTrackFactory _trackFactory;
         private readonly ITimelineHistoryCoordinator _historyCoordinator;
-        private readonly ITimelineDomainServices _timelineDomain;
-        private readonly ITimelineKeyframeSelectionService _keyframeSelectionService;
-        private readonly ITimelineNoteSelectionService _noteSelectionService;
+        private readonly ITimelineEditingService _editingService;
+        private readonly ITimelineSnapService _snapService;
+        private readonly ITimelineClipboardService _clipboardService;
+        private readonly ITimelineMutationSyncService _mutationSyncService;
+        private readonly ITimelineStateService _stateService;
+        private readonly ITimelineWorkspaceLoopService _workspaceLoopService;
+        private readonly ITimelineSelectionService _selectionService;
         private readonly ITimelinePlaybackSyncService _playbackSyncService;
         private readonly IMessenger _messenger;
         private readonly List<KeyframeClipboardItem> _keyframeClipboard = new();
@@ -202,9 +206,13 @@ namespace Axphi.ViewModels
             IProjectSession projectSession,
             ITimelineTrackFactory trackFactory,
             ITimelineHistoryCoordinator historyCoordinator,
-            ITimelineDomainServices timelineDomain,
-            ITimelineKeyframeSelectionService keyframeSelectionService,
-            ITimelineNoteSelectionService noteSelectionService,
+            ITimelineEditingService editingService,
+            ITimelineSnapService snapService,
+            ITimelineClipboardService clipboardService,
+            ITimelineMutationSyncService mutationSyncService,
+            ITimelineStateService stateService,
+            ITimelineWorkspaceLoopService workspaceLoopService,
+            ITimelineSelectionService selectionService,
             ITimelinePlaybackSyncService playbackSyncService,
             IMessenger messenger)
         {
@@ -212,9 +220,13 @@ namespace Axphi.ViewModels
             _projectSession = projectSession; // 存进私有变量
             _trackFactory = trackFactory;
             _historyCoordinator = historyCoordinator;
-            _timelineDomain = timelineDomain;
-            _keyframeSelectionService = keyframeSelectionService;
-            _noteSelectionService = noteSelectionService;
+            _editingService = editingService;
+            _snapService = snapService;
+            _clipboardService = clipboardService;
+            _mutationSyncService = mutationSyncService;
+            _stateService = stateService;
+            _workspaceLoopService = workspaceLoopService;
+            _selectionService = selectionService;
             _playbackSyncService = playbackSyncService;
             _messenger = messenger;
             NoteSelectionPanel = new NoteSelectionPanelViewModel(this, _messenger);
@@ -257,57 +269,57 @@ namespace Axphi.ViewModels
 
         public void ClearKeyframeSelection(object? senderToIgnore = null)
         {
-            _timelineDomain.Editing.ClearKeyframeSelection(CreateSelectionRuntime(), senderToIgnore);
+            _editingService.ClearKeyframeSelection(CreateSelectionRuntime(), senderToIgnore);
         }
 
         public void ClearLayerSelection(object? senderToIgnore = null)
         {
-            _timelineDomain.Editing.ClearLayerSelection(CreateSelectionRuntime(), senderToIgnore);
+            _editingService.ClearLayerSelection(CreateSelectionRuntime(), senderToIgnore);
         }
 
         public void ClearNoteSelection(object? senderToIgnore = null)
         {
-            _timelineDomain.Editing.ClearNoteSelection(CreateSelectionRuntime(), senderToIgnore);
+            _editingService.ClearNoteSelection(CreateSelectionRuntime(), senderToIgnore);
         }
 
         public void ClearAllSelections()
         {
-            _timelineDomain.Editing.ClearAllSelections(CreateSelectionRuntime());
+            _editingService.ClearAllSelections(CreateSelectionRuntime());
         }
 
         public void EnterLayerSelectionContext(object? senderToIgnore = null)
         {
-            _timelineDomain.Editing.EnterLayerSelectionContext(CreateSelectionRuntime(), senderToIgnore);
+            _editingService.EnterLayerSelectionContext(CreateSelectionRuntime(), senderToIgnore);
         }
 
         public void EnterSubItemSelectionContext(object? senderToIgnore = null)
         {
-            _timelineDomain.Editing.EnterSubItemSelectionContext(CreateSelectionRuntime(), senderToIgnore);
+            _editingService.EnterSubItemSelectionContext(CreateSelectionRuntime(), senderToIgnore);
         }
 
         public bool IsTrackLevelKeyframeWrapperSelected(object wrapper)
         {
-            return _keyframeSelectionService.IsTrackLevelKeyframeWrapperSelected(Tracks, wrapper);
+            return _selectionService.IsTrackLevelKeyframeWrapperSelected(Tracks, wrapper);
         }
 
         public int GetSelectedTrackLevelKeyframeCount()
         {
-            return _keyframeSelectionService.GetSelectedTrackLevelKeyframeCount(Tracks);
+            return _selectionService.GetSelectedTrackLevelKeyframeCount(Tracks);
         }
 
         public void SetFreezeStateForSelectedTrackLevelKeyframes(bool isFreeze)
         {
-            _keyframeSelectionService.SetFreezeStateForSelectedTrackLevelKeyframes(Tracks, isFreeze);
+            _selectionService.SetFreezeStateForSelectedTrackLevelKeyframes(Tracks, isFreeze);
         }
 
         public bool ApplyEasingToSelectedKeyframes(BezierEasing easing)
         {
-            return _keyframeSelectionService.ApplyEasingToSelectedKeyframes(BpmTrack, Tracks, easing);
+            return _selectionService.ApplyEasingToSelectedKeyframes(BpmTrack, Tracks, easing);
         }
 
         public void RefreshNoteSelectionState(TrackViewModel? preferredOwner = null, NoteViewModel? preferredSingle = null)
         {
-            ActiveNotePanelOwner = _noteSelectionService.RefreshSelection(
+            ActiveNotePanelOwner = _selectionService.RefreshSelection(
                 Tracks,
                 ActiveNotePanelOwner,
                 NoteSelectionPanel,
@@ -384,7 +396,7 @@ namespace Axphi.ViewModels
                 NotifyKeyframeClipboardCommandsStateChanged();
 
                 // 3. 请上新演员：遍历新谱面里的判定线，挨个给它们创建前端代理人
-                var materializedTracks = _timelineDomain.TrackMaterializer.BuildTracks(CurrentChart, _trackFactory, this);
+                var materializedTracks = _trackFactory.BuildTracks(CurrentChart, this);
                 foreach (var track in materializedTracks)
                 {
                     Tracks.Add(track);
@@ -394,10 +406,10 @@ namespace Axphi.ViewModels
 
                 if (preservedUiState != null)
                 {
-                    _timelineDomain.State.RestoreUiState(preservedUiState, Tracks, AudioTrack, JudgementLineEditor);
+                    _stateService.RestoreUiState(preservedUiState, Tracks, AudioTrack, JudgementLineEditor);
                 }
 
-                var playbackState = _timelineDomain.State.ResolvePlaybackState(preservedUiState, metadata);
+                var playbackState = _stateService.ResolvePlaybackState(preservedUiState, metadata);
                 CurrentHorizontalScrollOffset = playbackState.CurrentHorizontalScrollOffset;
                 WorkspaceStartTick = playbackState.WorkspaceStartTick;
                 WorkspaceEndTick = playbackState.WorkspaceEndTick;
@@ -472,7 +484,7 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void DeleteSelectedKeyframes()
         {
-            if (_timelineDomain.Editing.DeleteSelected(CreateDeleteRuntime()))
+            if (_editingService.DeleteSelected(CreateDeleteRuntime()))
             {
                 FinalizeDeleteChanges();
             }
@@ -480,7 +492,7 @@ namespace Axphi.ViewModels
 
         public void RefreshLayerSelectionVisuals()
         {
-            _timelineDomain.Editing.RefreshLayerSelectionVisuals(CreateSelectionRuntime());
+            _editingService.RefreshLayerSelectionVisuals(CreateSelectionRuntime());
         }
 
         private TimelineSelectionRuntime CreateSelectionRuntime()
@@ -491,7 +503,7 @@ namespace Axphi.ViewModels
                 context => ActiveSelectionContext = context,
                 NotifyKeyframeClipboardCommandsStateChanged,
                 (owner, preferredSingle) => RefreshNoteSelectionState(owner, preferredSingle),
-                () => _keyframeSelectionService.HasSelectedEditableKeyframes(BpmTrack, Tracks));
+                () => _selectionService.HasSelectedEditableKeyframes(BpmTrack, Tracks));
         }
 
         private TimelineDeleteRuntime CreateDeleteRuntime()
@@ -511,7 +523,7 @@ namespace Axphi.ViewModels
             RefreshLayerSelectionVisuals();
             NotifyKeyframeClipboardCommandsStateChanged();
 
-            _timelineDomain.MutationSync.SyncAfterMutation(CreateMutationRuntime(syncNotes: false, broadcastSortMessage: false));
+            _mutationSyncService.SyncAfterMutation(CreateMutationRuntime(syncNotes: false, broadcastSortMessage: false));
         }
 
         private TimelineMutationRuntime CreateMutationRuntime(bool syncNotes, bool broadcastSortMessage)
@@ -529,12 +541,12 @@ namespace Axphi.ViewModels
 
         private void ReindexTrackNames()
         {
-            _timelineDomain.Editing.ReindexTrackNames(Tracks);
+            _editingService.ReindexTrackNames(Tracks);
         }
 
         public bool TrySetParentLine(TrackViewModel childTrack, string? parentLineId)
         {
-            return _timelineDomain.Editing.TrySetParentLine(
+            return _editingService.TrySetParentLine(
                 Tracks,
                 childTrack,
                 parentLineId,
@@ -543,7 +555,7 @@ namespace Axphi.ViewModels
 
         private void RefreshParentLineBindings()
         {
-            _timelineDomain.Editing.RefreshParentLineBindings(
+            _editingService.RefreshParentLineBindings(
                 Tracks,
                 () => _messenger.Send(new JudgementLinesChangedMessage()));
         }
@@ -562,7 +574,7 @@ namespace Axphi.ViewModels
             int playheadTick = (int)Math.Round(PixelToTick(PlayheadPositionX));
             bool isSnapModifierActive = System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift);
 
-            return _timelineDomain.Snap.ResolveSnappedTick(new TimelineSnapRuntime(
+            return _snapService.ResolveSnappedTick(new TimelineSnapRuntime(
                 isSnapModifierActive,
                 exactTickDouble,
                 isPlayhead,
@@ -626,7 +638,7 @@ namespace Axphi.ViewModels
         {
             if (CurrentChart == null) return;
 
-            var loopTargetSeconds = _timelineDomain.WorkspaceLoop.ResolveLoopTargetSeconds(
+            var loopTargetSeconds = _workspaceLoopService.ResolveLoopTargetSeconds(
                 CurrentChart,
                 TotalDurationTicks,
                 WorkspaceStartTick,

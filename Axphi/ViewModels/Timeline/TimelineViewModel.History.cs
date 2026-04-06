@@ -58,12 +58,12 @@ public partial class TimelineViewModel
 
     private string SerializeHistorySnapshot()
     {
-        return _timelineDomain.State.SerializeSnapshot(CurrentChart, GetProjectMetadata());
+        return _stateService.SerializeSnapshot(CurrentChart, GetProjectMetadata());
     }
 
     private TimelineUiState CaptureTimelineUiState()
     {
-        return _timelineDomain.State.CaptureUiState(new TimelineCaptureRuntime(
+        return _stateService.CaptureUiState(new TimelineCaptureRuntime(
             CurrentPlayTimeSeconds,
             CurrentHorizontalScrollOffset,
             ZoomScale,
@@ -88,7 +88,7 @@ public partial class TimelineViewModel
         _isApplyingHistorySnapshot = true;
         try
         {
-            _projectSession.EditingProject = _timelineDomain.State.RestoreProjectFromSnapshot(snapshot, currentProject);
+            _projectSession.EditingProject = _stateService.RestoreProjectFromSnapshot(snapshot, currentProject);
 
             ReloadTracksFromCurrentChart(uiState);
         }

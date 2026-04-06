@@ -83,20 +83,13 @@ public class BpmTrackViewModelTests
             projectManager,
             new TimelineTrackFactory(),
             new TimelineHistoryCoordinator(),
-            new TimelineDomainServices(
-                new TimelineEditingService(WeakReferenceMessenger.Default),
-                new TimelineSnapService(),
-                new TimelineClipboardService(),
-                new TimelineMutationSyncService(),
-                new TimelineStateService(
-                    new TimelineSnapshotService(),
-                    new TimelineUiStateService(),
-                    new TimelineUiRestoreService(),
-                    new TimelinePlaybackRestoreService()),
-                new TimelineWorkspaceLoopService(),
-                new TimelineTrackMaterializerService()),
-            new TimelineKeyframeSelectionService(),
-            new TimelineNoteSelectionService(),
+            new TimelineEditingService(WeakReferenceMessenger.Default),
+            new TimelineSnapService(),
+            new TimelineClipboardService(),
+            new TimelineMutationSyncService(),
+            new TimelineStateService(),
+            new TimelineWorkspaceLoopService(),
+            new TimelineSelectionService(),
             new TimelinePlaybackSyncService(),
             WeakReferenceMessenger.Default);
         var bpmTrack = timeline.BpmTrack ?? throw new AssertFailedException("BPM track should be initialized.");

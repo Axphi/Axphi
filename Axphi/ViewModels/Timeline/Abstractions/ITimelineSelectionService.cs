@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Axphi.ViewModels;
 
-public interface ITimelineKeyframeSelectionService
+public interface ITimelineSelectionService
 {
     bool IsTrackLevelKeyframeWrapperSelected(IEnumerable<TrackViewModel> tracks, object wrapper);
 
@@ -14,4 +14,11 @@ public interface ITimelineKeyframeSelectionService
     bool ApplyEasingToSelectedKeyframes(BpmTrackViewModel? bpmTrack, IEnumerable<TrackViewModel> tracks, BezierEasing easing);
 
     bool HasSelectedEditableKeyframes(BpmTrackViewModel? bpmTrack, IEnumerable<TrackViewModel> tracks);
+
+    TrackViewModel? RefreshSelection(
+        IEnumerable<TrackViewModel> tracks,
+        TrackViewModel? activeOwner,
+        NoteSelectionPanelViewModel panel,
+        TrackViewModel? preferredOwner = null,
+        NoteViewModel? preferredSingle = null);
 }

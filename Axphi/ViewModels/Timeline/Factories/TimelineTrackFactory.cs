@@ -1,6 +1,7 @@
 ﻿using Axphi.Data;
 using Axphi.Services;
 using CommunityToolkit.Mvvm.Messaging;
+using System.Collections.Generic;
 
 namespace Axphi.ViewModels
 {
@@ -31,6 +32,24 @@ namespace Axphi.ViewModels
         public TrackViewModel CreateTrack(JudgementLine line, string trackName, TimelineViewModel timeline)
         {
             return new TrackViewModel(line, trackName, timeline, _messenger);
+        }
+
+        public IReadOnlyList<TrackViewModel> BuildTracks(Chart chart, TimelineViewModel timeline)
+        {
+            var result = new List<TrackViewModel>();
+
+            if (chart.JudgementLines == null)
+            {
+                return result;
+            }
+
+            for (int i = 0; i < chart.JudgementLines.Count; i++)
+            {
+                var line = chart.JudgementLines[i];
+                result.Add(CreateTrack(line, $"判定线图层 {i + 1}", timeline));
+            }
+
+            return result;
         }
     }
 }

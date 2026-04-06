@@ -1,35 +1,36 @@
 ﻿using Axphi.Data;
+using Axphi.Utilities;
+using System.Linq;
 using System.Collections.ObjectModel;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Axphi.ViewModels;
 
 public sealed class TimelineStateService : ITimelineStateService
 {
-    private readonly ITimelineSnapshotService _snapshotService;
-    private readonly ITimelineUiStateService _uiStateService;
-    private readonly ITimelineUiRestoreService _uiRestoreService;
-    private readonly ITimelinePlaybackRestoreService _playbackRestoreService;
+    private sealed record SnapshotDocument(Chart Chart, ProjectMetadata Metadata);
 
-    public TimelineStateService(
-        ITimelineSnapshotService snapshotService,
-        ITimelineUiStateService uiStateService,
-        ITimelineUiRestoreService uiRestoreService,
-        ITimelinePlaybackRestoreService playbackRestoreService)
+    private static readonly JsonSerializerOptions SnapshotJsonSerializerOptions = new()
     {
-        _snapshotService = snapshotService;
-        _uiStateService = uiStateService;
-        _uiRestoreService = uiRestoreService;
-        _playbackRestoreService = playbackRestoreService;
-    }
+        IncludeFields = true,
+        PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate,
+        Converters = { new VectorJsonConverter() }
+    };
 
     public string SerializeSnapshot(Chart chart, ProjectMetadata metadata)
     {
-        return _snapshotService.Serialize(chart, metadata);
+        return JsonSerializer.Serialize(
+            new SnapshotDocument(chart, CloneMetadata(metadata)),
+            SnapshotJsonSerializerOptions);
     }
 
     public (Chart Chart, ProjectMetadata Metadata) DeserializeSnapshot(string snapshot)
     {
-        return _snapshotService.Deserialize(snapshot);
+        var document = JsonSerializer.Deserialize<SnapshotDocument>(snapshot, SnapshotJsonSerializerOptions)
+            ?? new SnapshotDocument(new Chart(), new ProjectMetadata());
+
+        return (document.Chart, document.Metadata);
     }
 
     public Project RestoreProjectFromSnapshot(string snapshot, Project currentProject)
@@ -46,7 +47,32 @@ public sealed class TimelineStateService : ITimelineStateService
 
     public TimelineUiState CaptureUiState(TimelineCaptureRuntime runtime)
     {
-        return _uiStateService.Capture(runtime);
+        var trackStates = runtime.Tracks
+            .Select(track => new TrackUiState(track.Data.ID, track.IsExpanded, track.IsNoteExpanded))
+            .ToList();
+
+        JudgementLineEditorUiState? editorState = null;
+        if (runtime.JudgementLineEditor.ActiveTrack != null)
+        {
+            editorState = new JudgementLineEditorUiState(
+                runtime.JudgementLineEditor.ActiveTrack.Data.ID,
+                runtime.JudgementLineEditor.CurrentNoteKind,
+                runtime.JudgementLineEditor.HorizontalDivisions,
+                runtime.JudgementLineEditor.ViewZoom,
+                runtime.JudgementLineEditor.PanX,
+                runtime.JudgementLineEditor.PanY);
+        }
+
+        return new TimelineUiState(
+            runtime.CurrentPlayTimeSeconds,
+            runtime.CurrentHorizontalScrollOffset,
+            runtime.ZoomScale,
+            runtime.ViewportActualWidth,
+            runtime.WorkspaceStartTick,
+            runtime.WorkspaceEndTick,
+            runtime.IsAudioTrackExpanded,
+            trackStates,
+            editorState);
     }
 
     public void RestoreUiState(
@@ -55,11 +81,73 @@ public sealed class TimelineStateService : ITimelineStateService
         AudioTrackViewModel? audioTrack,
         JudgementLineEditorViewModel judgementLineEditor)
     {
-        _uiRestoreService.Restore(preservedState, tracks, audioTrack, judgementLineEditor);
+        if (audioTrack != null)
+        {
+            audioTrack.IsExpanded = preservedState.IsAudioTrackExpanded;
+        }
+
+        var trackStatesById = preservedState.Tracks.ToDictionary(track => track.TrackId);
+        foreach (var track in tracks)
+        {
+            if (trackStatesById.TryGetValue(track.Data.ID, out var trackState))
+            {
+                track.IsExpanded = trackState.IsExpanded;
+                track.IsNoteExpanded = trackState.IsNoteExpanded;
+            }
+        }
+
+        if (preservedState.Editor is { } editorState)
+        {
+            var targetTrack = tracks.FirstOrDefault(track => track.Data.ID == editorState.ActiveTrackId);
+            if (targetTrack != null)
+            {
+                judgementLineEditor.Open(targetTrack);
+                judgementLineEditor.CurrentNoteKind = editorState.CurrentNoteKind;
+                judgementLineEditor.HorizontalDivisions = editorState.HorizontalDivisions;
+                judgementLineEditor.ViewZoom = editorState.ViewZoom;
+                judgementLineEditor.PanX = editorState.PanX;
+                judgementLineEditor.PanY = editorState.PanY;
+            }
+        }
     }
 
     public TimelinePlaybackRestoreState ResolvePlaybackState(TimelineUiState? preservedUiState, ProjectMetadata metadata)
     {
-        return _playbackRestoreService.Resolve(preservedUiState, metadata);
+        if (preservedUiState != null)
+        {
+            return new TimelinePlaybackRestoreState(
+                preservedUiState.CurrentHorizontalScrollOffset,
+                preservedUiState.WorkspaceStartTick,
+                preservedUiState.WorkspaceEndTick,
+                preservedUiState.CurrentPlayTimeSeconds,
+                true);
+        }
+
+        return new TimelinePlaybackRestoreState(
+            metadata.CurrentHorizontalScrollOffset,
+            metadata.WorkspaceStartTick,
+            metadata.WorkspaceEndTick,
+            metadata.PlayheadTimeSeconds,
+            true);
+    }
+
+    private static ProjectMetadata CloneMetadata(ProjectMetadata metadata)
+    {
+        return new ProjectMetadata
+        {
+            AudioOffsetTicks = metadata.AudioOffsetTicks,
+            AudioVolume = metadata.AudioVolume,
+            PlayheadTimeSeconds = metadata.PlayheadTimeSeconds,
+            CurrentHorizontalScrollOffset = metadata.CurrentHorizontalScrollOffset,
+            ZoomScale = metadata.ZoomScale,
+            TotalDurationTicks = metadata.TotalDurationTicks,
+            WorkspaceStartTick = metadata.WorkspaceStartTick,
+            WorkspaceEndTick = metadata.WorkspaceEndTick,
+            IsAudioTrackExpanded = metadata.IsAudioTrackExpanded,
+            IsAudioTrackLocked = metadata.IsAudioTrackLocked,
+            PlaybackSpeed = metadata.PlaybackSpeed,
+            BackgroundDimOpacity = metadata.BackgroundDimOpacity,
+            PreserveAudioPitch = metadata.PreserveAudioPitch
+        };
     }
 }

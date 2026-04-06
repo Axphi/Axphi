@@ -16,12 +16,12 @@ public partial class TimelineViewModel
 
     private List<TrackViewModel> GetSelectedJudgementLineTracks()
     {
-        return _timelineDomain.Clipboard.GetSelectedJudgementLineTracks(Tracks);
+        return _clipboardService.GetSelectedJudgementLineTracks(Tracks);
     }
 
     private int GetSelectedKeyframeCount()
     {
-        return _timelineDomain.Clipboard.GetSelectedKeyframeCount(BpmTrack, Tracks);
+        return _clipboardService.GetSelectedKeyframeCount(BpmTrack, Tracks);
     }
 
     private bool CanCopySelectedKeyframes() => GetSelectedKeyframeCount() > 0 || GetSelectedJudgementLineTracks().Count > 0;
@@ -41,7 +41,7 @@ public partial class TimelineViewModel
 
         _keyframeClipboard.Clear();
         _judgementLineClipboard.Clear();
-        _judgementLineClipboard.AddRange(_timelineDomain.Clipboard.CloneJudgementLinesWithMappedParents(selectedTracks.Select(track => track.Data)));
+        _judgementLineClipboard.AddRange(_clipboardService.CloneJudgementLinesWithMappedParents(selectedTracks.Select(track => track.Data)));
 
         PasteCopiedJudgementLines();
         NotifyKeyframeClipboardCommandsStateChanged();
@@ -57,7 +57,7 @@ public partial class TimelineViewModel
             {
                 _keyframeClipboard.Clear();
                 _judgementLineClipboard.Clear();
-                _judgementLineClipboard.AddRange(_timelineDomain.Clipboard.CloneJudgementLinesWithMappedParents(selectedTracks.Select(track => track.Data)));
+                _judgementLineClipboard.AddRange(_clipboardService.CloneJudgementLinesWithMappedParents(selectedTracks.Select(track => track.Data)));
 
                 NotifyKeyframeClipboardCommandsStateChanged();
                 return;
@@ -70,21 +70,21 @@ public partial class TimelineViewModel
 
         if (BpmTrack != null)
         {
-            _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, BpmTrack.UIBpmKeyframes, KeyframeClipboardTarget.Bpm, null, copiedKeys);
+            _clipboardService.AddSelectedWrappersToClipboard(_keyframeClipboard, BpmTrack.UIBpmKeyframes, KeyframeClipboardTarget.Bpm, null, copiedKeys);
         }
 
         foreach (var track in Tracks)
         {
-            _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIAnchorKeyframes, KeyframeClipboardTarget.TrackAnchor, track, copiedKeys);
-            _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIOffsetKeyframes, KeyframeClipboardTarget.TrackOffset, track, copiedKeys);
-            _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIScaleKeyframes, KeyframeClipboardTarget.TrackScale, track, copiedKeys);
-            _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIRotationKeyframes, KeyframeClipboardTarget.TrackRotation, track, copiedKeys);
-            _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIOpacityKeyframes, KeyframeClipboardTarget.TrackOpacity, track, copiedKeys);
-            _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UISpeedKeyframes, KeyframeClipboardTarget.TrackSpeed, track, copiedKeys);
+            _clipboardService.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIAnchorKeyframes, KeyframeClipboardTarget.TrackAnchor, track, copiedKeys);
+            _clipboardService.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIOffsetKeyframes, KeyframeClipboardTarget.TrackOffset, track, copiedKeys);
+            _clipboardService.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIScaleKeyframes, KeyframeClipboardTarget.TrackScale, track, copiedKeys);
+            _clipboardService.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIRotationKeyframes, KeyframeClipboardTarget.TrackRotation, track, copiedKeys);
+            _clipboardService.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIOpacityKeyframes, KeyframeClipboardTarget.TrackOpacity, track, copiedKeys);
+            _clipboardService.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UISpeedKeyframes, KeyframeClipboardTarget.TrackSpeed, track, copiedKeys);
 
             foreach (var note in track.UINotes)
             {
-                _timelineDomain.Clipboard.AddNoteSelectionToClipboard(_keyframeClipboard, note, track, copiedKeys);
+                _clipboardService.AddNoteSelectionToClipboard(_keyframeClipboard, note, track, copiedKeys);
             }
         }
 
@@ -121,18 +121,18 @@ public partial class TimelineViewModel
         var pasteRuntime = CreatePasteRuntime();
         foreach (var item in _keyframeClipboard.OrderBy(item => item.Time))
         {
-            object? pastedWrapper = _timelineDomain.Clipboard.PasteClipboardItem(pasteRuntime, item, item.Time + deltaTick);
+            object? pastedWrapper = _clipboardService.PasteClipboardItem(pasteRuntime, item, item.Time + deltaTick);
             if (pastedWrapper != null)
             {
                 pastedWrappers.Add(pastedWrapper);
             }
         }
 
-        _timelineDomain.Clipboard.ApplySelectionToPastedItems(pastedWrappers);
+        _clipboardService.ApplySelectionToPastedItems(pastedWrappers);
 
         RefreshLayerSelectionVisuals();
         NotifyKeyframeClipboardCommandsStateChanged();
-        _timelineDomain.MutationSync.SyncAfterMutation(CreateMutationRuntime(syncNotes: true, broadcastSortMessage: true));
+        _mutationSyncService.SyncAfterMutation(CreateMutationRuntime(syncNotes: true, broadcastSortMessage: true));
     }
 
     private void PasteCopiedJudgementLines()
@@ -145,7 +145,7 @@ public partial class TimelineViewModel
         EnterLayerSelectionContext();
         ClearLayerSelection();
 
-        var clonedLines = _timelineDomain.Clipboard.CloneJudgementLinesWithMappedParents(_judgementLineClipboard);
+        var clonedLines = _clipboardService.CloneJudgementLinesWithMappedParents(_judgementLineClipboard);
 
         foreach (var clonedLine in clonedLines)
         {
@@ -161,7 +161,7 @@ public partial class TimelineViewModel
         RefreshParentLineBindings();
         RefreshLayerSelectionVisuals();
         NotifyKeyframeClipboardCommandsStateChanged();
-        _timelineDomain.MutationSync.SyncAfterMutation(CreateMutationRuntime(syncNotes: false, broadcastSortMessage: false));
+        _mutationSyncService.SyncAfterMutation(CreateMutationRuntime(syncNotes: false, broadcastSortMessage: false));
     }
 
     private TimelinePasteRuntime CreatePasteRuntime()
@@ -171,6 +171,6 @@ public partial class TimelineViewModel
             BpmTrack,
             Tracks,
             this,
-            _timelineDomain.Clipboard);
+            _clipboardService);
     }
 }

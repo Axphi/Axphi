@@ -7,6 +7,9 @@ using System.Windows.Media;
 
 namespace Axphi.Components
 {
+    /// <summary>
+    /// 底部时间轴控件
+    /// </summary>
     public class ChartTimeline : Control
     {
         static ChartTimeline()

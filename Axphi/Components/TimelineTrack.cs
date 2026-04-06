@@ -4,6 +4,9 @@ using System.Windows.Controls;
 
 namespace Axphi.Components
 {
+    /// <summary>
+    /// Timeline 中的轨道
+    /// </summary>
     public class TimelineTrack : Panel
     {
         public ChartTimeline? Context

@@ -13,6 +13,9 @@ using System.Windows.Shapes;
 
 namespace Axphi.Components
 {
+    /// <summary>
+    /// 在 Timeline 中使用的 Expander
+    /// </summary>
     [TemplatePart(Name = "PART_ToggleButton", Type = typeof(Button))]
     public class TimelineExpander : HeaderedContentControl
     {

@@ -12,6 +12,9 @@ using Axphi.Utilities;
 
 namespace Axphi.Components
 {
+    /// <summary>
+    /// 实时渲染铺面
+    /// </summary>
     public class ChartRenderer : FrameworkElement, IChartRenderer
     {
         private static SolidColorBrush _lineYellow = new SolidColorBrush(Color.FromRgb(254, 255, 169));

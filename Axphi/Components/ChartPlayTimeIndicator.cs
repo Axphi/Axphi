@@ -66,14 +66,13 @@ namespace Axphi.Components
             _indicatorPen = new Pen(_brush, 1);
         }
 
-        // Using a DependencyProperty as the backing store for PlayTime.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty PlayTimeProperty =
             DependencyProperty.Register(nameof(PlayTime), typeof(TimeSpan), typeof(ChartPlayTimeIndicator),
                 new FrameworkPropertyMetadata(default(TimeSpan), FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
-        // Using a DependencyProperty as the backing store for AllowDragMove.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty AllowDragAdjustPlayTimeProperty =
-            DependencyProperty.Register(nameof(AllowDragAdjustPlayTime), typeof(bool), typeof(ChartPlayTimeIndicator), new PropertyMetadata(false));
+            DependencyProperty.Register(nameof(AllowDragAdjustPlayTime), typeof(bool), typeof(ChartPlayTimeIndicator), 
+                new FrameworkPropertyMetadata(false));
 
         protected override void OnRender(DrawingContext dc)
         {

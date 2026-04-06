@@ -11,6 +11,9 @@ namespace Axphi.Components
         }
     }
 
+    /// <summary>
+    /// 用来切换关键帧的按钮, 点击时会在当前时间添加或删除一个关键帧
+    /// </summary>
     public class KeyFrameToggleButton<TValue> : KeyFrameToggleButton
         where TValue : struct
     {
@@ -33,6 +36,13 @@ namespace Axphi.Components
         public static readonly DependencyProperty PropertyToToggleProperty =
             DependencyProperty.Register(nameof(PropertyToToggle), typeof(IAnimatableProperty<TValue>), typeof(KeyFrameToggleButton<TValue>), new PropertyMetadata(null));
 
+        /// <summary>
+        /// 粗略的比较时间是否相等, 误差在50毫秒内都认为是相等的
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="time1"></param>
+        /// <param name="time2"></param>
+        /// <returns></returns>
         private bool TimeEquals(ChartTimeline context, TimeSpan time1, TimeSpan time2)
         {
 

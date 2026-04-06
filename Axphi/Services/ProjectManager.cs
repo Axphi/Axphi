@@ -7,6 +7,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Axphi.Services
 {
+    /// <summary>
+    /// 项目管理器
+    /// </summary>
     public partial class ProjectManager : ObservableObject
     {
         [ObservableProperty]

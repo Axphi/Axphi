@@ -7,6 +7,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Axphi.Services
 {
+    /// <summary>
+    /// 播放服务, 用于从 <see cref="IPlayTimeSyncProvider"/> 获取时间, 并将其应用到 <see cref="IChartRenderer"/>
+    /// </summary>
     public class PlaybackService : ObservableObject
     {
         private readonly IPlayTimeSyncProvider _defaultPlayTimeSyncProvider =

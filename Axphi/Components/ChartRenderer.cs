@@ -13,7 +13,7 @@ using Axphi.Utilities;
 namespace Axphi.Components
 {
     /// <summary>
-    /// 实时渲染铺面
+    /// 实时渲染谱面
     /// </summary>
     public class ChartRenderer : FrameworkElement, IChartRenderer
     {

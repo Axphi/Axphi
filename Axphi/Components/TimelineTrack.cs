@@ -5,7 +5,7 @@ using System.Windows.Controls;
 namespace Axphi.Components
 {
     /// <summary>
-    /// Timeline 中的轨道
+    /// Timeline 中的轨道, 布局用. 里面的元素会根据绑定的时间属性自动排列到对应的位置
     /// </summary>
     public class TimelineTrack : Panel
     {
@@ -74,7 +74,7 @@ namespace Axphi.Components
                 var childTime = GetTime(child);
                 var x = Context?.GetTimelineX(childTime) ?? 0;
                 child.Arrange(new Rect(
-                    new Point(x - child.DesiredSize.Width / 2, 0), 
+                    new Point(x - child.DesiredSize.Width / 2, 0),
                     new Size(child.DesiredSize.Width, finalSize.Height)));
             }
 

@@ -34,11 +34,12 @@ namespace Axphi.ViewModels
 
             CurrentBpm = _chart.InitialBpm;
 
-            InitializeUiKeyframes();
+            SyncBpmKeyframeProjection();
 
             _messenger.Register<BpmTrackViewModel, KeyframesNeedSortMessage>(this, (recipient, _) =>
             {
                 recipient._chart.BpmKeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
+                recipient.SyncBpmKeyframeProjection();
             });
         }
 
@@ -74,36 +75,41 @@ namespace Axphi.ViewModels
         private void AddBpmKeyframe()
         {
             int currentTick = _timeline.GetCurrentTick();
-            var existingWrapper = UIBpmKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+            var existingModel = _chart.BpmKeyFrames.FirstOrDefault(frame => frame.Time == currentTick);
 
-            if (existingWrapper != null)
+            if (existingModel != null)
             {
-                existingWrapper.Model.Value = CurrentBpm;
+                existingModel.Value = CurrentBpm;
             }
             else
             {
                 var newFrame = new KeyFrame<double>() { Time = currentTick, Value = CurrentBpm };
 
                 _chart.BpmKeyFrames.Add(newFrame);
-
-                _chart.BpmKeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
-
-                UIBpmKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline, _messenger));
             }
+
+            _chart.BpmKeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
+            SyncBpmKeyframeProjection();
 
             NotifyBpmChanged();
         }
 
-        private void InitializeUiKeyframes()
+        public void SyncBpmKeyframeProjection()
         {
-            if (_chart.BpmKeyFrames == null)
+            for (int i = UIBpmKeyframes.Count - 1; i >= 0; i--)
             {
-                return;
+                if (!_chart.BpmKeyFrames.Any(model => ReferenceEquals(model, UIBpmKeyframes[i].Model)))
+                {
+                    UIBpmKeyframes.RemoveAt(i);
+                }
             }
 
             foreach (var keyframe in _chart.BpmKeyFrames)
             {
-                UIBpmKeyframes.Add(new KeyFrameUIWrapper<double>(keyframe, _timeline, _messenger));
+                if (!UIBpmKeyframes.Any(wrapper => ReferenceEquals(wrapper.Model, keyframe)))
+                {
+                    UIBpmKeyframes.Add(new KeyFrameUIWrapper<double>(keyframe, _timeline, _messenger));
+                }
             }
         }
 

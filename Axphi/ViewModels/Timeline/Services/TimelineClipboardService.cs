@@ -283,13 +283,7 @@ public sealed class TimelineClipboardService : ITimelineClipboardService
         var clonedNote = runtime.ClipboardService.CloneNote(sourceNote);
         clonedNote.HitTime = Math.Max(0, targetTime);
 
-        track.Data.Notes ??= new List<Note>();
-        track.Data.Notes.Add(clonedNote);
-
-        var newNoteViewModel = new NoteViewModel(clonedNote, runtime.Timeline, track, runtime.Messenger);
-        newNoteViewModel.SyncValuesToTime(runtime.Timeline.GetCurrentTick(), runtime.CurrentChart.KeyFrameEasingDirection);
-        track.UINotes.Add(newNoteViewModel);
-        return newNoteViewModel;
+        return track.AddNoteModel(clonedNote, syncValuesToCurrentTime: true);
     }
 
     private static KeyFrameUIWrapper<Vector>? PasteNoteAnchorKeyframe(TimelinePasteRuntime runtime, NoteViewModel note, int targetTime, Vector value, BezierEasing easing, bool isFreezeKeyframe)
@@ -332,20 +326,39 @@ public sealed class TimelineClipboardService : ITimelineClipboardService
         where T : struct
         where TKeyFrame : KeyFrame<T>
     {
-        var existingWrapper = uiList.FirstOrDefault(wrapper => wrapper.Model.Time == frame.Time);
-        if (existingWrapper != null)
+        var existingModel = dataList.FirstOrDefault(model => model.Time == frame.Time);
+        if (existingModel != null)
         {
-            existingWrapper.Model.Value = frame.Value;
-            existingWrapper.Model.Easing = frame.Easing;
-            existingWrapper.IsFreezeKeyframe = frame.IsFreezeKeyframe;
-            return existingWrapper;
+            existingModel.Value = frame.Value;
+            existingModel.Easing = frame.Easing;
+            existingModel.IsFreezeKeyframe = frame.IsFreezeKeyframe;
         }
 
-        dataList.Add(frame);
+        if (existingModel == null)
+        {
+            dataList.Add(frame);
+        }
+
         dataList.Sort((a, b) => a.Time.CompareTo(b.Time));
 
-        var newWrapper = new KeyFrameUIWrapper<T>(frame, timeline);
-        uiList.Add(newWrapper);
-        return newWrapper;
+        for (int i = uiList.Count - 1; i >= 0; i--)
+        {
+            if (!dataList.Any(model => ReferenceEquals(model, uiList[i].Model)))
+            {
+                uiList.RemoveAt(i);
+            }
+        }
+
+        foreach (var model in dataList)
+        {
+            if (!uiList.Any(wrapper => ReferenceEquals(wrapper.Model, model)))
+            {
+                uiList.Add(new KeyFrameUIWrapper<T>(model, timeline));
+            }
+        }
+
+        var syncedWrapper = uiList.First(wrapper => wrapper.Model.Time == frame.Time);
+        syncedWrapper.IsFreezeKeyframe = syncedWrapper.Model.IsFreezeKeyframe;
+        return syncedWrapper;
     }
 }

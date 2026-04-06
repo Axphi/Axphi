@@ -81,6 +81,7 @@ public sealed class TimelineEditingService : ITimelineEditingService
         if (runtime.BpmTrack != null)
         {
             deletedChildCount += RemoveSelectedKeyframes(runtime.CurrentChart.BpmKeyFrames, runtime.BpmTrack.UIBpmKeyframes);
+            runtime.BpmTrack.SyncBpmKeyframeProjection();
         }
 
         foreach (var track in runtime.Tracks)
@@ -236,6 +237,7 @@ public sealed class TimelineEditingService : ITimelineEditingService
         deletedCount += RemoveSelectedKeyframes(track.Data.AnimatableProperties.Rotation.KeyFrames, track.UIRotationKeyframes);
         deletedCount += RemoveSelectedKeyframes(track.Data.AnimatableProperties.Opacity.KeyFrames, track.UIOpacityKeyframes);
         deletedCount += RemoveSelectedKeyframes(track.Data.SpeedKeyFrames, track.UISpeedKeyframes);
+        track.SyncAllTrackKeyframeProjections();
 
         foreach (var note in track.UINotes)
         {
@@ -245,18 +247,15 @@ public sealed class TimelineEditingService : ITimelineEditingService
             deletedCount += RemoveSelectedKeyframes(note.Model.AnimatableProperties.Rotation.KeyFrames, note.UIRotationKeyframes);
             deletedCount += RemoveSelectedKeyframes(note.Model.AnimatableProperties.Opacity.KeyFrames, note.UIOpacityKeyframes);
             deletedCount += RemoveSelectedKeyframes(note.Model.KindKeyFrames, note.UINoteKindKeyframes);
+            note.SyncAllKeyframeProjections();
         }
 
         var notesToDelete = track.UINotes.Where(note => note.IsSelected).ToList();
         foreach (var note in notesToDelete)
         {
-            track.Data.Notes.Remove(note.Model);
-            track.UINotes.Remove(note);
-            deletedCount++;
-
-            if (track.SelectedNote == note)
+            if (track.RemoveNoteModel(note))
             {
-                track.SelectedNote = null;
+                deletedCount++;
             }
         }
 
@@ -278,7 +277,6 @@ public sealed class TimelineEditingService : ITimelineEditingService
         foreach (var wrapper in wrappersToDelete)
         {
             dataList.Remove((TKeyFrame)wrapper.Model);
-            uiList.Remove(wrapper);
         }
 
         return wrappersToDelete.Count;

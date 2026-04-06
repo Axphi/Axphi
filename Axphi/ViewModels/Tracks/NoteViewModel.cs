@@ -132,30 +132,8 @@ namespace Axphi.ViewModels
             CurrentCustomSpeed = Model.CustomSpeed ?? 1.0;
 
 
-            // === 把底层已有的数据全部包上保镖 ===
-            if (Model.AnimatableProperties.Anchor.KeyFrames != null)
-                foreach (var kf in Model.AnimatableProperties.Anchor.KeyFrames)
-                    UIAnchorKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline, _messenger));
-
-            if (Model.AnimatableProperties.Offset.KeyFrames != null)
-                foreach (var kf in Model.AnimatableProperties.Offset.KeyFrames)
-                    UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline, _messenger));
-
-            if (Model.AnimatableProperties.Scale.KeyFrames != null)
-                foreach (var kf in Model.AnimatableProperties.Scale.KeyFrames)
-                    UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline, _messenger));
-
-            if (Model.AnimatableProperties.Rotation.KeyFrames != null)
-                foreach (var kf in Model.AnimatableProperties.Rotation.KeyFrames)
-                    UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline, _messenger));
-
-            if (Model.AnimatableProperties.Opacity.KeyFrames != null)
-                foreach (var kf in Model.AnimatableProperties.Opacity.KeyFrames)
-                    UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline, _messenger));
-
-            if (Model.KindKeyFrames != null)
-                foreach (var kf in Model.KindKeyFrames)
-                    UINoteKindKeyframes.Add(new KeyFrameUIWrapper<NoteKind>(kf, _timeline, _messenger));
+            // UI 集合是底层模型的投影，不作为独立事实源。
+            SyncAllKeyframeProjections();
 
             // TODO: 这里可以保留我们之前写的接收 NotesDragStartedMessage 等拖拽逻辑
 
@@ -286,10 +264,11 @@ namespace Axphi.ViewModels
             where TKeyFrame : KeyFrame<T>
         {
             int currentTick = _timeline.GetCurrentTick();
-            var existingWrapper = uiList.FirstOrDefault(w => w.Model.Time == currentTick);
-            if (existingWrapper != null)
+            var existingModel = dataList.FirstOrDefault(frame => frame.Time == currentTick);
+            if (existingModel != null)
             {
-                existingWrapper.Model.Value = value;
+                existingModel.Value = value;
+                SyncKeyframeProjection(dataList, uiList);
                 return;
             }
 
@@ -298,7 +277,40 @@ namespace Axphi.ViewModels
             newFrame.Value = value;
             dataList.Add(newFrame);
             dataList.Sort((a, b) => a.Time.CompareTo(b.Time));
-            uiList.Add(new KeyFrameUIWrapper<T>(newFrame, _timeline, _messenger));
+            SyncKeyframeProjection(dataList, uiList);
+        }
+
+        private void SyncKeyframeProjection<T, TKeyFrame>(
+            System.Collections.Generic.List<TKeyFrame> dataList,
+            ObservableCollection<KeyFrameUIWrapper<T>> uiList)
+            where T : struct
+            where TKeyFrame : KeyFrame<T>
+        {
+            for (int i = uiList.Count - 1; i >= 0; i--)
+            {
+                if (!dataList.Any(model => ReferenceEquals(model, uiList[i].Model)))
+                {
+                    uiList.RemoveAt(i);
+                }
+            }
+
+            foreach (var model in dataList)
+            {
+                if (!uiList.Any(wrapper => ReferenceEquals(wrapper.Model, model)))
+                {
+                    uiList.Add(new KeyFrameUIWrapper<T>(model, _timeline, _messenger));
+                }
+            }
+        }
+
+        public void SyncAllKeyframeProjections()
+        {
+            SyncKeyframeProjection(Model.AnimatableProperties.Anchor.KeyFrames, UIAnchorKeyframes);
+            SyncKeyframeProjection(Model.AnimatableProperties.Offset.KeyFrames, UIOffsetKeyframes);
+            SyncKeyframeProjection(Model.AnimatableProperties.Scale.KeyFrames, UIScaleKeyframes);
+            SyncKeyframeProjection(Model.AnimatableProperties.Rotation.KeyFrames, UIRotationKeyframes);
+            SyncKeyframeProjection(Model.AnimatableProperties.Opacity.KeyFrames, UIOpacityKeyframes);
+            SyncKeyframeProjection(Model.KindKeyFrames, UINoteKindKeyframes);
         }
 
         private void ApplyPositionChangeInternal(double x, double y)

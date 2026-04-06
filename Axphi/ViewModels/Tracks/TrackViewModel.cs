@@ -192,44 +192,9 @@ namespace Axphi.ViewModels
             LayerDurationTicks = Data.DurationTicks;
 
 
-            // 如果底层数据里已经有关键帧了，把它们请进 UI 替身集合里
-            // 初始化时，把底层已有的关键帧全部包上一层保镖！
-            // ================= 2. 构造时，把底层已有的数据全部包上保镖 =================
-            if (Data.AnimatableProperties.Anchor.KeyFrames != null)
-                foreach (var kf in Data.AnimatableProperties.Anchor.KeyFrames)
-                    UIAnchorKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline, _messenger));
-
-            if (Data.AnimatableProperties.Offset.KeyFrames != null)
-                foreach (var kf in Data.AnimatableProperties.Offset.KeyFrames)
-                    UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline, _messenger));
-
-            if (Data.AnimatableProperties.Scale.KeyFrames != null)
-                foreach (var kf in Data.AnimatableProperties.Scale.KeyFrames)
-                    UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline, _messenger));
-
-            if (Data.AnimatableProperties.Rotation.KeyFrames != null)
-                foreach (var kf in Data.AnimatableProperties.Rotation.KeyFrames)
-                    UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline, _messenger));
-
-            if (Data.AnimatableProperties.Opacity.KeyFrames != null)
-                foreach (var kf in Data.AnimatableProperties.Opacity.KeyFrames)
-                    UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline, _messenger));
-
-            // 【加在构造函数里：把底层的 Speed 关键帧包上保镖】
-            if (Data.SpeedKeyFrames != null)
-                foreach (var kf in Data.SpeedKeyFrames)
-                    UISpeedKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline, _messenger));
-
-
-
-            // 构造时，把底层判定线里带的音符全部转化为 NoteViewModel 塞进集合
-            if (Data.Notes != null)
-            {
-                foreach (var note in Data.Notes)
-                {
-                    UINotes.Add(new NoteViewModel(note, _timeline, this, _messenger));
-                }
-            }
+            // UI 集合是底层模型的投影，不作为独立事实源。
+            SyncAllTrackKeyframeProjections();
+            SyncNotesProjection();
 
             // ================= ✨ 修复初始值不更新的 Bug =================
             // 刚出生时，立刻强行同步一次当前时间的数据！这样一显示就是对的！
@@ -599,10 +564,11 @@ namespace Axphi.ViewModels
             where TKeyFrame : KeyFrame<T>
         {
             int currentTick = _timeline.GetCurrentTick();
-            var existingWrapper = uiList.FirstOrDefault(w => w.Model.Time == currentTick);
-            if (existingWrapper != null)
+            var existingModel = dataList.FirstOrDefault(frame => frame.Time == currentTick);
+            if (existingModel != null)
             {
-                existingWrapper.Model.Value = value;
+                existingModel.Value = value;
+                SyncKeyframeProjection(dataList, uiList);
                 return;
             }
 
@@ -611,7 +577,40 @@ namespace Axphi.ViewModels
             newFrame.Value = value;
             dataList.Add(newFrame);
             dataList.Sort((a, b) => a.Time.CompareTo(b.Time));
-            uiList.Add(new KeyFrameUIWrapper<T>(newFrame, _timeline, _messenger));
+            SyncKeyframeProjection(dataList, uiList);
+        }
+
+        private void SyncKeyframeProjection<T, TKeyFrame>(
+            List<TKeyFrame> dataList,
+            ObservableCollection<KeyFrameUIWrapper<T>> uiList)
+            where T : struct
+            where TKeyFrame : KeyFrame<T>
+        {
+            for (int i = uiList.Count - 1; i >= 0; i--)
+            {
+                if (!dataList.Any(model => ReferenceEquals(model, uiList[i].Model)))
+                {
+                    uiList.RemoveAt(i);
+                }
+            }
+
+            foreach (var model in dataList)
+            {
+                if (!uiList.Any(wrapper => ReferenceEquals(wrapper.Model, model)))
+                {
+                    uiList.Add(new KeyFrameUIWrapper<T>(model, _timeline, _messenger));
+                }
+            }
+        }
+
+        public void SyncAllTrackKeyframeProjections()
+        {
+            SyncKeyframeProjection(Data.AnimatableProperties.Anchor.KeyFrames, UIAnchorKeyframes);
+            SyncKeyframeProjection(Data.AnimatableProperties.Offset.KeyFrames, UIOffsetKeyframes);
+            SyncKeyframeProjection(Data.AnimatableProperties.Scale.KeyFrames, UIScaleKeyframes);
+            SyncKeyframeProjection(Data.AnimatableProperties.Rotation.KeyFrames, UIRotationKeyframes);
+            SyncKeyframeProjection(Data.AnimatableProperties.Opacity.KeyFrames, UIOpacityKeyframes);
+            SyncKeyframeProjection(Data.SpeedKeyFrames, UISpeedKeyframes);
         }
 
         // 【新增】暴露给大管家调用的同步方法
@@ -798,13 +797,13 @@ namespace Axphi.ViewModels
                             victim = wrapperA;
                         }
 
-                        // 无情抹杀：从底层数据和 UI 集合中双重删除
-                        // 因为底层 list 要求是确切的子类，所以这里向下转型一下，绝对安全
+                        // 删除只落到底层数据，UI 集合统一按投影同步。
                         dataList.Remove((TKeyFrame)victim.Model);
-                        uiList.Remove(victim);
                     }
                 }
             }
+
+            SyncKeyframeProjection(dataList, uiList);
         }
 
 
@@ -851,16 +850,7 @@ namespace Axphi.ViewModels
                 newNote.HoldDuration = Math.Max(1, holdDuration.Value);
             }
             if (Data.Notes == null) Data.Notes = new List<Note>();
-            Data.Notes.Add(newNote);
-
-            // 4. 给它套上 UI 保镖装甲！
-            var newNoteVM = new NoteViewModel(newNote, _timeline, this, _messenger);
-
-            // 🌟 核心防 Bug：出生即同步！强制喂给它当前时间的数据，防止带着默认值出生
-            newNoteVM.SyncValuesToTime(currentTick, _timeline.CurrentChart.KeyFrameEasingDirection);
-
-            // 5. 加入 UI 绑定的集合
-            UINotes.Add(newNoteVM);
+            var newNoteVM = AddNoteModel(newNote, syncValuesToCurrentTime: true);
 
             // ================= 极致的用户体验优化 =================
             // 刚添加完一个音符，立刻让它变成“选中”状态，方便用户接着改它的属性
@@ -873,6 +863,56 @@ namespace Axphi.ViewModels
             // 6. 大喊一声：有人空降了！大家重新排个序，顺便刷新一下右侧画面！
             _messenger.Send(new NotesNeedSortMessage());
             return newNoteVM;
+        }
+
+        public NoteViewModel AddNoteModel(Note note, bool syncValuesToCurrentTime)
+        {
+            Data.Notes ??= new List<Note>();
+            if (!Data.Notes.Contains(note))
+            {
+                Data.Notes.Add(note);
+            }
+
+            SyncNotesProjection();
+            var noteViewModel = UINotes.First(vm => ReferenceEquals(vm.Model, note));
+            if (syncValuesToCurrentTime)
+            {
+                noteViewModel.SyncValuesToTime(_timeline.GetCurrentTick(), _timeline.CurrentChart.KeyFrameEasingDirection);
+            }
+
+            return noteViewModel;
+        }
+
+        public bool RemoveNoteModel(NoteViewModel noteViewModel)
+        {
+            bool removed = Data.Notes.Remove(noteViewModel.Model);
+            SyncNotesProjection();
+
+            if (ReferenceEquals(SelectedNote, noteViewModel))
+            {
+                SelectedNote = null;
+            }
+
+            return removed;
+        }
+
+        public void SyncNotesProjection()
+        {
+            for (int i = UINotes.Count - 1; i >= 0; i--)
+            {
+                if (!Data.Notes.Any(model => ReferenceEquals(model, UINotes[i].Model)))
+                {
+                    UINotes.RemoveAt(i);
+                }
+            }
+
+            foreach (var note in Data.Notes)
+            {
+                if (!UINotes.Any(vm => ReferenceEquals(vm.Model, note)))
+                {
+                    UINotes.Add(new NoteViewModel(note, _timeline, this, _messenger));
+                }
+            }
         }
 
 

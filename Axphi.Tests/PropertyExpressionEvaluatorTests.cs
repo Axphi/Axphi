@@ -187,4 +187,46 @@ public class PropertyExpressionEvaluatorTests
         Assert.IsTrue(success, error);
         Assert.AreEqual(42, result, 0.0001);
     }
+
+    [TestMethod]
+    public void TryEvaluateDouble_LineNoteExposesScalarProperties()
+    {
+        var note = new Note(NoteKind.Hold, 128)
+        {
+            Name = "main-note",
+            HoldDuration = 96
+        };
+
+        var line = new JudgementLine
+        {
+            Name = "host",
+            Notes =
+            [
+                note
+            ]
+        };
+
+        var chart = new Chart
+        {
+            JudgementLines =
+            [
+                line,
+                new JudgementLine { Name = "follower" }
+            ]
+        };
+
+        var context = PropertyExpressionEvaluator.CreateContext(0, chart);
+
+        bool success = PropertyExpressionEvaluator.TryEvaluateDouble(
+            "line(\"host\").notes(\"main-note\").hitTime + line(\"host\").notes(\"main-note\").holdDuration",
+            0,
+            context,
+            chart,
+            chart.JudgementLines[1],
+            out var result,
+            out var error);
+
+        Assert.IsTrue(success, error);
+        Assert.AreEqual(224, result, 0.0001);
+    }
 }

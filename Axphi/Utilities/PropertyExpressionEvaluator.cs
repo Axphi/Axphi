@@ -60,35 +60,19 @@ namespace Axphi.Utilities
             out string? error)
         {
             value = baseValue;
-            error = null;
-
-            if (string.IsNullOrWhiteSpace(expression))
+            if (!TryEvaluateCore(expression, baseValue, expectsVector: false, context, chart, currentLine, propertyName, evaluationStack, out var result, out error))
             {
                 return false;
             }
 
-            try
+            if (!TryConvertToDouble(result, out var convertedValue))
             {
-                var result = Evaluate(expression, context, baseValue, expectsVector: false, chart, currentLine, propertyName, evaluationStack);
-                if (!TryConvertToDouble(result, out var convertedValue))
-                {
-                    error = "表达式结果必须是数字";
-                    return false;
-                }
+                error = "表达式结果必须是数字";
+                return false;
+            }
 
-                value = convertedValue;
-                return true;
-            }
-            catch (JavaScriptException exception)
-            {
-                error = exception.Message;
-                return false;
-            }
-            catch (Exception exception)
-            {
-                error = exception.Message;
-                return false;
-            }
+            value = convertedValue;
+            return true;
         }
 
         public static bool TryEvaluateVector(string? expression, Vector baseValue, ExpressionRuntimeContext context, out Vector value, out string? error)
@@ -120,7 +104,35 @@ namespace Axphi.Utilities
             out string? error)
         {
             value = baseValue;
+            if (!TryEvaluateCore(expression, new[] { baseValue.X, baseValue.Y }, expectsVector: true, context, chart, currentLine, propertyName, evaluationStack, out var result, out error))
+            {
+                return false;
+            }
+
+            if (!TryConvertToVector(result, out var convertedValue))
+            {
+                error = "二维属性表达式必须返回 [x, y]";
+                return false;
+            }
+
+            value = convertedValue;
+            return true;
+        }
+
+        private static bool TryEvaluateCore(
+            string? expression,
+            object baseValue,
+            bool expectsVector,
+            ExpressionRuntimeContext context,
+            Chart? chart,
+            JudgementLine? currentLine,
+            string? propertyName,
+            HashSet<string>? evaluationStack,
+            out JsValue result,
+            out string? error)
+        {
             error = null;
+            result = JsValue.Undefined;
 
             if (string.IsNullOrWhiteSpace(expression))
             {
@@ -129,14 +141,7 @@ namespace Axphi.Utilities
 
             try
             {
-                var result = Evaluate(expression, context, new[] { baseValue.X, baseValue.Y }, expectsVector: true, chart, currentLine, propertyName, evaluationStack);
-                if (!TryConvertToVector(result, out var convertedValue))
-                {
-                    error = "二维属性表达式必须返回 [x, y]";
-                    return false;
-                }
-
-                value = convertedValue;
+                result = Evaluate(expression, context, baseValue, expectsVector, chart, currentLine, propertyName, evaluationStack);
                 return true;
             }
             catch (JavaScriptException exception)
@@ -193,7 +198,7 @@ namespace Axphi.Utilities
 
                 if (chart != null)
                 {
-                    BindLineReferences(engine, chart, currentLine, context, evaluationStack);
+                    BindLineReferences(engine, chart, currentLine, context);
                 }
 
                 return engine.Evaluate($"(() => {{ {normalizedExpression} }})()");
@@ -305,7 +310,7 @@ namespace Axphi.Utilities
             return resolvedBpm;
         }
 
-        private static void BindLineReferences(Engine engine, Chart chart, JudgementLine? currentLine, ExpressionRuntimeContext context, HashSet<string> evaluationStack)
+        private static void BindLineReferences(Engine engine, Chart chart, JudgementLine? currentLine, ExpressionRuntimeContext context)
         {
             chart.RebuildHierarchy();
 
@@ -315,8 +320,8 @@ namespace Axphi.Utilities
             {
                 var proxy = new ExpressionLineProxy(
                     line,
-                    propertyName => ResolveLineProperty(line, propertyName, context, chart, evaluationStack),
-                    noteKey => ResolveLineNote(line, noteKey, context, chart, evaluationStack));
+                    propertyName => ResolveLineProperty(line, propertyName, context, chart),
+                    noteKey => ResolveLineNote(line, noteKey, context, chart));
                 RegisterLineKey(lineLookup, line.ID, proxy);
                 RegisterLineKey(lineLookup, line.Name, proxy);
             }
@@ -327,8 +332,8 @@ namespace Axphi.Utilities
                     ? selfProxy
                     : new ExpressionLineProxy(
                         currentLine,
-                        propertyName => ResolveLineProperty(currentLine, propertyName, context, chart, evaluationStack),
-                        noteKey => ResolveLineNote(currentLine, noteKey, context, chart, evaluationStack)));
+                        propertyName => ResolveLineProperty(currentLine, propertyName, context, chart),
+                        noteKey => ResolveLineNote(currentLine, noteKey, context, chart)));
 
                 if (!string.IsNullOrWhiteSpace(currentLine.ParentLineId) && lineLookup.TryGetValue(currentLine.ParentLineId, out var parentProxy))
                 {
@@ -362,40 +367,29 @@ namespace Axphi.Utilities
             lookup[key] = proxy;
         }
 
-        private static object ResolveLineProperty(JudgementLine line, string propertyName, ExpressionRuntimeContext context, Chart chart, HashSet<string> evaluationStack)
+        private static object ResolveLineProperty(JudgementLine line, string propertyName, ExpressionRuntimeContext context, Chart chart)
         {
-            switch (propertyName)
+            if (TryResolveContextProperty(propertyName, context, out var contextValue))
             {
-                case "anchor":
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out var anchor, out _, out _, out _, out _);
-                    return new[] { anchor.X, anchor.Y };
-                case "position":
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out _, out var position, out _, out _, out _);
-                    return new[] { position.X, position.Y };
-                case "scale":
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out _, out _, out var scale, out _, out _);
-                    return new[] { scale.X, scale.Y };
-                case "rotation":
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out _, out _, out _, out var rotation, out _);
-                    return rotation;
-                case "opacity":
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out _, out _, out _, out _, out var opacity);
-                    return opacity;
-                case "speed":
-                    EasingUtils.CalculateObjectSingleTransform(context.Tick, chart.KeyFrameEasingDirection, line.InitialSpeed, line.SpeedKeyFrames, MathUtils.Lerp, line.SpeedExpressionEnabled, line.SpeedExpressionText, chart, line, out var speed);
-                    return speed;
-                case "tick":
-                    return context.Tick;
-                case "time":
-                    return context.Time;
-                case "bpm":
-                    return context.Bpm;
-                default:
-                    return JsValue.Undefined;
+                return contextValue;
             }
+
+            if (propertyName == ExpressionPropertyNames.Speed)
+            {
+                EasingUtils.CalculateObjectSingleTransform(context.Tick, chart.KeyFrameEasingDirection, line.InitialSpeed, line.SpeedKeyFrames, MathUtils.Lerp, line.SpeedExpressionEnabled, line.SpeedExpressionText, chart, line, out var speed);
+                return speed;
+            }
+
+            return ResolveTransformProperty(
+                propertyName,
+                () =>
+                {
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out var anchor, out var position, out var scale, out var rotation, out var opacity);
+                    return (anchor, position, scale, rotation, opacity);
+                });
         }
 
-        private static object? ResolveLineNote(JudgementLine line, string noteKey, ExpressionRuntimeContext context, Chart chart, HashSet<string> evaluationStack)
+        private static object? ResolveLineNote(JudgementLine line, string noteKey, ExpressionRuntimeContext context, Chart chart)
         {
             if (string.IsNullOrWhiteSpace(noteKey) || line.Notes == null)
             {
@@ -412,49 +406,97 @@ namespace Axphi.Utilities
 
             return new ExpressionNoteProxy(
                 note,
-                propertyName => ResolveNoteProperty(note, propertyName, context, chart, evaluationStack),
+                propertyName => ResolveNoteProperty(note, propertyName, context, chart),
                 () => new ExpressionLineProxy(
                     line,
-                    propertyName => ResolveLineProperty(line, propertyName, context, chart, evaluationStack),
-                    key => ResolveLineNote(line, key, context, chart, evaluationStack)));
+                    propertyName => ResolveLineProperty(line, propertyName, context, chart),
+                    key => ResolveLineNote(line, key, context, chart)));
         }
 
-        private static object ResolveNoteProperty(Note note, string propertyName, ExpressionRuntimeContext context, Chart chart, HashSet<string> evaluationStack)
+        private static object ResolveNoteProperty(Note note, string propertyName, ExpressionRuntimeContext context, Chart chart)
+        {
+            if (TryResolveContextProperty(propertyName, context, out var contextValue))
+            {
+                return contextValue;
+            }
+
+            return propertyName switch
+            {
+                ExpressionPropertyNames.Kind => KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, (int)Math.Round(context.Tick, MidpointRounding.AwayFromZero), note.InitialKind).ToString(),
+                ExpressionPropertyNames.HitTime => note.HitTime,
+                ExpressionPropertyNames.HoldDuration => note.HoldDuration,
+                ExpressionPropertyNames.CustomSpeed => note.CustomSpeed ?? JsValue.Null,
+                _ => ResolveTransformProperty(
+                    propertyName,
+                    () =>
+                    {
+                        EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out var anchor, out var position, out var scale, out var rotation, out var opacity);
+                        return (anchor, position, scale, rotation, opacity);
+                    })
+            };
+        }
+
+        private static bool TryResolveContextProperty(string propertyName, ExpressionRuntimeContext context, out object value)
         {
             switch (propertyName)
             {
-                case "anchor":
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out var anchor, out _, out _, out _, out _);
-                    return new[] { anchor.X, anchor.Y };
-                case "position":
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out _, out var position, out _, out _, out _);
-                    return new[] { position.X, position.Y };
-                case "scale":
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out _, out _, out var scale, out _, out _);
-                    return new[] { scale.X, scale.Y };
-                case "rotation":
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out _, out _, out _, out var rotation, out _);
-                    return rotation;
-                case "opacity":
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out _, out _, out _, out _, out var opacity);
-                    return opacity;
-                case "kind":
-                    return KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, (int)Math.Round(context.Tick, MidpointRounding.AwayFromZero), note.InitialKind).ToString();
-                case "hitTime":
-                    return note.HitTime;
-                case "holdDuration":
-                    return note.HoldDuration;
-                case "customSpeed":
-                    return note.CustomSpeed ?? JsValue.Null;
-                case "tick":
-                    return context.Tick;
-                case "time":
-                    return context.Time;
-                case "bpm":
-                    return context.Bpm;
+                case ExpressionPropertyNames.Tick:
+                    value = context.Tick;
+                    return true;
+                case ExpressionPropertyNames.Time:
+                    value = context.Time;
+                    return true;
+                case ExpressionPropertyNames.Bpm:
+                    value = context.Bpm;
+                    return true;
                 default:
-                    return JsValue.Undefined;
+                    value = JsValue.Undefined;
+                    return false;
             }
+        }
+
+        private static object ResolveTransformProperty(
+            string propertyName,
+            Func<(Vector Anchor, Vector Position, Vector Scale, double Rotation, double Opacity)> resolveTransform)
+        {
+            if (propertyName is not (ExpressionPropertyNames.Anchor
+                or ExpressionPropertyNames.Position
+                or ExpressionPropertyNames.Scale
+                or ExpressionPropertyNames.Rotation
+                or ExpressionPropertyNames.Opacity))
+            {
+                return JsValue.Undefined;
+            }
+
+            var transform = resolveTransform();
+            return propertyName switch
+            {
+                ExpressionPropertyNames.Anchor => ToVectorArray(transform.Anchor),
+                ExpressionPropertyNames.Position => ToVectorArray(transform.Position),
+                ExpressionPropertyNames.Scale => ToVectorArray(transform.Scale),
+                ExpressionPropertyNames.Rotation => transform.Rotation,
+                ExpressionPropertyNames.Opacity => transform.Opacity,
+                _ => JsValue.Undefined,
+            };
+        }
+
+        private static double[] ToVectorArray(Vector vector) => [vector.X, vector.Y];
+
+        private static class ExpressionPropertyNames
+        {
+            public const string Anchor = "anchor";
+            public const string Position = "position";
+            public const string Scale = "scale";
+            public const string Rotation = "rotation";
+            public const string Opacity = "opacity";
+            public const string Speed = "speed";
+            public const string Kind = "kind";
+            public const string HitTime = "hitTime";
+            public const string HoldDuration = "holdDuration";
+            public const string CustomSpeed = "customSpeed";
+            public const string Tick = "tick";
+            public const string Time = "time";
+            public const string Bpm = "bpm";
         }
 
         private static int FindLastTopLevelStatementSeparator(string expression)
@@ -657,12 +699,12 @@ namespace Axphi.Utilities
             public string id => _line.ID;
             public string name => _line.Name;
             public string? parentId => _line.ParentLineId;
-            public object anchor => _propertyResolver("anchor");
-            public object position => _propertyResolver("position");
-            public object scale => _propertyResolver("scale");
-            public object rotation => _propertyResolver("rotation");
-            public object opacity => _propertyResolver("opacity");
-            public object speed => _propertyResolver("speed");
+            public object anchor => _propertyResolver(ExpressionPropertyNames.Anchor);
+            public object position => _propertyResolver(ExpressionPropertyNames.Position);
+            public object scale => _propertyResolver(ExpressionPropertyNames.Scale);
+            public object rotation => _propertyResolver(ExpressionPropertyNames.Rotation);
+            public object opacity => _propertyResolver(ExpressionPropertyNames.Opacity);
+            public object speed => _propertyResolver(ExpressionPropertyNames.Speed);
 
             public object? notes(string noteKey) => _noteResolver(noteKey);
         }
@@ -684,15 +726,15 @@ namespace Axphi.Utilities
             public string name => _note.Name;
             public object? line => _lineResolver();
             public object? parent => _lineResolver();
-            public object anchor => _propertyResolver("anchor");
-            public object position => _propertyResolver("position");
-            public object scale => _propertyResolver("scale");
-            public object rotation => _propertyResolver("rotation");
-            public object opacity => _propertyResolver("opacity");
-            public object kind => _propertyResolver("kind");
-            public object hitTime => _propertyResolver("hitTime");
-            public object holdDuration => _propertyResolver("holdDuration");
-            public object customSpeed => _propertyResolver("customSpeed");
+            public object anchor => _propertyResolver(ExpressionPropertyNames.Anchor);
+            public object position => _propertyResolver(ExpressionPropertyNames.Position);
+            public object scale => _propertyResolver(ExpressionPropertyNames.Scale);
+            public object rotation => _propertyResolver(ExpressionPropertyNames.Rotation);
+            public object opacity => _propertyResolver(ExpressionPropertyNames.Opacity);
+            public object kind => _propertyResolver(ExpressionPropertyNames.Kind);
+            public object hitTime => _propertyResolver(ExpressionPropertyNames.HitTime);
+            public object holdDuration => _propertyResolver(ExpressionPropertyNames.HoldDuration);
+            public object customSpeed => _propertyResolver(ExpressionPropertyNames.CustomSpeed);
         }
 
         private static class ExpressionMathHelpers

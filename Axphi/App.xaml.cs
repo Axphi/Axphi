@@ -1,5 +1,6 @@
 ﻿using Axphi.Services;
 using Axphi.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using System.Configuration;
 using System.Data;
@@ -31,6 +32,9 @@ public partial class App : Application
         serviceCollection.AddSingleton<FileActionsViewModel>();
 
         serviceCollection.AddSingleton<TimelineViewModel>();
+        serviceCollection.AddSingleton<IMessenger>(_ => WeakReferenceMessenger.Default);
+        serviceCollection.AddSingleton<ITimelineTrackFactory, TimelineTrackFactory>();
+        serviceCollection.AddSingleton<ITimelineHistoryCoordinator, TimelineHistoryCoordinator>();
 
         
 

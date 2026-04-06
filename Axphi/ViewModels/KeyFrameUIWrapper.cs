@@ -17,10 +17,11 @@ namespace Axphi.ViewModels
     // 加上 <T>，这样无论是 Vector 还是 double 都能包！
     public partial class KeyFrameUIWrapper<T> : ObservableObject, IKeyFrameUiItem, ISelectionNode, ITimelineDraggable, IRightClickableTimelineItem where T : struct
     {
-        private const string KeyframeSelectionGroup = "Keyframes";
+        private const SelectionGroup KeyframeSelectionGroup = SelectionGroup.Keyframes;
 
         public KeyFrame<T> Model { get; }
         private readonly TimelineViewModel _timeline;
+        private readonly IMessenger _messenger;
 
         // 1. 核心状态：是否被选中
         [ObservableProperty]
@@ -64,10 +65,11 @@ namespace Axphi.ViewModels
 
 
 
-        public KeyFrameUIWrapper(KeyFrame<T> model, TimelineViewModel timeline)
+        public KeyFrameUIWrapper(KeyFrame<T> model, TimelineViewModel timeline, IMessenger? messenger = null)
         {
             Model = model;
             _timeline = timeline;
+            _messenger = messenger ?? WeakReferenceMessenger.Default;
             UpdatePosition();
 
             RegisterMessageHandlers();
@@ -75,37 +77,37 @@ namespace Axphi.ViewModels
 
         private void RegisterMessageHandlers()
         {
-            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, ZoomScaleChangedMessage>(this, (recipient, message) =>
+            _messenger.Register<KeyFrameUIWrapper<T>, ZoomScaleChangedMessage>(this, (recipient, message) =>
             {
                 recipient.UpdatePosition();
             });
 
-            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, ClearSelectionMessage>(this, (recipient, message) =>
+            _messenger.Register<KeyFrameUIWrapper<T>, ClearSelectionMessage>(this, (recipient, message) =>
             {
-                if (message.GroupName == KeyframeSelectionGroup && !ReferenceEquals(recipient, message.SenderToIgnore))
+                if (message.Group == KeyframeSelectionGroup && !ReferenceEquals(recipient, message.SenderToIgnore))
                 {
                     recipient.IsSelected = false;
                 }
             });
 
-            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, KeyframesDragStartedMessage>(this, (r, m) =>
+            _messenger.Register<KeyFrameUIWrapper<T>, KeyframesDragStartedMessage>(this, (r, m) =>
             {
                 r.TryReceiveDragStarted(m.SenderToIgnore);
             });
 
-            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, KeyframesDragDeltaMessage>(this, (r, m) =>
+            _messenger.Register<KeyFrameUIWrapper<T>, KeyframesDragDeltaMessage>(this, (r, m) =>
             {
                 r.TryReceiveDragDelta(m.HorizontalChange, m.SenderToIgnore);
             });
 
-            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, KeyframesDragCompletedMessage>(this, (r, m) =>
+            _messenger.Register<KeyFrameUIWrapper<T>, KeyframesDragCompletedMessage>(this, (r, m) =>
             {
                 r.TryReceiveDragCompleted(m.SenderToIgnore);
             });
 
-            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, NotesDragStartedMessage>(this, (r, m) => r.TryReceiveDragStarted());
-            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, NotesDragDeltaMessage>(this, (r, m) => r.TryReceiveDragDelta(m.HorizontalChange));
-            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, NotesDragCompletedMessage>(this, (r, m) => r.TryReceiveDragCompleted());
+            _messenger.Register<KeyFrameUIWrapper<T>, NotesDragStartedMessage>(this, (r, m) => r.TryReceiveDragStarted());
+            _messenger.Register<KeyFrameUIWrapper<T>, NotesDragDeltaMessage>(this, (r, m) => r.TryReceiveDragDelta(m.HorizontalChange));
+            _messenger.Register<KeyFrameUIWrapper<T>, NotesDragCompletedMessage>(this, (r, m) => r.TryReceiveDragCompleted());
         }
 
         private void TryReceiveDragStarted(object? senderToIgnore = null)
@@ -172,12 +174,12 @@ namespace Axphi.ViewModels
 
             // 如果没被选中，按下的瞬间立刻点亮它！
             // 如果按下的是一个【尚未选中】的关键帧
-            _wasSelectedBeforeDrag = SelectionHelper.BeginSelectionGesture(KeyframeSelectionGroup, this, IsSelected, val => IsSelected = val);
+            _wasSelectedBeforeDrag = SelectionHelper.BeginSelectionGesture(KeyframeSelectionGroup.ToString(), this, IsSelected, val => IsSelected = val, _messenger);
 
             // 如果此时我是亮着的（选中状态），大喊一声：兄弟们，准备发车！
             if (IsSelected)
             {
-                WeakReferenceMessenger.Default.Send(new KeyframesDragStartedMessage(this));
+                _messenger.Send(new KeyframesDragStartedMessage(this));
             }
 
             
@@ -188,7 +190,7 @@ namespace Axphi.ViewModels
             // 如果我被选中了，把位移量发给兄弟们
             if (IsSelected)
             {
-                WeakReferenceMessenger.Default.Send(new KeyframesDragDeltaMessage(horizontalChange, this));
+                _messenger.Send(new KeyframesDragDeltaMessage(horizontalChange, this));
             }
 
             // 自己挪动
@@ -199,7 +201,7 @@ namespace Axphi.ViewModels
         {
             if (IsSelected)
             {
-                WeakReferenceMessenger.Default.Send(new KeyframesDragCompletedMessage(this));
+                _messenger.Send(new KeyframesDragCompletedMessage(this));
             }
 
             // 自己收尾（传 true，表示我是被鼠标直接捏住的那个“带头大哥”）
@@ -215,7 +217,7 @@ namespace Axphi.ViewModels
             }
 
             _timeline.EnterSubItemSelectionContext(this);
-            SelectionHelper.HandleSelection(KeyframeSelectionGroup, this, IsSelected, value => IsSelected = value);
+            SelectionHelper.HandleSelection(KeyframeSelectionGroup.ToString(), this, IsSelected, value => IsSelected = value, _messenger);
             _timeline.ClearNoteSelection();
 
             if (_timeline.GetSelectedTrackLevelKeyframeCount() <= 0)
@@ -227,7 +229,7 @@ namespace Axphi.ViewModels
             bool targetFreezeState = !IsFreezeKeyframe;
             _timeline.SetFreezeStateForSelectedTrackLevelKeyframes(targetFreezeState);
 
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
             _timeline.RefreshLayerSelectionVisuals();
         }
 
@@ -254,7 +256,7 @@ namespace Axphi.ViewModels
             {
                 SetModelTime(newTick);
                 // 性能优化提示：这里每一帧都在发重绘广播
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                _messenger.Send(new JudgementLinesChangedMessage());
             }
 
             // 4. 【核心防闪烁】：UI 像素的更新必须放在最后，且只赋值一次！
@@ -275,11 +277,11 @@ namespace Axphi.ViewModels
             // 只有被鼠标直接捏住的那个“带头大哥”，才有资格处理单击取消选中的判定
             if (isInitiator && _wasSelectedBeforeDrag && _dragAccumulated < 2.0)
             {
-                SelectionHelper.CompleteSelectionGesture(KeyframeSelectionGroup, this, _wasSelectedBeforeDrag, _dragAccumulated, val => IsSelected = val, () => _timeline.ClearNoteSelection());
+                SelectionHelper.CompleteSelectionGesture(KeyframeSelectionGroup.ToString(), this, _wasSelectedBeforeDrag, _dragAccumulated, val => IsSelected = val, _messenger, () => _timeline.ClearNoteSelection());
             }
 
             UpdatePosition();
-            WeakReferenceMessenger.Default.Send(new KeyframesNeedSortMessage());
+            _messenger.Send(new KeyframesNeedSortMessage());
         }
 
 

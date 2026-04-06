@@ -3,6 +3,7 @@ using Axphi.Data.KeyFrames;
 using Axphi.Services;
 using Axphi.Utilities;
 using Axphi.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
@@ -78,7 +79,7 @@ public class BpmTrackViewModelTests
             }
         };
 
-        var timeline = new TimelineViewModel(projectManager);
+        var timeline = new TimelineViewModel(projectManager, new TimelineTrackFactory(), new TimelineHistoryCoordinator(), WeakReferenceMessenger.Default);
         var bpmTrack = timeline.BpmTrack ?? throw new AssertFailedException("BPM track should be initialized.");
         return (timeline, bpmTrack);
     }

@@ -13,6 +13,7 @@ namespace Axphi.ViewModels
     public partial class BpmTrackViewModel : ObservableObject
     {
         private readonly Chart _chart;
+        private readonly IMessenger _messenger;
 
         public TimelineViewModel _timeline;
 
@@ -25,16 +26,17 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private double _currentBpm;
 
-        public BpmTrackViewModel(Chart chart, TimelineViewModel timeline)
+        public BpmTrackViewModel(Chart chart, TimelineViewModel timeline, IMessenger messenger)
         {
             _chart = chart;
             _timeline = timeline;
+            _messenger = messenger;
 
             CurrentBpm = _chart.InitialBpm;
 
             InitializeUiKeyframes();
 
-            WeakReferenceMessenger.Default.Register<BpmTrackViewModel, KeyframesNeedSortMessage>(this, (recipient, _) =>
+            _messenger.Register<BpmTrackViewModel, KeyframesNeedSortMessage>(this, (recipient, _) =>
             {
                 recipient._chart.BpmKeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
             });
@@ -56,7 +58,7 @@ namespace Axphi.ViewModels
                 return;
             }
 
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
 
             if (_chart.BpmKeyFrames.Count == 0)
             {
@@ -86,7 +88,7 @@ namespace Axphi.ViewModels
 
                 _chart.BpmKeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
 
-                UIBpmKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
+                UIBpmKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline, _messenger));
             }
 
             NotifyBpmChanged();
@@ -101,7 +103,7 @@ namespace Axphi.ViewModels
 
             foreach (var keyframe in _chart.BpmKeyFrames)
             {
-                UIBpmKeyframes.Add(new KeyFrameUIWrapper<double>(keyframe, _timeline));
+                UIBpmKeyframes.Add(new KeyFrameUIWrapper<double>(keyframe, _timeline, _messenger));
             }
         }
 
@@ -116,7 +118,7 @@ namespace Axphi.ViewModels
 
         private void NotifyBpmChanged()
         {
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
             _timeline.AudioTrack?.UpdatePixels();
         }
 
@@ -128,9 +130,9 @@ namespace Axphi.ViewModels
 
             _timeline.CurrentPlayTimeSeconds = newSeconds;
 
-            WeakReferenceMessenger.Default.Send(new ForceSeekMessage(newSeconds));
+            _messenger.Send(new ForceSeekMessage(newSeconds));
 
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
     }

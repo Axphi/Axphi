@@ -15,6 +15,16 @@ namespace Axphi.Utilities
     {
         private static readonly Dictionary<string, List<WeakReference<ISelectionNode>>> SelectedNodesByGroup = new();
 
+        private static SelectionGroup ParseSelectionGroup(string groupName)
+        {
+            if (Enum.TryParse(groupName, out SelectionGroup group))
+            {
+                return group;
+            }
+
+            return SelectionGroup.Keyframes;
+        }
+
         /// <summary>
         /// 处理专业级的修饰键选中逻辑
         /// </summary>
@@ -23,7 +33,12 @@ namespace Axphi.Utilities
         /// <param name="isCurrentlySelected">当前是否已经被选中</param>
         /// <param name="setIsSelected">用于修改自身选中状态的回调</param>
         public static void HandleSelection(string groupName, object sender, bool isCurrentlySelected, Action<bool> setIsSelected)
+            => HandleSelection(groupName, sender, isCurrentlySelected, setIsSelected, null);
+
+        public static void HandleSelection(string groupName, object sender, bool isCurrentlySelected, Action<bool> setIsSelected, IMessenger? messenger)
         {
+            messenger ??= WeakReferenceMessenger.Default;
+
             // 1. 读取当前键盘按下的键
             bool isShiftDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
             bool isCtrlDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
@@ -44,7 +59,7 @@ namespace Axphi.Utilities
                 bool hasManagedSelection = ClearManagedSelection(groupName, sender);
                 if (!hasManagedSelection)
                 {
-                    WeakReferenceMessenger.Default.Send(new ClearSelectionMessage(groupName, sender));
+                    messenger.Send(new ClearSelectionMessage(ParseSelectionGroup(groupName), sender));
                 }
 
                 // 再把自己点亮
@@ -53,19 +68,27 @@ namespace Axphi.Utilities
         }
 
         public static bool BeginSelectionGesture(string groupName, object sender, bool isCurrentlySelected, Action<bool> setIsSelected)
+            => BeginSelectionGesture(groupName, sender, isCurrentlySelected, setIsSelected, null);
+
+        public static bool BeginSelectionGesture(string groupName, object sender, bool isCurrentlySelected, Action<bool> setIsSelected, IMessenger? messenger)
         {
             bool wasSelectedBeforeGesture = isCurrentlySelected;
 
             if (!wasSelectedBeforeGesture)
             {
-                HandleSelection(groupName, sender, isCurrentlySelected, setIsSelected);
+                HandleSelection(groupName, sender, isCurrentlySelected, setIsSelected, messenger);
             }
 
             return wasSelectedBeforeGesture;
         }
 
         public static void CompleteSelectionGesture(string groupName, object sender, bool wasSelectedBeforeGesture, double interactionDistance, Action<bool> setIsSelected, params Action[] extraClearActions)
+            => CompleteSelectionGesture(groupName, sender, wasSelectedBeforeGesture, interactionDistance, setIsSelected, null, extraClearActions);
+
+        public static void CompleteSelectionGesture(string groupName, object sender, bool wasSelectedBeforeGesture, double interactionDistance, Action<bool> setIsSelected, IMessenger? messenger, params Action[] extraClearActions)
         {
+            messenger ??= WeakReferenceMessenger.Default;
+
             if (!wasSelectedBeforeGesture || interactionDistance >= 2.0)
             {
                 return;
@@ -89,7 +112,7 @@ namespace Axphi.Utilities
             bool hasManagedSelection = ClearManagedSelection(groupName, sender);
             if (!hasManagedSelection)
             {
-                WeakReferenceMessenger.Default.Send(new ClearSelectionMessage(groupName, sender));
+                messenger.Send(new ClearSelectionMessage(ParseSelectionGroup(groupName), sender));
             }
 
             foreach (var clearAction in extraClearActions)

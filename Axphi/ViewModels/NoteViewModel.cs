@@ -16,6 +16,7 @@ namespace Axphi.ViewModels
     {
         public Note Model { get; }
         private readonly TimelineViewModel _timeline;
+        private readonly IMessenger _messenger;
         public TrackViewModel ParentTrack { get; }
 
         private bool _isSyncing = false; // 免死金牌
@@ -102,10 +103,11 @@ namespace Axphi.ViewModels
 
 
         // 构造函数
-        public NoteViewModel(Note model, TimelineViewModel timeline, TrackViewModel parentTrack)
+        public NoteViewModel(Note model, TimelineViewModel timeline, TrackViewModel parentTrack, IMessenger? messenger = null)
         {
             Model = model;
             _timeline = timeline;
+            _messenger = messenger ?? _messenger;
             ParentTrack = parentTrack;
             UpdatePosition();
             HoldDuration = Model.HoldDuration;
@@ -116,55 +118,55 @@ namespace Axphi.ViewModels
             // === 把底层已有的数据全部包上保镖 ===
             if (Model.AnimatableProperties.Anchor.KeyFrames != null)
                 foreach (var kf in Model.AnimatableProperties.Anchor.KeyFrames)
-                    UIAnchorKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline));
+                    UIAnchorKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline, _messenger));
 
             if (Model.AnimatableProperties.Offset.KeyFrames != null)
                 foreach (var kf in Model.AnimatableProperties.Offset.KeyFrames)
-                    UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline));
+                    UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline, _messenger));
 
             if (Model.AnimatableProperties.Scale.KeyFrames != null)
                 foreach (var kf in Model.AnimatableProperties.Scale.KeyFrames)
-                    UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline));
+                    UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(kf, _timeline, _messenger));
 
             if (Model.AnimatableProperties.Rotation.KeyFrames != null)
                 foreach (var kf in Model.AnimatableProperties.Rotation.KeyFrames)
-                    UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
+                    UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline, _messenger));
 
             if (Model.AnimatableProperties.Opacity.KeyFrames != null)
                 foreach (var kf in Model.AnimatableProperties.Opacity.KeyFrames)
-                    UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline));
+                    UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(kf, _timeline, _messenger));
 
             if (Model.KindKeyFrames != null)
                 foreach (var kf in Model.KindKeyFrames)
-                    UINoteKindKeyframes.Add(new KeyFrameUIWrapper<NoteKind>(kf, _timeline));
+                    UINoteKindKeyframes.Add(new KeyFrameUIWrapper<NoteKind>(kf, _timeline, _messenger));
 
             // TODO: 这里可以保留我们之前写的接收 NotesDragStartedMessage 等拖拽逻辑
 
 
             // ================= 监听协同拖拽广播 =================
             // 收到起手式：如果是被选中的，且不是自己发起的，就准备跟着动！
-            WeakReferenceMessenger.Default.Register<NoteViewModel, NotesDragStartedMessage>(this, (r, m) =>
+            _messenger.Register<NoteViewModel, NotesDragStartedMessage>(this, (r, m) =>
             {
                 if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragStarted();
             });
 
             // 收到位移量：跟着挪动！
-            WeakReferenceMessenger.Default.Register<NoteViewModel, NotesDragDeltaMessage>(this, (r, m) =>
+            _messenger.Register<NoteViewModel, NotesDragDeltaMessage>(this, (r, m) =>
             {
                 if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragDelta(m.HorizontalChange);
             });
 
             // 收到收尾：更新最终位置
-            WeakReferenceMessenger.Default.Register<NoteViewModel, NotesDragCompletedMessage>(this, (r, m) =>
+            _messenger.Register<NoteViewModel, NotesDragCompletedMessage>(this, (r, m) =>
             {
                 // 别人发起的，传 false
                 if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragCompleted(false);
             });
 
             // 监听清除选中广播
-            WeakReferenceMessenger.Default.Register<NoteViewModel, ClearSelectionMessage>(this, (recipient, message) =>
+            _messenger.Register<NoteViewModel, ClearSelectionMessage>(this, (recipient, message) =>
             {
-                if (message.GroupName == "Notes" && !ReferenceEquals(recipient, message.SenderToIgnore))
+                if (message.Group == SelectionGroup.Notes && !ReferenceEquals(recipient, message.SenderToIgnore))
                 {
                     recipient.IsSelected = false; // 乖乖熄灭
                 }
@@ -172,12 +174,12 @@ namespace Axphi.ViewModels
 
 
             // 在 NoteViewModel 的构造函数里加上这行：// 监听全局的 ZoomScaleChangedMessage，一旦收到就调用 UpdatePosition() 更新位置
-            WeakReferenceMessenger.Default.Register<NoteViewModel, ZoomScaleChangedMessage>(this, (r, m) => r.UpdatePosition());
+            _messenger.Register<NoteViewModel, ZoomScaleChangedMessage>(this, (r, m) => r.UpdatePosition());
 
             // 跨频道监听：如果普通关键帧发起了拖拽，选中的音符也跟着动！
-            WeakReferenceMessenger.Default.Register<NoteViewModel, KeyframesDragStartedMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragStarted(); });
-            WeakReferenceMessenger.Default.Register<NoteViewModel, KeyframesDragDeltaMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragDelta(m.HorizontalChange); });
-            WeakReferenceMessenger.Default.Register<NoteViewModel, KeyframesDragCompletedMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragCompleted(false); });
+            _messenger.Register<NoteViewModel, KeyframesDragStartedMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragStarted(); });
+            _messenger.Register<NoteViewModel, KeyframesDragDeltaMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragDelta(m.HorizontalChange); });
+            _messenger.Register<NoteViewModel, KeyframesDragCompletedMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragCompleted(false); });
         }
 
         private void UpdatePosition()
@@ -209,7 +211,7 @@ namespace Axphi.ViewModels
                 var newFrame = new OffsetKeyFrame() { Time = currentTick, Value = new Vector(x, y) };
                 offsetKeyframesData.Add(newFrame);
                 offsetKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
+                UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline, _messenger));
             }
         }
 
@@ -228,7 +230,7 @@ namespace Axphi.ViewModels
                 var newFrame = new OffsetKeyFrame() { Time = currentTick, Value = new Vector(x, y) };
                 anchorKeyframesData.Add(newFrame);
                 anchorKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIAnchorKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
+                UIAnchorKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline, _messenger));
             }
         }
 
@@ -247,7 +249,7 @@ namespace Axphi.ViewModels
                 var newFrame = new ScaleKeyFrame() { Time = currentTick, Value = new Vector(x, y) };
                 scaleKeyframesData.Add(newFrame);
                 scaleKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline));
+                UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline, _messenger));
             }
         }
 
@@ -266,7 +268,7 @@ namespace Axphi.ViewModels
                 var newFrame = new RotationKeyFrame() { Time = currentTick, Value = value };
                 rotationKeyframesData.Add(newFrame);
                 rotationKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
+                UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline, _messenger));
             }
         }
 
@@ -285,7 +287,7 @@ namespace Axphi.ViewModels
                 var newFrame = new OpacityKeyFrame() { Time = currentTick, Value = value };
                 opacityKeyframesData.Add(newFrame);
                 opacityKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline));
+                UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline, _messenger));
             }
         }
 
@@ -303,7 +305,7 @@ namespace Axphi.ViewModels
                 var newFrame = new NoteKindKeyFrame() { Time = currentTick, Value = value };
                 Model.KindKeyFrames.Add(newFrame);
                 Model.KindKeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UINoteKindKeyframes.Add(new KeyFrameUIWrapper<NoteKind>(newFrame, _timeline));
+                UINoteKindKeyframes.Add(new KeyFrameUIWrapper<NoteKind>(newFrame, _timeline, _messenger));
             }
         }
 
@@ -488,82 +490,82 @@ namespace Axphi.ViewModels
         partial void OnCurrentOffsetXChanged(double value)
         {
             if (_isSyncing) return;
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             ApplyPositionChangeInternal(CurrentOffsetX, CurrentOffsetY);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentAnchorXChanged(double value)
         {
             if (_isSyncing) return;
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             ApplyAnchorChangeInternal(CurrentAnchorX, CurrentAnchorY);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentAnchorYChanged(double value)
         {
             if (_isSyncing) return;
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             ApplyAnchorChangeInternal(CurrentAnchorX, CurrentAnchorY);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentOffsetYChanged(double value)
         {
             if (_isSyncing) return;
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             ApplyPositionChangeInternal(CurrentOffsetX, CurrentOffsetY);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentScaleXChanged(double value)
         {
             if (_isSyncing) return;
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             ApplyScaleChangeInternal(CurrentScaleX, CurrentScaleY);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentScaleYChanged(double value)
         {
             if (_isSyncing) return;
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             ApplyScaleChangeInternal(CurrentScaleX, CurrentScaleY);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentRotationChanged(double value)
         {
             if (_isSyncing) return;
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             ApplyRotationChangeInternal(CurrentRotation);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
         partial void OnCurrentOpacityChanged(double value)
         {
             if (_isSyncing) return;
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             ApplyOpacityChangeInternal(CurrentOpacity);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnHasCustomSpeedChanged(bool value)
         {
             if (_isSyncing) return;
 
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             ApplyCustomSpeedChangeInternal(value, CurrentCustomSpeed);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentCustomSpeedChanged(double value)
         {
             if (_isSyncing || !HasCustomSpeed) return;
 
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             ApplyCustomSpeedChangeInternal(true, value);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
 
@@ -584,10 +586,10 @@ namespace Axphi.ViewModels
                 Model.HoldDuration = value;
                 UIHoldPixelWidth = _timeline.TickToPixel(value);
                 // 发送重绘广播，让渲染器里的 9 宫格尾巴也跟着伸长！
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                _messenger.Send(new JudgementLinesChangedMessage());
 
                 // 2. 🌟 核心新增：尾巴变长变短了，可能会撞到别人！立刻通知大管家重新排车道！
-                WeakReferenceMessenger.Default.Send(new NotesNeedSortMessage());
+                _messenger.Send(new NotesNeedSortMessage());
             }
         }
 
@@ -608,17 +610,17 @@ namespace Axphi.ViewModels
             // =================================================
 
 
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
 
             ApplyNoteKindChangeInternal(value);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         [RelayCommand]
         private void AddNoteKindKeyframe()
         {
             UpsertNoteKindKeyframe(CurrentNoteKind);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         
@@ -640,33 +642,33 @@ namespace Axphi.ViewModels
         private void AddAnchorKeyframe()
         {
             UpsertAnchorKeyframe(CurrentAnchorX, CurrentAnchorY);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         [RelayCommand]
         private void AddPositionKeyframe()
         {
             UpsertPositionKeyframe(CurrentOffsetX, CurrentOffsetY);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         [RelayCommand]
         private void AddScaleKeyframe()
         {
             UpsertScaleKeyframe(CurrentScaleX, CurrentScaleY);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
         [RelayCommand]
         private void AddRotationKeyframe()
         {
             UpsertRotationKeyframe(CurrentRotation);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
         [RelayCommand]
         private void AddOpacityKeyframe()
             {
             UpsertOpacityKeyframe(CurrentOpacity);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         // 给大管家调用的同步方法
@@ -743,7 +745,7 @@ namespace Axphi.ViewModels
             // 如果此时我是亮着的（选中状态），大喊一声：兄弟们，准备发车！
             if (IsSelected)
             {
-                WeakReferenceMessenger.Default.Send(new NotesDragStartedMessage(this));
+                _messenger.Send(new NotesDragStartedMessage(this));
             }
 
             ParentTrack.Timeline.RefreshNoteSelectionState(ParentTrack, this);
@@ -754,7 +756,7 @@ namespace Axphi.ViewModels
             // 如果我被选中了，把位移量发给兄弟们
             if (IsSelected)
             {
-                WeakReferenceMessenger.Default.Send(new NotesDragDeltaMessage(horizontalChange, this));
+                _messenger.Send(new NotesDragDeltaMessage(horizontalChange, this));
             }
 
             // 自己挪动
@@ -765,7 +767,7 @@ namespace Axphi.ViewModels
         {
             if (IsSelected)
             {
-                WeakReferenceMessenger.Default.Send(new NotesDragCompletedMessage(this));
+                _messenger.Send(new NotesDragCompletedMessage(this));
             }
 
             // 自己收尾（传 true，表示我是被鼠标直接捏住的那个“带头大哥”）
@@ -804,7 +806,7 @@ namespace Axphi.ViewModels
                 OnPropertyChanged(nameof(HitTime));
 
                 // 性能优化提示：这里每一帧都在发重绘广播
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                _messenger.Send(new JudgementLinesChangedMessage());
             }
 
             // 4. 【核心防闪烁】：UI 像素的更新必须放在最后，且只赋值一次！
@@ -832,7 +834,7 @@ namespace Axphi.ViewModels
             UpdatePosition();
 
             // 发送音符重排信号，让 TrackViewModel 把底层 Note List 重新按时间排个序
-            WeakReferenceMessenger.Default.Send(new NotesNeedSortMessage());
+            _messenger.Send(new NotesNeedSortMessage());
         }
 
 
@@ -880,3 +882,4 @@ namespace Axphi.ViewModels
         }
     }
 }
+

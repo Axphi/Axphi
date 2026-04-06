@@ -1,4 +1,4 @@
-using Axphi.Data;
+﻿using Axphi.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -12,6 +12,7 @@ namespace Axphi.ViewModels
     public partial class NoteSelectionPanelViewModel : ObservableObject
     {
         private readonly TimelineViewModel _timeline;
+        private readonly IMessenger _messenger;
         private readonly List<NoteViewModel> _selectedNotes = new();
         private bool _isSyncing;
 
@@ -66,9 +67,10 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private double _currentCustomSpeed;
 
-        public NoteSelectionPanelViewModel(TimelineViewModel timeline)
+        public NoteSelectionPanelViewModel(TimelineViewModel timeline, IMessenger messenger)
         {
             _timeline = timeline;
+            _messenger = messenger;
         }
 
         public ICommand? AddNoteKindKeyframeCommand => SingleSelectedNote?.AddNoteKindKeyframeCommand;
@@ -176,12 +178,12 @@ namespace Axphi.ViewModels
                 return;
             }
 
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             foreach (var note in _selectedNotes)
             {
                 note.ApplyNoteKindAbsolute(kind);
             }
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentOffsetXChanged(double oldValue, double newValue)
@@ -284,12 +286,12 @@ namespace Axphi.ViewModels
         {
             if (_isSyncing || !HasSelection || value == null) return;
 
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             foreach (var note in _selectedNotes)
             {
                 note.ApplyHasCustomSpeed(value.Value, IsSingleSelection ? CurrentCustomSpeed : 1.0);
             }
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         partial void OnCurrentCustomSpeedChanged(double oldValue, double newValue)
@@ -307,12 +309,12 @@ namespace Axphi.ViewModels
 
         private void ApplyAbsolute(Action<NoteViewModel> applyAction)
         {
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             foreach (var note in _selectedNotes)
             {
                 applyAction(note);
             }
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         private void ApplyVectorDelta(double deltaX, double deltaY, Action<NoteViewModel, double, double> applyAction)
@@ -322,12 +324,12 @@ namespace Axphi.ViewModels
                 return;
             }
 
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             foreach (var note in _selectedNotes)
             {
                 applyAction(note, deltaX, deltaY);
             }
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
 
         private void ApplyScalarDelta(double delta, Action<NoteViewModel, double> applyAction)
@@ -337,12 +339,12 @@ namespace Axphi.ViewModels
                 return;
             }
 
-            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
+            _messenger.Send(new ForcePausePlaybackMessage());
             foreach (var note in _selectedNotes)
             {
                 applyAction(note, delta);
             }
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
         }
     }
 }

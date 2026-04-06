@@ -15,6 +15,7 @@ namespace Axphi.ViewModels
     {
         public TimelineViewModel _timeline;
         public TimelineViewModel Timeline => _timeline;
+        private readonly IMessenger _messenger;
 
         private readonly ProjectManager _projectManager;
         public Chart Chart { get; }
@@ -96,41 +97,42 @@ namespace Axphi.ViewModels
         }
 
 
-        public AudioTrackViewModel(Chart chart, TimelineViewModel timeline, ProjectManager projectManager)
+        public AudioTrackViewModel(Chart chart, TimelineViewModel timeline, ProjectManager projectManager, IMessenger messenger)
         {
             Chart = chart;
             _timeline = timeline;
             _projectManager = projectManager;
+            _messenger = messenger;
 
             IsExpanded = GetMetadata().IsAudioTrackExpanded;
             IsDragLocked = GetMetadata().IsAudioTrackLocked;
 
             UpdatePixels();
 
-            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, ZoomScaleChangedMessage>(this, (r, m) => r.UpdatePixels());
-            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, KeyframesNeedSortMessage>(this, (r, m) => r.UpdatePixels());
-            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, ClearSelectionMessage>(this, (r, m) =>
+            _messenger.Register<AudioTrackViewModel, ZoomScaleChangedMessage>(this, (r, m) => r.UpdatePixels());
+            _messenger.Register<AudioTrackViewModel, KeyframesNeedSortMessage>(this, (r, m) => r.UpdatePixels());
+            _messenger.Register<AudioTrackViewModel, ClearSelectionMessage>(this, (r, m) =>
             {
-                if (m.GroupName == "Layers" && !ReferenceEquals(r, m.SenderToIgnore))
+                if (m.Group == SelectionGroup.Layers && !ReferenceEquals(r, m.SenderToIgnore))
                 {
                     r.IsLayerSelected = false;
                 }
             });
-            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, LayersDragStartedMessage>(this, (r, m) =>
+            _messenger.Register<AudioTrackViewModel, LayersDragStartedMessage>(this, (r, m) =>
             {
                 if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
                 {
                     r.ReceiveLayerDragStarted();
                 }
             });
-            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, LayersDragDeltaMessage>(this, (r, m) =>
+            _messenger.Register<AudioTrackViewModel, LayersDragDeltaMessage>(this, (r, m) =>
             {
                 if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
                 {
                     r.ReceiveLayerDragDelta(m.HorizontalChange, m.DeltaTick);
                 }
             });
-            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, LayersDragCompletedMessage>(this, (r, m) =>
+            _messenger.Register<AudioTrackViewModel, LayersDragCompletedMessage>(this, (r, m) =>
             {
                 if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
                 {
@@ -139,7 +141,7 @@ namespace Axphi.ViewModels
             });
 
             // 订阅音频导入事件
-            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, AudioLoadedMessage>(this, (r, m) =>
+            _messenger.Register<AudioTrackViewModel, AudioLoadedMessage>(this, (r, m) =>
             {
                 // 改为异步调用，防止扫描波形时卡住界面
                 _ = r.LoadAudioDataFromFileAsync(m.FilePath);
@@ -196,7 +198,7 @@ namespace Axphi.ViewModels
 
             if (IsLayerSelected)
             {
-                WeakReferenceMessenger.Default.Send(new LayersDragStartedMessage(this));
+                _messenger.Send(new LayersDragStartedMessage(this));
             }
         }
 
@@ -215,7 +217,7 @@ namespace Axphi.ViewModels
 
             if (IsLayerSelected)
             {
-                WeakReferenceMessenger.Default.Send(new LayersDragDeltaMessage(horizontalChange, deltaTick, this));
+                _messenger.Send(new LayersDragDeltaMessage(horizontalChange, deltaTick, this));
             }
 
             ReceiveLayerDragDelta(horizontalChange, deltaTick);
@@ -230,7 +232,7 @@ namespace Axphi.ViewModels
 
             if (IsLayerSelected)
             {
-                WeakReferenceMessenger.Default.Send(new LayersDragCompletedMessage(this));
+                _messenger.Send(new LayersDragCompletedMessage(this));
             }
 
             ReceiveLayerDragCompleted();

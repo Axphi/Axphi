@@ -12,6 +12,8 @@ namespace Axphi.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
+        private readonly IMessenger _messenger;
+
         // 贝塞尔曲线 ViewModel
         public BezierViewModel BezierViewModel { get; }
 
@@ -33,7 +35,8 @@ namespace Axphi.ViewModels
             ProjectManager projectManager,
             
             FileActionsViewModel fileActionsViewModel,
-            TimelineViewModel timelineViewModel
+            TimelineViewModel timelineViewModel,
+            IMessenger messenger
 
 
             )
@@ -43,6 +46,7 @@ namespace Axphi.ViewModels
             
             FileActions = fileActionsViewModel;
             Timeline = timelineViewModel;
+            _messenger = messenger;
 
 
 
@@ -55,7 +59,7 @@ namespace Axphi.ViewModels
                 Chart = DebuggingUtils.CreateDemoChart()
             };
             ProjectManager.EditingProjectFilePath = null;
-            WeakReferenceMessenger.Default.Send(new ProjectLoadedMessage());
+            _messenger.Send(new ProjectLoadedMessage());
         }
         [RelayCommand]
         private void LoadDemoChart2()
@@ -65,7 +69,7 @@ namespace Axphi.ViewModels
                 Chart = DebuggingUtils.CreateDemoChart2()
             };
             ProjectManager.EditingProjectFilePath = null;
-            WeakReferenceMessenger.Default.Send(new ProjectLoadedMessage());
+            _messenger.Send(new ProjectLoadedMessage());
         }
 
         [RelayCommand]
@@ -82,8 +86,8 @@ namespace Axphi.ViewModels
 
             if (hasModified)
             {
-                WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                _messenger.Send(new ForcePausePlaybackMessage());
+                _messenger.Send(new JudgementLinesChangedMessage());
             }
         }
 

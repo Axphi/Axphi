@@ -11,7 +11,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Windows.Threading;
 
 namespace Axphi.ViewModels
 {
@@ -81,13 +80,11 @@ namespace Axphi.ViewModels
 
         // 【新增】保存全局数据源的引用
         private readonly ProjectManager _projectManager;
+        private readonly ITimelineTrackFactory _trackFactory;
+        private readonly ITimelineHistoryCoordinator _historyCoordinator;
+        private readonly IMessenger _messenger;
         private readonly List<KeyframeClipboardItem> _keyframeClipboard = new();
         private readonly List<JudgementLine> _judgementLineClipboard = new();
-        private readonly SnapshotHistory<string> _history = new(200);
-        private readonly DispatcherTimer _historyCommitTimer = new()
-        {
-            Interval = TimeSpan.FromMilliseconds(250)
-        };
         private bool _isReloadingChartState;
         private bool _isApplyingHistorySnapshot;
 
@@ -197,7 +194,7 @@ namespace Axphi.ViewModels
 
 
             // 告诉全网：缩放变了！所有的关键帧请重新计算你们的 X 坐标！
-            WeakReferenceMessenger.Default.Send(new ZoomScaleChangedMessage(value));
+            _messenger.Send(new ZoomScaleChangedMessage(value));
         }
         // ================= 🌟 新增：当总时长被修改时，重新换算所有的进度比例 =================
         partial void OnTotalDurationTicksChanged(int value)
@@ -226,7 +223,7 @@ namespace Axphi.ViewModels
             if (!_isReloadingChartState)
             {
                 CurrentChart.Duration = value;
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                _messenger.Send(new JudgementLinesChangedMessage());
             }
         }
 
@@ -273,13 +270,19 @@ namespace Axphi.ViewModels
 
 
         // 构造函数：初始化时，可以先给个空谱面，或者由外部传进来
-        public TimelineViewModel(ProjectManager projectManager)
+        public TimelineViewModel(
+            ProjectManager projectManager,
+            ITimelineTrackFactory trackFactory,
+            ITimelineHistoryCoordinator historyCoordinator,
+            IMessenger messenger)
         {
 
             _projectManager = projectManager; // 存进私有变量
-            NoteSelectionPanel = new NoteSelectionPanelViewModel(this);
-            JudgementLineEditor = new JudgementLineEditorViewModel(this);
-            _historyCommitTimer.Tick += (_, _) => FlushPendingHistorySnapshot();
+            _trackFactory = trackFactory;
+            _historyCoordinator = historyCoordinator;
+            _messenger = messenger;
+            NoteSelectionPanel = new NoteSelectionPanelViewModel(this, _messenger);
+            JudgementLineEditor = new JudgementLineEditorViewModel(this, _messenger);
 
 
             // 🌟 必须加上这行！让它一出生就计算宽度！
@@ -294,13 +297,13 @@ namespace Axphi.ViewModels
                 ResetHistorySnapshot();
             }
 
-            WeakReferenceMessenger.Default.Register<TimelineViewModel, JudgementLinesChangedMessage>(this, (recipient, message) =>
+            _messenger.Register<TimelineViewModel, JudgementLinesChangedMessage>(this, (recipient, message) =>
             {
                 recipient.ScheduleHistorySnapshotCapture();
             });
 
 
-            WeakReferenceMessenger.Default.Register<TimelineViewModel, ProjectLoadedMessage>(this, (recipient, message) =>
+            _messenger.Register<TimelineViewModel, ProjectLoadedMessage>(this, (recipient, message) =>
             {
                 // 重新去抱 ProjectManager 的大腿！拿到最新的“谱面B”！
                 if (recipient._projectManager.EditingProject != null)
@@ -318,20 +321,20 @@ namespace Axphi.ViewModels
 
         public void ClearKeyframeSelection(object? senderToIgnore = null)
         {
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Keyframes", senderToIgnore));
+            _messenger.Send(new ClearSelectionMessage(SelectionGroup.Keyframes, senderToIgnore));
             RefreshLayerSelectionVisuals();
             NotifyKeyframeClipboardCommandsStateChanged();
         }
 
         public void ClearLayerSelection(object? senderToIgnore = null)
         {
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Layers", senderToIgnore));
+            _messenger.Send(new ClearSelectionMessage(SelectionGroup.Layers, senderToIgnore));
             RefreshLayerSelectionVisuals();
         }
 
         public void ClearNoteSelection(object? senderToIgnore = null)
         {
-            WeakReferenceMessenger.Default.Send(new ClearSelectionMessage("Notes", senderToIgnore));
+            _messenger.Send(new ClearSelectionMessage(SelectionGroup.Notes, senderToIgnore));
 
             foreach (var track in Tracks)
             {
@@ -518,22 +521,21 @@ namespace Axphi.ViewModels
             // 把新线加进集合，界面会自动更新！
             CurrentChart.JudgementLines.Add(newLine);
             // 发出消息
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
             // 2. 实例化这个数据的“代理人”，并加进 UI 集合里！
-            var newTrackVM = new TrackViewModel(newLine, $"判定线图层 {Tracks.Count + 1}",this);
+            var newTrackVM = _trackFactory.CreateTrack(newLine, $"判定线图层 {Tracks.Count + 1}", this);
             Tracks.Add(newTrackVM);
             RefreshParentLineBindings();
         }
 
-        private bool CanUndo() => _history.HasPendingChanges || _history.CanUndo;
+        private bool CanUndo() => _historyCoordinator.CanUndo;
 
-        private bool CanRedo() => _history.CanRedo;
+        private bool CanRedo() => _historyCoordinator.CanRedo;
 
         [RelayCommand(CanExecute = nameof(CanUndo))]
         private void Undo()
         {
-            FlushPendingHistorySnapshot();
-            if (!_history.TryUndo(out var snapshot))
+            if (!_historyCoordinator.TryUndo(out var snapshot))
             {
                 return;
             }
@@ -545,8 +547,7 @@ namespace Axphi.ViewModels
         [RelayCommand(CanExecute = nameof(CanRedo))]
         private void Redo()
         {
-            FlushPendingHistorySnapshot();
-            if (!_history.TryRedo(out var snapshot))
+            if (!_historyCoordinator.TryRedo(out var snapshot))
             {
                 return;
             }
@@ -589,11 +590,11 @@ namespace Axphi.ViewModels
                 CurrentChart.Duration = TotalDurationTicks;
 
                 // ================= ✨ 塞入第一步：实例化 BPM 轨道！ =================
-                BpmTrack = new BpmTrackViewModel(CurrentChart, this);
+                BpmTrack = _trackFactory.CreateBpmTrack(CurrentChart, this);
                 // =====================================================================
 
                 // ================= ✨ 新增：实例化 Audio 轨道！ =================
-                AudioTrack = new AudioTrackViewModel(CurrentChart, this, _projectManager);
+                AudioTrack = _trackFactory.CreateAudioTrack(CurrentChart, this, _projectManager);
                 if (preservedUiState != null)
                 {
                     AudioTrack.IsExpanded = preservedUiState.IsAudioTrackExpanded;
@@ -614,7 +615,7 @@ namespace Axphi.ViewModels
                     {
                         var line = CurrentChart.JudgementLines[i];
                         // 名字自动按序号排：判定线图层 1, 判定线图层 2...
-                        var newTrackVM = new TrackViewModel(line, $"判定线图层 {i + 1}",this);
+                        var newTrackVM = _trackFactory.CreateTrack(line, $"判定线图层 {i + 1}", this);
                         Tracks.Add(newTrackVM);
                     }
                 }
@@ -650,7 +651,7 @@ namespace Axphi.ViewModels
 
                     // 🌟 【新增核心修复】：同时发信给右侧渲染器和音频播放器，强制它们也空降到当前工程记忆的时间！
                     // 这样前后端的记忆就彻底统一了！
-                    WeakReferenceMessenger.Default.Send(new ForceSeekMessage(CurrentPlayTimeSeconds));
+                    _messenger.Send(new ForceSeekMessage(CurrentPlayTimeSeconds));
                 }
 
                 UpdateWorkspacePixels();
@@ -671,11 +672,11 @@ namespace Axphi.ViewModels
 
                 if (preservedUiState != null)
                 {
-                    WeakReferenceMessenger.Default.Send(new ForceSeekMessage(preservedUiState.CurrentPlayTimeSeconds));
+                    _messenger.Send(new ForceSeekMessage(preservedUiState.CurrentPlayTimeSeconds));
                 }
 
                 // 5. 顺便大喊一声，让右侧的渲染器也强制刷新一下画面！
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                _messenger.Send(new JudgementLinesChangedMessage());
             }
             finally
             {
@@ -691,26 +692,19 @@ namespace Axphi.ViewModels
                 return;
             }
 
-            _history.ObserveSnapshot(SerializeHistorySnapshot());
-            if (_history.HasPendingChanges)
-            {
-                _historyCommitTimer.Stop();
-                _historyCommitTimer.Start();
-                NotifyHistoryCommandsStateChanged();
-            }
+            _historyCoordinator.ScheduleSnapshot(SerializeHistorySnapshot());
+            NotifyHistoryCommandsStateChanged();
         }
 
         private void FlushPendingHistorySnapshot()
         {
-            _historyCommitTimer.Stop();
-            _history.FlushPendingChanges();
+            _historyCoordinator.FlushPending();
             NotifyHistoryCommandsStateChanged();
         }
 
         private void ResetHistorySnapshot()
         {
-            _historyCommitTimer.Stop();
-            _history.Reset(SerializeHistorySnapshot());
+            _historyCoordinator.Reset(SerializeHistorySnapshot());
             NotifyHistoryCommandsStateChanged();
         }
 
@@ -768,7 +762,6 @@ namespace Axphi.ViewModels
             var restoredSnapshot = DeserializeHistorySnapshot(snapshot);
             var currentProject = _projectManager.EditingProject;
 
-            _historyCommitTimer.Stop();
             _isApplyingHistorySnapshot = true;
             try
             {
@@ -1132,8 +1125,8 @@ namespace Axphi.ViewModels
 
             RefreshLayerSelectionVisuals();
             NotifyKeyframeClipboardCommandsStateChanged();
-            WeakReferenceMessenger.Default.Send(new KeyframesNeedSortMessage());
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new KeyframesNeedSortMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
             AudioTrack?.UpdatePixels();
 
             int currentTick = GetCurrentTick();
@@ -1179,10 +1172,8 @@ namespace Axphi.ViewModels
 
                 CurrentChart.JudgementLines.Add(clonedLine);
 
-                var newTrackVM = new TrackViewModel(clonedLine, $"判定线图层 {Tracks.Count + 1}", this)
-                {
-                    IsLayerSelected = true
-                };
+                var newTrackVM = _trackFactory.CreateTrack(clonedLine, $"判定线图层 {Tracks.Count + 1}", this);
+                newTrackVM.IsLayerSelected = true;
                 Tracks.Add(newTrackVM);
             }
 
@@ -1191,7 +1182,7 @@ namespace Axphi.ViewModels
             RefreshParentLineBindings();
             RefreshLayerSelectionVisuals();
             NotifyKeyframeClipboardCommandsStateChanged();
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
             AudioTrack?.UpdatePixels();
 
             int currentTick = GetCurrentTick();
@@ -1504,7 +1495,7 @@ namespace Axphi.ViewModels
             RefreshLayerSelectionVisuals();
             NotifyKeyframeClipboardCommandsStateChanged();
 
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
             AudioTrack?.UpdatePixels();
 
             int currentTick = GetCurrentTick();
@@ -1557,7 +1548,7 @@ namespace Axphi.ViewModels
             }
 
             childTrack.ApplyParentLineId(normalizedParentId);
-            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+            _messenger.Send(new JudgementLinesChangedMessage());
             return true;
         }
 
@@ -1579,7 +1570,7 @@ namespace Axphi.ViewModels
 
             if (changed)
             {
-                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                _messenger.Send(new JudgementLinesChangedMessage());
             }
         }
 
@@ -1796,10 +1787,10 @@ namespace Axphi.ViewModels
                 CurrentPlayTimeSeconds = startSeconds;
 
                 // 发送加急信：命令渲染器和底层音频引擎立刻空降回这个时间重播！
-                CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new ForceSeekMessage(startSeconds));
+                _messenger.Send(new ForceSeekMessage(startSeconds));
 
                 // 强制画面同步刷新
-                CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
+                _messenger.Send(new JudgementLinesChangedMessage());
             }
         }
 

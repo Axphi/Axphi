@@ -25,10 +25,13 @@ namespace Axphi.ViewModels
     public partial class TimelineViewModel : ObservableObject
     {
         // 【新增】保存全局数据源的引用
-        private readonly ProjectManager _projectManager;
+        private readonly IProjectSession _projectSession;
         private readonly ITimelineTrackFactory _trackFactory;
         private readonly ITimelineHistoryCoordinator _historyCoordinator;
         private readonly ITimelineDomainServices _timelineDomain;
+        private readonly ITimelineKeyframeSelectionService _keyframeSelectionService;
+        private readonly ITimelineNoteSelectionService _noteSelectionService;
+        private readonly ITimelinePlaybackSyncService _playbackSyncService;
         private readonly IMessenger _messenger;
         private readonly List<KeyframeClipboardItem> _keyframeClipboard = new();
         private readonly List<JudgementLine> _judgementLineClipboard = new();
@@ -103,22 +106,7 @@ namespace Axphi.ViewModels
             //  拿到当前谱面的缓动方向设置
             var easingDirection = CurrentChart.KeyFrameEasingDirection;
 
-            // ================= ✨ 塞入第二步：让 BPM 跟着播放器跑！ =================
-            BpmTrack?.SyncValuesToTime(currentTick);
-            // =======================================================================
-
-
-            //  大点兵！让所有的轨道根据当前时间更新自己的数值面板！
-            foreach (var track in Tracks)
-            {
-                track.SyncValuesToTime(currentTick, easingDirection);
-
-                // 让该轨道下的所有音符也同步它们的属性数值（这样选中音符时，面板里的数字才会跟着时间轴动！）
-                foreach (var note in track.UINotes)
-                {
-                    note.SyncValuesToTime(currentTick, easingDirection);
-                }
-            }
+            _playbackSyncService.SyncTrackValuesToTime(currentTick, easingDirection, BpmTrack, Tracks);
         }
 
         // 2. 当你按 Alt+滚轮 缩放时，游标位置也必须跟着伸缩！
@@ -211,17 +199,23 @@ namespace Axphi.ViewModels
 
         // 构造函数：初始化时，可以先给个空谱面，或者由外部传进来
         public TimelineViewModel(
-            ProjectManager projectManager,
+            IProjectSession projectSession,
             ITimelineTrackFactory trackFactory,
             ITimelineHistoryCoordinator historyCoordinator,
             ITimelineDomainServices timelineDomain,
+            ITimelineKeyframeSelectionService keyframeSelectionService,
+            ITimelineNoteSelectionService noteSelectionService,
+            ITimelinePlaybackSyncService playbackSyncService,
             IMessenger messenger)
         {
 
-            _projectManager = projectManager; // 存进私有变量
+            _projectSession = projectSession; // 存进私有变量
             _trackFactory = trackFactory;
             _historyCoordinator = historyCoordinator;
             _timelineDomain = timelineDomain;
+            _keyframeSelectionService = keyframeSelectionService;
+            _noteSelectionService = noteSelectionService;
+            _playbackSyncService = playbackSyncService;
             _messenger = messenger;
             NoteSelectionPanel = new NoteSelectionPanelViewModel(this, _messenger);
             JudgementLineEditor = new JudgementLineEditorViewModel(this, _messenger);
@@ -233,7 +227,7 @@ namespace Axphi.ViewModels
 
             // 然后再从 manager 里把 Chart 拿出来赋值给 _currentChart
             // 极其重要的防坑提示：软件刚启动时，工程可能是空的！所以要做个判空！
-            if (_projectManager.EditingProject != null)
+            if (_projectSession.EditingProject != null)
             {
                 ReloadTracksFromCurrentChart();
                 ResetHistorySnapshot();
@@ -248,7 +242,7 @@ namespace Axphi.ViewModels
             _messenger.Register<TimelineViewModel, ProjectLoadedMessage>(this, (recipient, message) =>
             {
                 // 重新去抱 ProjectManager 的大腿！拿到最新的“谱面B”！
-                if (recipient._projectManager.EditingProject != null)
+                if (recipient._projectSession.EditingProject != null)
                 {
                     recipient._keyframeClipboard.Clear();
                     recipient.NotifyKeyframeClipboardCommandsStateChanged();
@@ -293,144 +287,32 @@ namespace Axphi.ViewModels
 
         public bool IsTrackLevelKeyframeWrapperSelected(object wrapper)
         {
-            return Tracks
-                .SelectMany(EnumerateTrackLevelKeyframes)
-                .Any(keyframe => ReferenceEquals(keyframe, wrapper));
+            return _keyframeSelectionService.IsTrackLevelKeyframeWrapperSelected(Tracks, wrapper);
         }
 
         public int GetSelectedTrackLevelKeyframeCount()
         {
-            return Tracks
-                .SelectMany(EnumerateTrackLevelKeyframes)
-                .Count(keyframe => keyframe.IsSelected);
+            return _keyframeSelectionService.GetSelectedTrackLevelKeyframeCount(Tracks);
         }
 
         public void SetFreezeStateForSelectedTrackLevelKeyframes(bool isFreeze)
         {
-            foreach (var keyframe in Tracks
-                .SelectMany(EnumerateTrackLevelKeyframes)
-                .Where(keyframe => keyframe.IsSelected))
-            {
-                keyframe.IsFreezeKeyframe = isFreeze;
-            }
+            _keyframeSelectionService.SetFreezeStateForSelectedTrackLevelKeyframes(Tracks, isFreeze);
         }
 
         public bool ApplyEasingToSelectedKeyframes(BezierEasing easing)
         {
-            bool hasModified = false;
-            foreach (var keyframe in EnumerateAllEditableKeyframes().Where(item => item.IsSelected))
-            {
-                keyframe.ApplyEasing(easing);
-                hasModified = true;
-            }
-
-            return hasModified;
-        }
-
-        private static IEnumerable<IKeyFrameUiItem> EnumerateTrackLevelKeyframes(TrackViewModel track)
-        {
-            foreach (var keyframe in track.UIAnchorKeyframes) yield return keyframe;
-            foreach (var keyframe in track.UIOffsetKeyframes) yield return keyframe;
-            foreach (var keyframe in track.UIScaleKeyframes) yield return keyframe;
-            foreach (var keyframe in track.UIRotationKeyframes) yield return keyframe;
-            foreach (var keyframe in track.UIOpacityKeyframes) yield return keyframe;
-            foreach (var keyframe in track.UISpeedKeyframes) yield return keyframe;
-        }
-
-        private static IEnumerable<IKeyFrameUiItem> EnumerateNoteLevelKeyframes(NoteViewModel note)
-        {
-            foreach (var keyframe in note.UIAnchorKeyframes) yield return keyframe;
-            foreach (var keyframe in note.UIOffsetKeyframes) yield return keyframe;
-            foreach (var keyframe in note.UIScaleKeyframes) yield return keyframe;
-            foreach (var keyframe in note.UIRotationKeyframes) yield return keyframe;
-            foreach (var keyframe in note.UIOpacityKeyframes) yield return keyframe;
-            foreach (var keyframe in note.UINoteKindKeyframes) yield return keyframe;
-        }
-
-        private IEnumerable<IKeyFrameUiItem> EnumerateAllEditableKeyframes()
-        {
-            if (BpmTrack != null)
-            {
-                foreach (var keyframe in BpmTrack.UIBpmKeyframes)
-                {
-                    yield return keyframe;
-                }
-            }
-
-            foreach (var track in Tracks)
-            {
-                foreach (var keyframe in EnumerateTrackLevelKeyframes(track))
-                {
-                    yield return keyframe;
-                }
-
-                foreach (var note in track.UINotes)
-                {
-                    foreach (var keyframe in EnumerateNoteLevelKeyframes(note))
-                    {
-                        yield return keyframe;
-                    }
-                }
-            }
+            return _keyframeSelectionService.ApplyEasingToSelectedKeyframes(BpmTrack, Tracks, easing);
         }
 
         public void RefreshNoteSelectionState(TrackViewModel? preferredOwner = null, NoteViewModel? preferredSingle = null)
         {
-            var selectedEntries = Tracks
-                .SelectMany(track => track.UINotes.Where(note => note.IsSelected).Select(note => (track, note)))
-                .ToList();
-
-            foreach (var track in Tracks)
-            {
-                track.SelectedNote = null;
-                track.IsNotePanelOwner = false;
-            }
-
-            if (selectedEntries.Count == 0)
-            {
-                if (preferredOwner != null)
-                {
-                    ActiveNotePanelOwner = preferredOwner;
-                }
-
-                if (ActiveNotePanelOwner != null)
-                {
-                    ActiveNotePanelOwner.IsNotePanelOwner = true;
-                }
-
-                NoteSelectionPanel.SyncSelection(Array.Empty<NoteViewModel>());
-                return;
-            }
-
-            TrackViewModel ownerTrack;
-            if (preferredOwner != null && selectedEntries.Any(entry => ReferenceEquals(entry.track, preferredOwner)))
-            {
-                ownerTrack = preferredOwner;
-            }
-            else if (ActiveNotePanelOwner != null && selectedEntries.Any(entry => ReferenceEquals(entry.track, ActiveNotePanelOwner)))
-            {
-                ownerTrack = ActiveNotePanelOwner;
-            }
-            else
-            {
-                ownerTrack = selectedEntries[0].track;
-            }
-
-            ActiveNotePanelOwner = ownerTrack;
-            ownerTrack.IsNotePanelOwner = true;
-
-            if (selectedEntries.Count == 1)
-            {
-                var selectedNote = preferredSingle != null && selectedEntries.Any(entry => ReferenceEquals(entry.note, preferredSingle))
-                    ? preferredSingle
-                    : selectedEntries[0].note;
-                ownerTrack = selectedEntries.First(entry => ReferenceEquals(entry.note, selectedNote)).track;
-                ActiveNotePanelOwner = ownerTrack;
-                ownerTrack.IsNotePanelOwner = true;
-                ownerTrack.SelectedNote = selectedNote;
-            }
-
-            NoteSelectionPanel.SyncSelection(selectedEntries.Select(entry => entry.note).ToList());
+            ActiveNotePanelOwner = _noteSelectionService.RefreshSelection(
+                Tracks,
+                ActiveNotePanelOwner,
+                NoteSelectionPanel,
+                preferredOwner,
+                preferredSingle);
         }
 
         // 核心命令：点击“+添加判定线”时触发
@@ -446,39 +328,11 @@ namespace Axphi.ViewModels
             // 把新线加进集合，界面会自动更新！
             CurrentChart.JudgementLines.Add(newLine);
             // 发出消息
-            _messenger.Send(new JudgementLinesChangedMessage());
+            NotifyJudgementLinesChanged();
             // 2. 实例化这个数据的“代理人”，并加进 UI 集合里！
             var newTrackVM = _trackFactory.CreateTrack(newLine, $"判定线图层 {Tracks.Count + 1}", this);
             Tracks.Add(newTrackVM);
             RefreshParentLineBindings();
-        }
-
-        private bool CanUndo() => _historyCoordinator.CanUndo;
-
-        private bool CanRedo() => _historyCoordinator.CanRedo;
-
-        [RelayCommand(CanExecute = nameof(CanUndo))]
-        private void Undo()
-        {
-            if (!_historyCoordinator.TryUndo(out var snapshot))
-            {
-                return;
-            }
-
-            ApplyHistorySnapshot(snapshot);
-            NotifyHistoryCommandsStateChanged();
-        }
-
-        [RelayCommand(CanExecute = nameof(CanRedo))]
-        private void Redo()
-        {
-            if (!_historyCoordinator.TryRedo(out var snapshot))
-            {
-                return;
-            }
-
-            ApplyHistorySnapshot(snapshot);
-            NotifyHistoryCommandsStateChanged();
         }
 
         // ================= 【新增的核心函数】 =================
@@ -487,7 +341,7 @@ namespace Axphi.ViewModels
         /// </summary>
         private void ReloadTracksFromCurrentChart(TimelineUiState? preservedUiState = null)
         {
-            if (_projectManager.EditingProject == null || _projectManager.EditingProject.Chart == null)
+            if (_projectSession.EditingProject == null || _projectSession.EditingProject.Chart == null)
                 return;
 
             _isReloadingChartState = true;
@@ -506,7 +360,7 @@ namespace Axphi.ViewModels
                 }
 
                 // 1. 换绑剧本：把指针指向最新的真实谱面
-                CurrentChart = _projectManager.EditingProject.Chart;
+                CurrentChart = _projectSession.EditingProject.Chart;
 
                 int projectTotalDurationTicks = metadata.TotalDurationTicks > 0
                     ? metadata.TotalDurationTicks
@@ -519,7 +373,7 @@ namespace Axphi.ViewModels
                 // =====================================================================
 
                 // ================= ✨ 新增：实例化 Audio 轨道！ =================
-                AudioTrack = _trackFactory.CreateAudioTrack(CurrentChart, this, _projectManager);
+                AudioTrack = _trackFactory.CreateAudioTrack(CurrentChart, this, _projectSession);
 
 
                 // 2. 砸碎旧舞台：清空前端的 Track UI 集合 (这一步让旧 UI 被 GC 回收)
@@ -551,13 +405,13 @@ namespace Axphi.ViewModels
 
                 if (playbackState.ShouldForceSeek)
                 {
-                    _messenger.Send(new ForceSeekMessage(playbackState.CurrentPlayTimeSeconds));
+                    ForceSeekPlayback(playbackState.CurrentPlayTimeSeconds);
                 }
 
                 UpdateWorkspacePixels();
 
                 // 5. 顺便大喊一声，让右侧的渲染器也强制刷新一下画面！
-                _messenger.Send(new JudgementLinesChangedMessage());
+                NotifyJudgementLinesChanged();
             }
             finally
             {
@@ -565,85 +419,6 @@ namespace Axphi.ViewModels
             }
 
         }
-
-        private void ScheduleHistorySnapshotCapture()
-        {
-            if (_isReloadingChartState || _isApplyingHistorySnapshot || _projectManager.EditingProject?.Chart == null)
-            {
-                return;
-            }
-
-            _historyCoordinator.ScheduleSnapshot(SerializeHistorySnapshot());
-            NotifyHistoryCommandsStateChanged();
-        }
-
-        private void FlushPendingHistorySnapshot()
-        {
-            _historyCoordinator.FlushPending();
-            NotifyHistoryCommandsStateChanged();
-        }
-
-        private void ResetHistorySnapshot()
-        {
-            _historyCoordinator.Reset(SerializeHistorySnapshot());
-            NotifyHistoryCommandsStateChanged();
-        }
-
-        private string SerializeHistorySnapshot()
-        {
-            return _timelineDomain.State.SerializeSnapshot(CurrentChart, GetProjectMetadata());
-        }
-
-        private TimelineUiState CaptureTimelineUiState()
-        {
-            return _timelineDomain.State.CaptureUiState(new TimelineCaptureRuntime(
-                CurrentPlayTimeSeconds,
-                CurrentHorizontalScrollOffset,
-                ZoomScale,
-                ViewportActualWidth,
-                WorkspaceStartTick,
-                WorkspaceEndTick,
-                AudioTrack?.IsExpanded ?? false,
-                Tracks,
-                JudgementLineEditor));
-        }
-
-        private void ApplyHistorySnapshot(string snapshot)
-        {
-            if (_projectManager.EditingProject == null)
-            {
-                return;
-            }
-
-            var uiState = CaptureTimelineUiState();
-            var restoredSnapshot = _timelineDomain.State.DeserializeSnapshot(snapshot);
-            var currentProject = _projectManager.EditingProject;
-
-            _isApplyingHistorySnapshot = true;
-            try
-            {
-                _projectManager.EditingProject = new Project
-                {
-                    Chart = restoredSnapshot.Chart,
-                    Metadata = restoredSnapshot.Metadata,
-                    EncodedAudio = currentProject.EncodedAudio,
-                    EncodedIllustration = currentProject.EncodedIllustration
-                };
-
-                ReloadTracksFromCurrentChart(uiState);
-            }
-            finally
-            {
-                _isApplyingHistorySnapshot = false;
-            }
-        }
-
-        private void NotifyHistoryCommandsStateChanged()
-        {
-            UndoCommand.NotifyCanExecuteChanged();
-            RedoCommand.NotifyCanExecuteChanged();
-        }
-
 
         // 在 TimelineViewModel.cs 里加上这个方法 (上一回合提过，确认一下你加上了)
         public int GetCurrentTick()
@@ -688,214 +463,9 @@ namespace Axphi.ViewModels
 
         private ProjectMetadata GetProjectMetadata()
         {
-            _projectManager.EditingProject ??= new Project();
-            _projectManager.EditingProject.Metadata ??= new ProjectMetadata();
-            return _projectManager.EditingProject.Metadata;
-        }
-
-        public void NotifyKeyframeClipboardCommandsStateChanged()
-        {
-            CopySelectedKeyframesCommand.NotifyCanExecuteChanged();
-            PasteCopiedKeyframesCommand.NotifyCanExecuteChanged();
-            DuplicateSelectedLayersCommand.NotifyCanExecuteChanged();
-        }
-
-        private List<TrackViewModel> GetSelectedJudgementLineTracks()
-        {
-            return _timelineDomain.Clipboard.GetSelectedJudgementLineTracks(Tracks);
-        }
-
-        private int GetSelectedKeyframeCount()
-        {
-            return _timelineDomain.Clipboard.GetSelectedKeyframeCount(BpmTrack, Tracks);
-        }
-
-        private bool CanCopySelectedKeyframes() => GetSelectedKeyframeCount() > 0 || GetSelectedJudgementLineTracks().Count > 0;
-
-        private bool CanPasteCopiedKeyframes() => _keyframeClipboard.Count > 0 || _judgementLineClipboard.Count > 0;
-
-        private bool CanDuplicateSelectedLayers() => GetSelectedJudgementLineTracks().Count > 0;
-
-        [RelayCommand(CanExecute = nameof(CanDuplicateSelectedLayers))]
-        private void DuplicateSelectedLayers()
-        {
-            var selectedTracks = GetSelectedJudgementLineTracks();
-            if (selectedTracks.Count == 0)
-            {
-                return;
-            }
-
-            _keyframeClipboard.Clear();
-            _judgementLineClipboard.Clear();
-            foreach (var track in selectedTracks)
-            {
-                _judgementLineClipboard.Add(_timelineDomain.Clipboard.CloneJudgementLine(track.Data));
-            }
-
-            PasteCopiedJudgementLines();
-            NotifyKeyframeClipboardCommandsStateChanged();
-        }
-
-        [RelayCommand(CanExecute = nameof(CanCopySelectedKeyframes))]
-        private void CopySelectedKeyframes()
-        {
-            if (ActiveSelectionContext == TimelineSelectionContext.Layers)
-            {
-                var selectedTracks = GetSelectedJudgementLineTracks();
-                if (selectedTracks.Count > 0)
-                {
-                    _keyframeClipboard.Clear();
-                    _judgementLineClipboard.Clear();
-                    foreach (var track in selectedTracks)
-                    {
-                        _judgementLineClipboard.Add(_timelineDomain.Clipboard.CloneJudgementLine(track.Data));
-                    }
-
-                    NotifyKeyframeClipboardCommandsStateChanged();
-                    return;
-                }
-            }
-
-            _judgementLineClipboard.Clear();
-            _keyframeClipboard.Clear();
-            var copiedKeys = new HashSet<string>();
-
-            if (BpmTrack != null)
-            {
-                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, BpmTrack.UIBpmKeyframes, KeyframeClipboardTarget.Bpm, null, copiedKeys);
-            }
-
-            foreach (var track in Tracks)
-            {
-                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIAnchorKeyframes, KeyframeClipboardTarget.TrackAnchor, track, copiedKeys);
-                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIOffsetKeyframes, KeyframeClipboardTarget.TrackOffset, track, copiedKeys);
-                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIScaleKeyframes, KeyframeClipboardTarget.TrackScale, track, copiedKeys);
-                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIRotationKeyframes, KeyframeClipboardTarget.TrackRotation, track, copiedKeys);
-                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIOpacityKeyframes, KeyframeClipboardTarget.TrackOpacity, track, copiedKeys);
-                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UISpeedKeyframes, KeyframeClipboardTarget.TrackSpeed, track, copiedKeys);
-
-                foreach (var note in track.UINotes)
-                {
-                    _timelineDomain.Clipboard.AddNoteSelectionToClipboard(_keyframeClipboard, note, track, copiedKeys);
-                }
-            }
-
-            NotifyKeyframeClipboardCommandsStateChanged();
-        }
-
-        [RelayCommand(CanExecute = nameof(CanPasteCopiedKeyframes))]
-        private void PasteCopiedKeyframes()
-        {
-            if (_judgementLineClipboard.Count > 0)
-            {
-                PasteCopiedJudgementLines();
-                return;
-            }
-
-            if (_keyframeClipboard.Count == 0)
-            {
-                return;
-            }
-
-            int earliestTime = _keyframeClipboard.Min(item => item.Time);
-            int cursorTick = GetCurrentTick();
-            int deltaTick = cursorTick - earliestTime;
-            bool containsNoteBodies = _keyframeClipboard.Any(item => item.Target == KeyframeClipboardTarget.NoteBody);
-
-            EnterSubItemSelectionContext();
-            ClearKeyframeSelection();
-            if (containsNoteBodies)
-            {
-                ClearNoteSelection();
-            }
-
-            var pastedWrappers = new List<object>();
-            var pasteRuntime = CreatePasteRuntime();
-            foreach (var item in _keyframeClipboard.OrderBy(item => item.Time))
-            {
-                object? pastedWrapper = _timelineDomain.Clipboard.PasteClipboardItem(pasteRuntime, item, item.Time + deltaTick);
-                if (pastedWrapper != null)
-                {
-                    pastedWrappers.Add(pastedWrapper);
-                }
-            }
-
-            foreach (var wrapper in pastedWrappers)
-            {
-                switch (wrapper)
-                {
-                    case KeyFrameUIWrapper<double> doubleWrapper:
-                        doubleWrapper.IsSelected = true;
-                        break;
-                    case KeyFrameUIWrapper<System.Windows.Vector> vectorWrapper:
-                        vectorWrapper.IsSelected = true;
-                        break;
-                    case KeyFrameUIWrapper<NoteKind> kindWrapper:
-                        kindWrapper.IsSelected = true;
-                        break;
-                    case NoteViewModel noteViewModel:
-                        noteViewModel.ParentTrack.IsNoteExpanded = true;
-                        noteViewModel.IsSelected = true;
-                        break;
-                }
-            }
-
-            RefreshLayerSelectionVisuals();
-            NotifyKeyframeClipboardCommandsStateChanged();
-            _timelineDomain.MutationSync.SyncAfterMutation(CreateMutationRuntime(syncNotes: true, broadcastSortMessage: true));
-        }
-
-        private void PasteCopiedJudgementLines()
-        {
-            if (_judgementLineClipboard.Count == 0)
-            {
-                return;
-            }
-
-            EnterLayerSelectionContext();
-            ClearLayerSelection();
-
-            var clonedLines = new List<JudgementLine>(_judgementLineClipboard.Count);
-            var idMap = new Dictionary<string, string>(_judgementLineClipboard.Count);
-
-            foreach (var copiedLine in _judgementLineClipboard)
-            {
-                var clonedLine = _timelineDomain.Clipboard.CloneJudgementLine(copiedLine);
-                clonedLines.Add(clonedLine);
-                idMap[copiedLine.ID] = clonedLine.ID;
-            }
-
-            foreach (var clonedLine in clonedLines)
-            {
-                if (!string.IsNullOrWhiteSpace(clonedLine.ParentLineId) &&
-                    idMap.TryGetValue(clonedLine.ParentLineId, out var mappedParentId))
-                {
-                    clonedLine.ParentLineId = mappedParentId;
-                }
-
-                CurrentChart.JudgementLines.Add(clonedLine);
-
-                var newTrackVM = _trackFactory.CreateTrack(clonedLine, $"判定线图层 {Tracks.Count + 1}", this);
-                newTrackVM.IsLayerSelected = true;
-                Tracks.Add(newTrackVM);
-            }
-
-            ActiveSelectionContext = TimelineSelectionContext.Layers;
-            ReindexTrackNames();
-            RefreshParentLineBindings();
-            RefreshLayerSelectionVisuals();
-            NotifyKeyframeClipboardCommandsStateChanged();
-            _timelineDomain.MutationSync.SyncAfterMutation(CreateMutationRuntime(syncNotes: false, broadcastSortMessage: false));
-        }
-
-        private TimelinePasteRuntime CreatePasteRuntime()
-        {
-            return new TimelinePasteRuntime(
-                CurrentChart,
-                BpmTrack,
-                Tracks,
-                this,
-                _timelineDomain.Clipboard);
+            _projectSession.EditingProject ??= new Project();
+            _projectSession.EditingProject.Metadata ??= new ProjectMetadata();
+            return _projectSession.EditingProject.Metadata;
         }
 
         // ================= 核心命令：全局删除选中的关键帧 =================
@@ -921,7 +491,7 @@ namespace Axphi.ViewModels
                 context => ActiveSelectionContext = context,
                 NotifyKeyframeClipboardCommandsStateChanged,
                 (owner, preferredSingle) => RefreshNoteSelectionState(owner, preferredSingle),
-                () => EnumerateAllEditableKeyframes().Any(keyframe => keyframe.IsSelected));
+                () => _keyframeSelectionService.HasSelectedEditableKeyframes(BpmTrack, Tracks));
         }
 
         private TimelineDeleteRuntime CreateDeleteRuntime()
@@ -1067,9 +637,19 @@ namespace Axphi.ViewModels
             if (loopTargetSeconds is double startSeconds)
             {
                 CurrentPlayTimeSeconds = startSeconds;
-                _messenger.Send(new ForceSeekMessage(startSeconds));
-                _messenger.Send(new JudgementLinesChangedMessage());
+                ForceSeekPlayback(startSeconds);
+                NotifyJudgementLinesChanged();
             }
+        }
+
+        private void NotifyJudgementLinesChanged()
+        {
+            _messenger.Send(new JudgementLinesChangedMessage());
+        }
+
+        private void ForceSeekPlayback(double targetSeconds)
+        {
+            _messenger.Send(new ForceSeekMessage(targetSeconds));
         }
 
 

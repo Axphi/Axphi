@@ -23,9 +23,9 @@ namespace Axphi.ViewModels
             return new BpmTrackViewModel(chart, timeline, _messenger);
         }
 
-        public AudioTrackViewModel CreateAudioTrack(Chart chart, TimelineViewModel timeline, ProjectManager projectManager)
+        public AudioTrackViewModel CreateAudioTrack(Chart chart, TimelineViewModel timeline, IProjectSession projectSession)
         {
-            return new AudioTrackViewModel(chart, timeline, projectManager, _messenger);
+            return new AudioTrackViewModel(chart, timeline, projectSession, _messenger);
         }
 
         public TrackViewModel CreateTrack(JudgementLine line, string trackName, TimelineViewModel timeline)

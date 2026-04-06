@@ -10,7 +10,7 @@ using Axphi.Utilities;
 
 namespace Axphi.Services;
 
-public partial class ProjectManager : ObservableObject
+public partial class ProjectManager : ObservableObject, IProjectSession
 {
     private const string ChartEntryName = "chart.json";
     private const string MetadataEntryName = "metadata.json";

@@ -91,6 +91,31 @@ public sealed class TimelineClipboardService : ITimelineClipboardService
         return clonedLine;
     }
 
+    public List<JudgementLine> CloneJudgementLinesWithMappedParents(IEnumerable<JudgementLine> lines)
+    {
+        var sourceLines = lines.ToList();
+        var clonedLines = new List<JudgementLine>(sourceLines.Count);
+        var idMap = new Dictionary<string, string>(sourceLines.Count);
+
+        foreach (var line in sourceLines)
+        {
+            var clonedLine = CloneJudgementLine(line);
+            clonedLines.Add(clonedLine);
+            idMap[line.ID] = clonedLine.ID;
+        }
+
+        foreach (var clonedLine in clonedLines)
+        {
+            if (!string.IsNullOrWhiteSpace(clonedLine.ParentLineId)
+                && idMap.TryGetValue(clonedLine.ParentLineId, out var mappedParentId))
+            {
+                clonedLine.ParentLineId = mappedParentId;
+            }
+        }
+
+        return clonedLines;
+    }
+
     public void AddClipboardItem(
         ICollection<KeyframeClipboardItem> clipboard,
         HashSet<string> copiedKeys,
@@ -149,6 +174,29 @@ public sealed class TimelineClipboardService : ITimelineClipboardService
         AddSelectedWrappersToClipboard(clipboard, note.UIRotationKeyframes, KeyframeClipboardTarget.NoteRotation, note, copiedKeys);
         AddSelectedWrappersToClipboard(clipboard, note.UIOpacityKeyframes, KeyframeClipboardTarget.NoteOpacity, note, copiedKeys);
         AddSelectedWrappersToClipboard(clipboard, note.UINoteKindKeyframes, KeyframeClipboardTarget.NoteKind, note, copiedKeys);
+    }
+
+    public void ApplySelectionToPastedItems(IEnumerable<object> pastedItems)
+    {
+        foreach (var item in pastedItems)
+        {
+            switch (item)
+            {
+                case KeyFrameUIWrapper<double> doubleWrapper:
+                    doubleWrapper.IsSelected = true;
+                    break;
+                case KeyFrameUIWrapper<Vector> vectorWrapper:
+                    vectorWrapper.IsSelected = true;
+                    break;
+                case KeyFrameUIWrapper<NoteKind> kindWrapper:
+                    kindWrapper.IsSelected = true;
+                    break;
+                case NoteViewModel noteViewModel:
+                    noteViewModel.ParentTrack.IsNoteExpanded = true;
+                    noteViewModel.IsSelected = true;
+                    break;
+            }
+        }
     }
 
     public object? PasteClipboardItem(TimelinePasteRuntime runtime, KeyframeClipboardItem item, int targetTime)

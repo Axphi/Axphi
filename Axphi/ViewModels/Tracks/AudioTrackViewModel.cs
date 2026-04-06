@@ -17,7 +17,7 @@ namespace Axphi.ViewModels
         public TimelineViewModel Timeline => _timeline;
         private readonly IMessenger _messenger;
 
-        private readonly ProjectManager _projectManager;
+        private readonly IProjectSession _projectSession;
         public Chart Chart { get; }
 
         [ObservableProperty]
@@ -72,9 +72,9 @@ namespace Axphi.ViewModels
 
         private ProjectMetadata GetMetadata()
         {
-            _projectManager.EditingProject ??= new Project { Chart = Chart };
-            _projectManager.EditingProject.Metadata ??= new ProjectMetadata();
-            return _projectManager.EditingProject.Metadata;
+            _projectSession.EditingProject ??= new Project { Chart = Chart };
+            _projectSession.EditingProject.Metadata ??= new ProjectMetadata();
+            return _projectSession.EditingProject.Metadata;
         }
 
         private int AudioOffsetTicks
@@ -97,11 +97,11 @@ namespace Axphi.ViewModels
         }
 
 
-        public AudioTrackViewModel(Chart chart, TimelineViewModel timeline, ProjectManager projectManager, IMessenger messenger)
+        public AudioTrackViewModel(Chart chart, TimelineViewModel timeline, IProjectSession projectSession, IMessenger messenger)
         {
             Chart = chart;
             _timeline = timeline;
-            _projectManager = projectManager;
+            _projectSession = projectSession;
             _messenger = messenger;
 
             IsExpanded = GetMetadata().IsAudioTrackExpanded;
@@ -148,9 +148,9 @@ namespace Axphi.ViewModels
             });
 
             // 防御性加载
-            if (_projectManager.EditingProject?.EncodedAudio != null)
+            if (_projectSession.EditingProject?.EncodedAudio != null)
             {
-                _ = LoadAudioDataFromBytesAsync(_projectManager.EditingProject.EncodedAudio);
+                _ = LoadAudioDataFromBytesAsync(_projectSession.EditingProject.EncodedAudio);
             }
         }
 
@@ -280,9 +280,9 @@ namespace Axphi.ViewModels
 
         public void DeleteAudio()
         {
-            if (_projectManager.EditingProject != null)
+            if (_projectSession.EditingProject != null)
             {
-                _projectManager.EditingProject.EncodedAudio = null;
+                _projectSession.EditingProject.EncodedAudio = null;
             }
 
             AudioOffsetTicks = 0;

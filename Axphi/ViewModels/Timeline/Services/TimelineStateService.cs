@@ -32,6 +32,18 @@ public sealed class TimelineStateService : ITimelineStateService
         return _snapshotService.Deserialize(snapshot);
     }
 
+    public Project RestoreProjectFromSnapshot(string snapshot, Project currentProject)
+    {
+        var restored = DeserializeSnapshot(snapshot);
+        return new Project
+        {
+            Chart = restored.Chart,
+            Metadata = restored.Metadata,
+            EncodedAudio = currentProject.EncodedAudio,
+            EncodedIllustration = currentProject.EncodedIllustration
+        };
+    }
+
     public TimelineUiState CaptureUiState(TimelineCaptureRuntime runtime)
     {
         return _uiStateService.Capture(runtime);

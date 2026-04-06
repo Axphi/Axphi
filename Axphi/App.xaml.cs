@@ -26,6 +26,7 @@ public partial class App : Application
         serviceCollection.AddSingleton<BezierViewModel>();
 
         serviceCollection.AddSingleton<ProjectManager>();
+        serviceCollection.AddSingleton<IProjectSession>(serviceProvider => serviceProvider.GetRequiredService<ProjectManager>());
 
         serviceCollection.AddSingleton<IFileService, WindowsFileService>();
 

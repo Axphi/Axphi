@@ -1,16 +1,7 @@
-﻿using Axphi.Data;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows;
+﻿using System.Windows;
 
 namespace Axphi.ViewModels
 {
-
-    
-    internal class Messages
-    {
-    }
     public record AudioLoadedMessage(string FilePath);
     public record IllustrationLoadedMessage();
     public record JudgementLinesChangedMessage;

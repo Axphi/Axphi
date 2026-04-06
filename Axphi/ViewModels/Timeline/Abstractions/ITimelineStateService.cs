@@ -9,6 +9,8 @@ public interface ITimelineStateService
 
     (Chart Chart, ProjectMetadata Metadata) DeserializeSnapshot(string snapshot);
 
+    Project RestoreProjectFromSnapshot(string snapshot, Project currentProject);
+
     TimelineUiState CaptureUiState(TimelineCaptureRuntime runtime);
 
     void RestoreUiState(

@@ -7,7 +7,7 @@ namespace Axphi.ViewModels
     {
         BpmTrackViewModel CreateBpmTrack(Chart chart, TimelineViewModel timeline);
 
-        AudioTrackViewModel CreateAudioTrack(Chart chart, TimelineViewModel timeline, ProjectManager projectManager);
+        AudioTrackViewModel CreateAudioTrack(Chart chart, TimelineViewModel timeline, IProjectSession projectSession);
 
         TrackViewModel CreateTrack(JudgementLine line, string trackName, TimelineViewModel timeline);
     }

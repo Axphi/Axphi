@@ -14,6 +14,8 @@ public interface ITimelineClipboardService
 
     JudgementLine CloneJudgementLine(JudgementLine line);
 
+    List<JudgementLine> CloneJudgementLinesWithMappedParents(IEnumerable<JudgementLine> lines);
+
     void AddClipboardItem(
         ICollection<KeyframeClipboardItem> clipboard,
         HashSet<string> copiedKeys,
@@ -38,6 +40,8 @@ public interface ITimelineClipboardService
         NoteViewModel note,
         TrackViewModel track,
         HashSet<string> copiedKeys);
+
+    void ApplySelectionToPastedItems(IEnumerable<object> pastedItems);
 
     object? PasteClipboardItem(TimelinePasteRuntime runtime, KeyframeClipboardItem item, int targetTime);
 }

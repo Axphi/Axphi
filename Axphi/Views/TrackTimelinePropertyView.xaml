@@ -8,6 +8,7 @@
              d:DesignHeight="68"
              d:DesignWidth="600"
              Focusable="True"
+             PreviewMouseDown="Root_PreviewMouseDown"
              x:Name="Root">
 
     <UserControl.Resources>

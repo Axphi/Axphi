@@ -9,7 +9,6 @@ namespace Axphi.Views
 {
     public partial class TrackTimelinePropertyView : UserControl
     {
-        private Window? _parentWindow;
         private TextBox? _activeExpressionEditor;
 
         public static readonly DependencyProperty KeyframesSourceProperty = DependencyProperty.Register(
@@ -87,7 +86,6 @@ namespace Axphi.Views
         public TrackTimelinePropertyView()
         {
             InitializeComponent();
-            Unloaded += (_, _) => UnhookWindowClick();
         }
 
         public IEnumerable? KeyframesSource
@@ -175,7 +173,6 @@ namespace Axphi.Views
             }
 
             _activeExpressionEditor = textBox;
-            HookWindowClick();
         }
 
         private void ExpressionEditorTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -184,8 +181,6 @@ namespace Axphi.Views
             {
                 _activeExpressionEditor = null;
             }
-
-            UnhookWindowClick();
         }
 
         private void ExpressionEditorTextBox_LostFocus(object sender, RoutedEventArgs e)
@@ -210,27 +205,7 @@ namespace Axphi.Views
             }
         }
 
-        private void HookWindowClick()
-        {
-            _parentWindow ??= Window.GetWindow(this);
-            if (_parentWindow != null)
-            {
-                _parentWindow.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
-                _parentWindow.PreviewMouseDown += ParentWindow_PreviewMouseDown;
-            }
-        }
-
-        private void UnhookWindowClick()
-        {
-            if (_parentWindow != null)
-            {
-                _parentWindow.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
-            }
-
-            _parentWindow = null;
-        }
-
-        private void ParentWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        private void Root_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (_activeExpressionEditor == null)
             {
@@ -243,7 +218,6 @@ namespace Axphi.Views
                 return;
             }
 
-            UnhookWindowClick();
             _activeExpressionEditor = null;
             Keyboard.ClearFocus();
         }

@@ -1,6 +1,7 @@
 ﻿using Axphi.Data.KeyFrames;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Axphi.Data
 {
@@ -12,7 +13,15 @@ namespace Axphi.Data
         /// <summary>
         /// 谱面版本
         /// </summary>
-        public string formatVersion = "1.0";
+        [JsonPropertyName("formatVersion")]
+        public string FormatVersion { get; set; } = "1.0";
+
+        [JsonIgnore]
+        public string formatVersion
+        {
+            get => FormatVersion;
+            set => FormatVersion = value;
+        }
 
         // 关于时间的单位(int), 为 tick, 一个 tick 表示一个 128 分音符, 也就是 1.875 / bpm
 
@@ -24,7 +33,15 @@ namespace Axphi.Data
         /// <summary>
         /// 歌曲名称
         /// </summary>
-        public string SoneName { get; set; } = string.Empty;
+        [JsonPropertyName("SoneName")]
+        public string SongName { get; set; } = string.Empty;
+
+        [JsonIgnore]
+        public string SoneName
+        {
+            get => SongName;
+            set => SongName = value;
+        }
 
         /// <summary>
         /// 难度

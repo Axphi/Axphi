@@ -18,8 +18,6 @@ namespace Axphi.ViewModels
     {
         private readonly IMessenger _messenger;
         private static readonly ParentLineOption NoParentOption = new(null, "无");
-        private List<ParentLineOption> _parentLineOptionsCache = new() { NoParentOption };
-        private string _parentLineDisplayName = "无";
 
         public sealed record ParentLineOption(string? LineId, string DisplayName)
         {
@@ -101,9 +99,24 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private string _trackName; // 轨道的名字，比如 "判定线 1"
 
-        public IEnumerable<ParentLineOption> ParentLineOptions => _parentLineOptionsCache;
+        public IEnumerable<ParentLineOption> ParentLineOptions => EnumerateParentLineOptions();
 
-        public string ParentLineDisplayName => _parentLineDisplayName;
+        public string ParentLineDisplayName
+        {
+            get
+            {
+                string? parentId = Data.ParentLineId;
+                if (string.IsNullOrWhiteSpace(parentId))
+                {
+                    return NoParentOption.DisplayName;
+                }
+
+                return _timeline.Tracks
+                    .Where(track => !ReferenceEquals(track, this))
+                    .FirstOrDefault(track => track.Data.ID == parentId)
+                    ?.TrackName ?? NoParentOption.DisplayName;
+            }
+        }
 
         public string? ParentLineId
         {
@@ -1338,23 +1351,22 @@ namespace Axphi.ViewModels
 
         public void NotifyParentBindingChanged()
         {
-            RebuildParentBindingCache();
             OnPropertyChanged(nameof(ParentLineId));
             OnPropertyChanged(nameof(ParentLineOptions));
             OnPropertyChanged(nameof(ParentLineDisplayName));
         }
 
-        private void RebuildParentBindingCache()
+        private IEnumerable<ParentLineOption> EnumerateParentLineOptions()
         {
-            _parentLineOptionsCache = _timeline.Tracks
+            yield return NoParentOption;
+
+            foreach (var option in _timeline.Tracks
                 .Where(track => !ReferenceEquals(track, this))
                 .Select(track => new ParentLineOption(track.Data.ID, track.TrackName))
-                .Prepend(NoParentOption)
-                .ToList();
-
-            _parentLineDisplayName = _parentLineOptionsCache
-                .FirstOrDefault(option => option.LineId == Data.ParentLineId)
-                ?.DisplayName ?? NoParentOption.DisplayName;
+                .OrderBy(option => option.DisplayName, StringComparer.Ordinal))
+            {
+                yield return option;
+            }
         }
     }
 

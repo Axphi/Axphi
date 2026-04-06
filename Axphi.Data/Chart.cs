@@ -1,4 +1,5 @@
-﻿using Axphi.Data.KeyFrames;
+﻿using Axphi.Data.AnimatableProperties;
+using Axphi.Data.KeyFrames;
 
 namespace Axphi.Data
 {
@@ -53,9 +54,9 @@ namespace Axphi.Data
         public string? Illustrator { get; set; }
 
         /// <summary>
-        /// BPM 关键帧
+        /// BPM 属性
         /// </summary>
-        public RelationObject<Chart>.Collection<BpmKeyFrame>? BpmKeyFrames { get; }
+        public BpmProperty Bpm { get; }
 
         /// <summary>
         /// 判定线
@@ -69,7 +70,7 @@ namespace Axphi.Data
 
         public Chart()
         {
-            BpmKeyFrames = new RelationObject<Chart>.Collection<BpmKeyFrame>(this);
+            Bpm = new BpmProperty(this);
             JudgementLines = new RelationObject<Chart>.Collection<JudgementLine>(this);
         }
     }

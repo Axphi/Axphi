@@ -151,7 +151,7 @@ namespace Axphi.Components
         {
             EasingUtils.CalculateObjectTransform(
                 time, chart.KeyFrameEasingDirection,
-                line.AnimatableProperties,
+                line,
                 out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(
@@ -201,7 +201,7 @@ namespace Axphi.Components
 
             EasingUtils.CalculateObjectTransform(
                 time, chart.KeyFrameEasingDirection,
-                note.AnimatableProperties,
+                note,
                 out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(

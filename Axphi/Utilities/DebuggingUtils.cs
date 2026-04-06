@@ -19,23 +19,20 @@ namespace Axphi.Utilities
                 {
                     new JudgementLine()
                     {
-                        AnimatableProperties =
+                        Offset=
                         {
-                            Offset=
+                            KeyFrames =
                             {
-                                KeyFrames =
+                                new()
                                 {
-                                    new()
-                                    {
-                                        Time = TimeSpan.FromSeconds(5),
-                                        Value = new Vector(0, 1.5),
-                                    },
+                                    Time = TimeSpan.FromSeconds(5),
+                                    Value = new Vector(0, 1.5),
+                                },
 
-                                    new()
-                                    {
-                                        Time = TimeSpan.FromSeconds(8),
-                                        Value = new Vector(0, -1.5),
-                                    }
+                                new()
+                                {
+                                    Time = TimeSpan.FromSeconds(8),
+                                    Value = new Vector(0, -1.5),
                                 }
                             }
                         },
@@ -44,78 +41,69 @@ namespace Axphi.Utilities
                             new Note(NoteKind.Tap, TimeSpan.FromSeconds(1)),
                             new Note(NoteKind.Tap, TimeSpan.FromSeconds(2))
                             {
-                                AnimatableProperties =
+                                Offset =
                                 {
-                                    Offset =
+                                    KeyFrames =
                                     {
-                                        KeyFrames =
+                                        new()
                                         {
-                                            new()
-                                            {
-                                                Time = TimeSpan.FromSeconds(1),
-                                            },
-                                            new()
-                                            {
-                                                Time = TimeSpan.FromSeconds(1.5),
-                                                Value = new Vector(-2, 0),
-                                            },
-                                            new()
-                                            {
-                                                Time = TimeSpan.FromSeconds(1.75),
-                                                Value = new Vector(2, 0),
-                                            },
-                                            new()
-                                            {
-                                                Time = TimeSpan.FromSeconds(2),
-                                            }
+                                            Time = TimeSpan.FromSeconds(1),
+                                        },
+                                        new()
+                                        {
+                                            Time = TimeSpan.FromSeconds(1.5),
+                                            Value = new Vector(-2, 0),
+                                        },
+                                        new()
+                                        {
+                                            Time = TimeSpan.FromSeconds(1.75),
+                                            Value = new Vector(2, 0),
+                                        },
+                                        new()
+                                        {
+                                            Time = TimeSpan.FromSeconds(2),
                                         }
                                     }
-                                },
+                                }
                             },
                             new Note(NoteKind.Tap, TimeSpan.FromSeconds(3))
                             {
-                                AnimatableProperties =
+                                Scale =
                                 {
-                                    Scale =
+                                    KeyFrames =
                                     {
-                                        KeyFrames =
+                                        new()
                                         {
-                                            new()
-                                            {
-                                                Time = TimeSpan.FromSeconds(2),
-                                            },
-                                            new()
-                                            {
-                                                Time = TimeSpan.FromSeconds(2.5),
-                                                Value = new Vector(2, 2)
-                                            },
-                                            new()
-                                            {
-                                                Time = TimeSpan.FromSeconds(3),
-                                                Value = new Vector(1, 1)
-                                            }
+                                            Time = TimeSpan.FromSeconds(2),
+                                        },
+                                        new()
+                                        {
+                                            Time = TimeSpan.FromSeconds(2.5),
+                                            Value = new Vector(2, 2)
+                                        },
+                                        new()
+                                        {
+                                            Time = TimeSpan.FromSeconds(3),
+                                            Value = new Vector(1, 1)
                                         }
                                     }
-                                },
+                                }
                             },
                             new Note(NoteKind.Tap, TimeSpan.FromSeconds(4))
                             {
-                                AnimatableProperties =
+                                Rotation =
                                 {
-                                    Rotation =
+                                    KeyFrames =
                                     {
-                                        KeyFrames =
+                                        new()
                                         {
-                                            new()
-                                            {
-                                                Time = TimeSpan.FromSeconds(3.5),
-                                                Value = 0
-                                            },
-                                            new()
-                                            {
-                                                Time = TimeSpan.FromSeconds(4),
-                                                Value = 180
-                                            }
+                                            Time = TimeSpan.FromSeconds(3.5),
+                                            Value = 0
+                                        },
+                                        new()
+                                        {
+                                            Time = TimeSpan.FromSeconds(4),
+                                            Value = 180
                                         }
                                     }
                                 }

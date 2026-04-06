@@ -1,4 +1,5 @@
-﻿using Axphi.Data.KeyFrames;
+﻿using Axphi.Data.Abstraction;
+using Axphi.Data.KeyFrames;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Axphi.Data.AnimatableProperties
 {
-    public partial class AnimatableProperty<TOwner, TSelf, TValue, TKeyFrame> : ObservableObject
+    public partial class AnimatableProperty<TOwner, TSelf, TValue, TKeyFrame> : ObservableObject, IAnimatableProperty<TValue>
         where TOwner : class
         where TValue : struct
         where TSelf : AnimatableProperty<TOwner, TSelf, TValue, TKeyFrame>
@@ -20,6 +21,8 @@ namespace Axphi.Data.AnimatableProperties
         public TValue InitialValue { get; set; }
 
         public RelationObject<TSelf>.Collection<TKeyFrame> KeyFrames { get; }
+
+        IReadOnlyList<IKeyFrame<TValue>> IAnimatableProperty<TValue>.KeyFrames => KeyFrames;
 
         public AnimatableProperty(TOwner owner)
         {

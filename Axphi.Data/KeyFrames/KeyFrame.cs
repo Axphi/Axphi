@@ -1,6 +1,8 @@
-﻿namespace Axphi.Data.KeyFrames
+﻿using Axphi.Data.Abstraction;
+
+namespace Axphi.Data.KeyFrames
 {
-    public class KeyFrame<TParent, T> : RelationObject<TParent>
+    public class KeyFrame<TParent, T> : RelationObject<TParent>, IKeyFrame<T>
         where TParent : class
         where T : struct
     {

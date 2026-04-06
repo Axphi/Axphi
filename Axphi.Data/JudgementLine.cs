@@ -1,4 +1,5 @@
-﻿using Axphi.Data.AnimatableProperties;
+﻿using Axphi.Data.Abstraction;
+using Axphi.Data.AnimatableProperties;
 using Axphi.Data.KeyFrames;
 using System.Windows;
 
@@ -7,15 +8,27 @@ namespace Axphi.Data
     /// <summary>
     /// 判定线
     /// </summary>
-    public class JudgementLine : RelationObject<Chart>
+    public class JudgementLine : RelationObject<Chart>, IWithStandardAnimatableProperties
     {
         public string? Name { get; set; }
         public double Speed { get; set; } = 1;
 
-        /// <summary>
-        /// 动画属性
-        /// </summary>
-        public StandardAnimatableProperties<JudgementLine> AnimatableProperties { get; }
+        #region Animatable Properties
+        public OffsetProperty<JudgementLine> Offset { get; }
+        public ScaleProperty<JudgementLine> Scale { get; }
+        public RotationProperty<JudgementLine> Rotation { get; }
+        public OpacityProperty<JudgementLine> Opacity { get; }
+        #endregion
+
+
+        #region Impl ICanTransform
+
+        IAnimatableProperty<Vector> IWithStandardAnimatableProperties.Offset => Offset;
+        IAnimatableProperty<Vector> IWithStandardAnimatableProperties.Scale => Scale;
+        IAnimatableProperty<double> IWithStandardAnimatableProperties.Rotation => Rotation;
+        IAnimatableProperty<double> IWithStandardAnimatableProperties.Opacity => Opacity;
+
+        #endregion
 
         /// <summary>
         /// 音符
@@ -24,7 +37,10 @@ namespace Axphi.Data
 
         public JudgementLine()
         {
-            AnimatableProperties = new StandardAnimatableProperties<JudgementLine>(this);
+            Offset = new OffsetProperty<JudgementLine>(this);
+            Scale = new ScaleProperty<JudgementLine>(this);
+            Rotation = new RotationProperty<JudgementLine>(this);
+            Opacity = new OpacityProperty<JudgementLine>(this);
             Notes = new RelationObject<JudgementLine>.Collection<Note>(this);
         }
     }

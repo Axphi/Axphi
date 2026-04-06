@@ -10,5 +10,9 @@ public interface ITimelinePlaybackSyncService
         int currentTick,
         KeyFrameEasingDirection easingDirection,
         BpmTrackViewModel? bpmTrack,
-        IEnumerable<TrackViewModel> tracks);
+    IEnumerable<TrackViewModel> tracks,
+    TrackViewModel? activeNotePanelOwner,
+    TrackViewModel? editorActiveTrack,
+    double viewportStartTick,
+    double viewportEndTick);
 }

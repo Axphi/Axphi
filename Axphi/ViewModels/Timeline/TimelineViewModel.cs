@@ -41,6 +41,7 @@ namespace Axphi.ViewModels
         private readonly List<JudgementLine> _judgementLineClipboard = new();
         private bool _isReloadingChartState;
         private bool _isApplyingHistorySnapshot;
+        private int _lastPlaybackSyncedTick = int.MinValue;
 
         // 核心数据：需要暴露给界面的谱面对象
         [ObservableProperty]
@@ -107,10 +108,25 @@ namespace Axphi.ViewModels
             //  算出当前的 Tick
             int currentTick = GetCurrentTick();
 
+            if (currentTick == _lastPlaybackSyncedTick)
+            {
+                return;
+            }
+
+            _lastPlaybackSyncedTick = currentTick;
+
             //  拿到当前谱面的缓动方向设置
             var easingDirection = CurrentChart.KeyFrameEasingDirection;
 
-            _playbackSyncService.SyncTrackValuesToTime(currentTick, easingDirection, BpmTrack, Tracks);
+            _playbackSyncService.SyncTrackValuesToTime(
+                currentTick,
+                easingDirection,
+                BpmTrack,
+                Tracks,
+                ActiveNotePanelOwner,
+                JudgementLineEditor.ActiveTrack,
+                ViewportStartTick,
+                ViewportEndTick);
         }
 
         // 2. 当你按 Alt+滚轮 缩放时，游标位置也必须跟着伸缩！
@@ -410,6 +426,7 @@ namespace Axphi.ViewModels
                 CurrentHorizontalScrollOffset = playbackState.CurrentHorizontalScrollOffset;
                 WorkspaceStartTick = playbackState.WorkspaceStartTick;
                 WorkspaceEndTick = playbackState.WorkspaceEndTick;
+                _lastPlaybackSyncedTick = int.MinValue;
                 CurrentPlayTimeSeconds = playbackState.CurrentPlayTimeSeconds;
 
                 if (playbackState.ShouldForceSeek)

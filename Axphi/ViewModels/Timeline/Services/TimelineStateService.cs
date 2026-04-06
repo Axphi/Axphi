@@ -1,6 +1,7 @@
 ﻿using Axphi.Data;
 using Axphi.Utilities;
 using System.Linq;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -74,7 +75,7 @@ public sealed class TimelineStateService : ITimelineStateService
         ObservableCollection<TrackViewModel> tracks,
         JudgementLineEditorViewModel judgementLineEditor)
     {
-        var trackStatesById = preservedState.Tracks.ToDictionary(track => track.TrackId);
+        var trackStatesById = BuildTrackStateMap(preservedState.Tracks);
         foreach (var track in tracks)
         {
             if (trackStatesById.TryGetValue(track.Data.ID, out var trackState))
@@ -97,6 +98,23 @@ public sealed class TimelineStateService : ITimelineStateService
                 judgementLineEditor.PanY = editorState.PanY;
             }
         }
+    }
+
+    private static Dictionary<string, TrackUiState> BuildTrackStateMap(IReadOnlyList<TrackUiState> trackStates)
+    {
+        var trackStatesById = new Dictionary<string, TrackUiState>(StringComparer.Ordinal);
+
+        foreach (var trackState in trackStates)
+        {
+            if (string.IsNullOrWhiteSpace(trackState.TrackId) || trackStatesById.ContainsKey(trackState.TrackId))
+            {
+                continue;
+            }
+
+            trackStatesById.Add(trackState.TrackId, trackState);
+        }
+
+        return trackStatesById;
     }
 
     public TimelinePlaybackRestoreState ResolvePlaybackState(ProjectMetadata metadata)

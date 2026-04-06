@@ -983,41 +983,6 @@ public partial class MainWindow : Window
         _lastTimelineLeftPanelWidth = width;
     }
 
-
-    // ================= 【全局缩略图 2：拖拽蓝色滑块反向控制画面】 =================
-    private void MinimapViewport_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
-    {
-        // 拖拽开始时可以记录一些状态，目前直接留空即可
-    }
-
-    private void MinimapViewport_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
-    {
-        if (this.DataContext is MainViewModel vm)
-        {
-            // e.HorizontalChange 是鼠标在【小地图】里移动的微小像素量
-            // 我们需要把它放大成【大时间轴】里真实的像素量！
-
-            // 1. 算比例：小地图里的 1 像素，等于大时间轴里的多少 Tick？
-            double ticksPerMinimapPixel = vm.Timeline.TotalDurationTicks / vm.Timeline.MinimapActualWidth;
-
-            // 2. 算位移：本次拖拽代表移动了多少 Tick？
-            double ticksDelta = e.HorizontalChange * ticksPerMinimapPixel;
-
-            // 3. 换算回真实大时间轴的物理像素位移！
-            double realPixelDelta = vm.Timeline.TickToPixel(ticksDelta);
-
-            // 4. 把位移加给底部的大滚动条
-            double newValue = GlobalHorizontalScroll.Value + realPixelDelta;
-
-            // 物理防撞墙
-            if (newValue < 0) newValue = 0;
-            if (newValue > GlobalHorizontalScroll.Maximum) newValue = GlobalHorizontalScroll.Maximum;
-
-            // 🌟 强行修改底部大滚动条的值，它会自动触发所有的联动！
-            GlobalHorizontalScroll.Value = newValue;
-        }
-    }
-
     // ================= 【全局缩略图 2：视野框的平移与缩放】 =================
 
     // === 中间拖拽平移 (Pan) ===
@@ -1076,34 +1041,20 @@ public partial class MainWindow : Window
     // === 核心：将视野的变化转换为底层 ZoomScale 和 滚动条的改变！ ===
     private void ApplyViewportChange(MainViewModel vm, double startTick, double endTick)
     {
-        double visibleTicks = endTick - startTick;
-        double rulerWidth = MainTimelineRuler.ActualWidth;
-        double basePixelsPerTick = vm.Timeline.BasePixelsPerTick;
-
-        // 1. 根据新的可视 Tick 数量，反推算出需要的 ZoomScale
-        double newZoom = rulerWidth / (visibleTicks * basePixelsPerTick);
-
-
-
-        // ================= 🌟 新增：同样在这里限制最小缩放比例 =================
-        double rightPadding = vm.Timeline.RightEmptyPadding;
-        newZoom = vm.Timeline.ClampZoomScale(newZoom, vm.Timeline.ViewportActualWidth);
-        // ========================================================================
-
-        // ================= 🌟 核心修复 =================
-        double expectedNewTotalWidth = vm.Timeline.TotalDurationTicks * basePixelsPerTick * newZoom;
-        double expectedNewMaximum = Math.Max(0, expectedNewTotalWidth - vm.Timeline.ViewportActualWidth+ rightPadding);
+        if (!_timelineInteractionController.TryComputeViewportChangeFromMinimapRange(
+                vm.Timeline,
+                MainTimelineRuler.ActualWidth,
+                startTick,
+                endTick,
+                out var newZoom,
+                out var newOffset,
+                out var expectedNewMaximum))
+        {
+            return;
+        }
 
         GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.MaximumProperty, expectedNewMaximum);
-
-        // 3. 应用新的缩放比例和滚动条位置
         vm.Timeline.ZoomScale = newZoom;
-        double newOffset = startTick * basePixelsPerTick * newZoom;
-
-        // 严防死守
-        if (newOffset > expectedNewMaximum) newOffset = expectedNewMaximum;
-        if (newOffset < 0) newOffset = 0;
-
         GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newOffset);
 
         // 强制刷新一次视野！

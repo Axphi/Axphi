@@ -101,6 +101,16 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private string _trackName; // 轨道的名字，比如 "判定线 1"
 
+        partial void OnTrackNameChanged(string value)
+        {
+            if (Data.Name == value)
+            {
+                return;
+            }
+
+            Data.Name = value;
+        }
+
         public IEnumerable<ParentLineOption> ParentLineOptions => EnumerateParentLineOptions();
 
         public string ParentLineDisplayName
@@ -183,9 +193,15 @@ namespace Axphi.ViewModels
         public TrackViewModel(JudgementLine data, string name, TimelineViewModel timeline, IMessenger messenger)
         {
             Data = data;
-            TrackName = name;
             _timeline = timeline;
             _messenger = messenger ?? throw new ArgumentNullException(nameof(messenger));
+
+            string resolvedName = string.IsNullOrWhiteSpace(Data.Name) ? name : Data.Name;
+            TrackName = resolvedName;
+            if (string.IsNullOrWhiteSpace(Data.Name))
+            {
+                Data.Name = resolvedName;
+            }
 
             AnchorExpression = CreateVectorExpressionSlot("Anchor", Data.AnimatableProperties.Anchor, "例如: [value[0], Math.sin(time)]");
             PositionExpression = CreateVectorExpressionSlot("Position", Data.AnimatableProperties.Offset, "例如: [Math.sin(time) * 4, value[1]]");

@@ -40,6 +40,7 @@
                                     <Rectangle x:Name="KeyframeRect"
                                                Width="8"
                                                Height="8"
+                                               IsHitTestVisible="False"
                                                Fill="{Binding KeyframeFill, ElementName=Root}">
                                         <Rectangle.RenderTransform>
                                             <TransformGroup>

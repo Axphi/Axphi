@@ -652,120 +652,107 @@
 
                         <!--  note的关键帧位置  -->
                         <Border Width="{Binding Timeline.TotalPixelWidth}" Height="{Binding UITrackHeight}" HorizontalAlignment="Left" BorderBrush="#333" BorderThickness="0,1,0,0">
-                            <ItemsControl ItemsSource="{Binding UINotes}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <comp:TimelineTickPanel Timeline="{Binding Timeline}" LeftPadding="8" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
+                            <Grid>
+                                <comp:NoteTrackRenderSurface Notes="{Binding UINotes}"
+                                                             Timeline="{Binding Timeline}"
+                                                             LeftPadding="8"
+                                                             IsHitTestVisible="False" />
 
+                                <ItemsControl ItemsSource="{Binding UINotes}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <comp:TimelineTickPanel Timeline="{Binding Timeline}" LeftPadding="8" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
 
-                                <ItemsControl.ItemContainerStyle>
-                                    <Style TargetType="ContentPresenter">
-                                        <Setter Property="comp:TimelineTickPanel.Tick" Value="{Binding HitTime}" />
-                                        <Setter Property="comp:TimelineTickPanel.Top" Value="{Binding PixelY}" />
-                                    </Style>
-                                </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="comp:TimelineTickPanel.Tick" Value="{Binding HitTime}" />
+                                            <Setter Property="comp:TimelineTickPanel.Top" Value="{Binding PixelY}" />
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
 
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Canvas Width="0" Height="20" VerticalAlignment="Top">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Canvas Width="0" Height="20" VerticalAlignment="Top">
+                                                <Thumb x:Name="HoldTailHotspot"
+                                                       Cursor="SizeWE"
+                                                       Width="10"
+                                                       Height="14"
+                                                       Canvas.Left="{Binding UIHoldPixelWidth}"
+                                                       Canvas.Top="3"
+                                                       Margin="-5,0,0,0"
+                                                       Visibility="Collapsed"
+                                                       comp:HoldTailDragInteraction.Enable="True">
+                                                    <Thumb.Template>
+                                                        <ControlTemplate TargetType="Thumb">
+                                                            <Rectangle Fill="Transparent" IsHitTestVisible="False" />
+                                                        </ControlTemplate>
+                                                    </Thumb.Template>
+                                                </Thumb>
 
-                                            <Rectangle x:Name="HoldBody"
-                                                       Fill="#51B4FF" Opacity="0.4"
-                                                       Height="6"
-                                                       Canvas.Left="0" Canvas.Top="7"
-                                                       Width="{Binding UIHoldPixelWidth}"
-                                                       Visibility="Collapsed" />
+                                                <Thumb Cursor="Hand"
+                                                       ToolTip="音符本体"
+                                                       Width="16"
+                                                       Height="16"
+                                                       Canvas.Left="-8"
+                                                       Canvas.Top="2"
+                                                       comp:TimelineThumbInteraction.EnableDrag="True">
+                                                    <Thumb.Template>
+                                                        <ControlTemplate TargetType="Thumb">
+                                                            <Rectangle Fill="Transparent" IsHitTestVisible="False" />
+                                                        </ControlTemplate>
+                                                    </Thumb.Template>
+                                                </Thumb>
+                                            </Canvas>
 
-                                            <Thumb x:Name="HoldTail" Cursor="SizeWE"
-                                                   Width="6" Height="10"
-                                                   Canvas.Left="{Binding UIHoldPixelWidth}" Canvas.Top="5"
-                                                   Visibility="Collapsed"
-                                                   Margin="-3,0,0,0"
-                                                   comp:HoldTailDragInteraction.Enable="True">
-                                                <Thumb.Template>
-                                                    <ControlTemplate>
-                                                        <Rectangle Fill="#88FFFFFF" RadiusX="1" RadiusY="1" />
-                                                    </ControlTemplate>
-                                                </Thumb.Template>
-                                            </Thumb>
-
-                                            <Thumb Cursor="Hand" ToolTip="音符本体"
-                                                   Canvas.Left="-4" Canvas.Top="6"
-                                                   comp:TimelineThumbInteraction.EnableDrag="True">
-                                                <Thumb.Template>
-                                                    <ControlTemplate TargetType="Thumb">
-                                                        <Rectangle x:Name="KeyframeRect" Width="8" Height="8" Fill="#1ccbe9">
-                                                            <Rectangle.RenderTransform>
-                                                                <RotateTransform Angle="45" CenterX="4" CenterY="4" />
-                                                            </Rectangle.RenderTransform>
-                                                        </Rectangle>
-                                                        <ControlTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Fill" Value="#28E857" />
-                                                                <Setter TargetName="KeyframeRect" Property="Stroke" Value="#FFF" />
-                                                                <Setter TargetName="KeyframeRect" Property="StrokeThickness" Value="1.5" />
-                                                            </DataTrigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="KeyframeRect" Property="Opacity" Value="0.8" />
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Thumb.Template>
-                                            </Thumb>
-
-                                        </Canvas>
-
-                                        <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding CurrentNoteKind}" Value="Hold">
-                                                <Setter TargetName="HoldBody" Property="Visibility" Value="Visible" />
-                                                <Setter TargetName="HoldTail" Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </DataTemplate.Triggers>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-
-                            </ItemsControl>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding CurrentNoteKind}" Value="Hold">
+                                                    <Setter TargetName="HoldTailHotspot" Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
                         </Border>
 
 
-                        <StackPanel x:Name="NoteKeyframeEditorPanel" DataContext="{Binding SelectedNote}">
-
-                            <StackPanel.Style>
-                                <Style TargetType="StackPanel">
+                        <ContentControl x:Name="NoteKeyframeEditorPanel"
+                                        Content="{Binding SelectedNote}">
+                            <ContentControl.Style>
+                                <Style TargetType="ContentControl">
                                     <Setter Property="Visibility" Value="Visible" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                        <DataTrigger Binding="{Binding Content, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
-
                                         <DataTrigger Binding="{Binding DataContext.IsNoteExpanded, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
-
                                     </Style.Triggers>
-
                                 </Style>
-                            </StackPanel.Style>
-                            <ItemsControl ItemsSource="{Binding TimelinePropertyRows}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type vm:TimelinePropertyRowItem}">
-                                        <local:TrackTimelinePropertyView Style="{StaticResource NoteTimelinePropertyRowStyle}"
-                                                                         KeyframesSource="{Binding KeyframesSource}"
-                                                                         ExpressionSlot="{Binding ExpressionSlot}"
-                                                                         KeyframeToolTip="{Binding KeyframeToolTip}"
-                                                                         KeyframeFill="{Binding KeyframeFill}"
-                                                                         RowBackground="{Binding RowBackground}"
-                                                                         RowBorderBrush="{Binding RowBorderBrush}"
-                                                                         ShowExpressionEditor="{Binding ShowExpressionEditor}"
-                                                                         EnableRightClick="{Binding EnableRightClick}" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-
-                        </StackPanel>
+                            </ContentControl.Style>
+                            <ContentControl.ContentTemplate>
+                                <DataTemplate>
+                                    <ItemsControl ItemsSource="{Binding TimelinePropertyRows}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:TimelinePropertyRowItem}">
+                                                <local:TrackTimelinePropertyView Style="{StaticResource NoteTimelinePropertyRowStyle}"
+                                                                                 KeyframesSource="{Binding KeyframesSource}"
+                                                                                 ExpressionSlot="{Binding ExpressionSlot}"
+                                                                                 KeyframeToolTip="{Binding KeyframeToolTip}"
+                                                                                 KeyframeFill="{Binding KeyframeFill}"
+                                                                                 RowBackground="{Binding RowBackground}"
+                                                                                 RowBorderBrush="{Binding RowBorderBrush}"
+                                                                                 ShowExpressionEditor="{Binding ShowExpressionEditor}"
+                                                                                 EnableRightClick="{Binding EnableRightClick}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </DataTemplate>
+                            </ContentControl.ContentTemplate>
+                        </ContentControl>
 
 
                     </StackPanel>

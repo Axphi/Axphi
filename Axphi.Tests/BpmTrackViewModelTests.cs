@@ -79,7 +79,27 @@ public class BpmTrackViewModelTests
             }
         };
 
-        var timeline = new TimelineViewModel(projectManager, new TimelineTrackFactory(), new TimelineHistoryCoordinator(), WeakReferenceMessenger.Default);
+        var timeline = new TimelineViewModel(
+            projectManager,
+            new TimelineTrackFactory(),
+            new TimelineHistoryCoordinator(),
+            new TimelineDomainServices(
+                new TimelineSelectionService(WeakReferenceMessenger.Default),
+                new TimelineTrackHierarchyService(),
+                new TimelineDeletionService(),
+                new TimelineSnapService(),
+                new TimelineClipboardSelectionService(),
+                new TimelineMutationSyncService(),
+                new TimelineClipboardCloneService(),
+                new TimelineClipboardCollectorService(new TimelineClipboardCloneService()),
+                new TimelineClipboardPasteService(),
+                new TimelineSnapshotService(),
+                new TimelineUiStateService(),
+                new TimelineUiRestoreService(),
+                new TimelinePlaybackRestoreService(),
+                new TimelineWorkspaceLoopService(),
+                new TimelineTrackMaterializerService()),
+            WeakReferenceMessenger.Default);
         var bpmTrack = timeline.BpmTrack ?? throw new AssertFailedException("BPM track should be initialized.");
         return (timeline, bpmTrack);
     }

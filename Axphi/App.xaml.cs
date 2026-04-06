@@ -31,10 +31,8 @@ public partial class App : Application
 
         serviceCollection.AddSingleton<FileActionsViewModel>();
 
-        serviceCollection.AddSingleton<TimelineViewModel>();
+        serviceCollection.AddTimelineServices();
         serviceCollection.AddSingleton<IMessenger>(_ => WeakReferenceMessenger.Default);
-        serviceCollection.AddSingleton<ITimelineTrackFactory, TimelineTrackFactory>();
-        serviceCollection.AddSingleton<ITimelineHistoryCoordinator, TimelineHistoryCoordinator>();
 
         
 

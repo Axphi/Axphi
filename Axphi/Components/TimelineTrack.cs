@@ -4,7 +4,7 @@ using System.Windows.Controls;
 
 namespace Axphi.Components
 {
-    public class TimelineTrackPanel : Panel
+    public class TimelineTrack : Panel
     {
         public ChartTimeline? Context
         {
@@ -36,14 +36,14 @@ namespace Axphi.Components
             DependencyProperty.Register(
                 nameof(Context),
                 typeof(ChartTimeline),
-                typeof(TimelineTrackPanel),
+                typeof(TimelineTrack),
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsArrange, OnContextChanged));
 
         public static readonly DependencyProperty TimeProperty =
             DependencyProperty.RegisterAttached(
                 "Time",
                 typeof(TimeSpan),
-                typeof(TimelineTrackPanel),
+                typeof(TimelineTrack),
                 new FrameworkPropertyMetadata(default(TimeSpan), FrameworkPropertyMetadataOptions.AffectsParentArrange));
 
         protected override Size MeasureOverride(Size availableSize)
@@ -70,7 +70,9 @@ namespace Axphi.Components
             {
                 var childTime = GetTime(child);
                 var x = Context?.GetTimelineX(childTime) ?? 0;
-                child.Arrange(new Rect(new Point(x, 0), child.DesiredSize));
+                child.Arrange(new Rect(
+                    new Point(x - child.DesiredSize.Width / 2, 0), 
+                    new Size(child.DesiredSize.Width, finalSize.Height)));
             }
 
             return finalSize;
@@ -78,7 +80,7 @@ namespace Axphi.Components
 
         private static void OnContextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            var panel = (TimelineTrackPanel)d;
+            var panel = (TimelineTrack)d;
 
             if (e.OldValue is ChartTimeline oldContext)
             {

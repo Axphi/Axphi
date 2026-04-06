@@ -48,160 +48,176 @@
                     <Border Background="#3d3d3d"
                             BorderBrush="#3d3d3d"
                             BorderThickness="1">
-                        <DockPanel Grid.IsSharedSizeScope="True">
-                            <Grid DockPanel.Dock="Top"
+                        <Grid Grid.IsSharedSizeScope="True">
+                            <DockPanel>
+                                <Grid DockPanel.Dock="Top"
                                   Height="24">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition x:Name="PART_TimelineHeaderColumn"
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition x:Name="PART_TimelineHeaderColumn"
                                                       Width="100" 
                                                       MinWidth="10"
                                                       SharedSizeGroup="Left"/>
-                                    <ColumnDefinition x:Name="PART_TimelineSplitterColumn"
+                                        <ColumnDefinition x:Name="PART_TimelineSplitterColumn"
                                                       Width="3"
                                                       SharedSizeGroup="Splitter"/>
-                                    <ColumnDefinition MinWidth="10"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Background="#3d3d3d">
-                                    <TextBlock Text="Objects"/>
-                                </Border>
-                                <GridSplitter Grid.Column="1"
+                                        <ColumnDefinition MinWidth="10"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Background="#3d3d3d">
+                                        <TextBlock Text="Objects"/>
+                                    </Border>
+                                    <GridSplitter Grid.Column="1"
                                               Background="Transparent"
                                               VerticalAlignment="Stretch"
                                               HorizontalAlignment="Stretch"/>
-                                <Border Grid.Column="2">
-                                    <comp:ChartTimelineRuler Context="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}"/>
-                                </Border>
-                            </Grid>
-                            <ItemsControl ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=Chart.JudgementLines}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type data:JudgementLine}">
-                                        <Grid>
-                                            <comp:TimelineExpander>
-                                                <comp:TimelineExpander.Header>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="Line: "/>
-                                                        <TextBlock Text="{Binding Name}"/>
-                                                    </StackPanel>
-                                                </comp:TimelineExpander.Header>
-                                                <comp:TimelineExpander.HeaderBackgroundSlot>
+                                    <Border Grid.Column="2">
+                                        <comp:ChartTimelineRuler Context="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}"/>
+                                    </Border>
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=Chart.JudgementLines}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type data:JudgementLine}">
+                                            <Grid>
+                                                <comp:TimelineExpander>
+                                                    <comp:TimelineExpander.Header>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="Line: "/>
+                                                            <TextBlock Text="{Binding Name}"/>
+                                                        </StackPanel>
+                                                    </comp:TimelineExpander.Header>
+                                                    <comp:TimelineExpander.HeaderBackgroundSlot>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="Left"/>
+                                                                <ColumnDefinition Width="3" SharedSizeGroup="Splitter"/>
+                                                                <ColumnDefinition/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Rectangle Fill="#2d4f84"/>
+                                                        </Grid>
+                                                    </comp:TimelineExpander.HeaderBackgroundSlot>
                                                     <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                        </Grid.RowDefinitions>
                                                         <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="Left"/>
-                                                            <ColumnDefinition Width="3" SharedSizeGroup="Splitter"/>
+                                                            <ColumnDefinition SharedSizeGroup="Left"/>
+                                                            <ColumnDefinition Width="3"/>
                                                             <ColumnDefinition/>
                                                         </Grid.ColumnDefinitions>
-                                                        <Rectangle Fill="#2d4f84"/>
-                                                    </Grid>
-                                                </comp:TimelineExpander.HeaderBackgroundSlot>
-                                                <Grid>
-                                                    <Grid.RowDefinitions>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition Height="Auto"/>
-                                                    </Grid.RowDefinitions>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition SharedSizeGroup="Left"/>
-                                                        <ColumnDefinition Width="3"/>
-                                                        <ColumnDefinition/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Grid Grid.Row="0" Grid.Column="0">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <UniformGrid Columns="1">
-                                                            <TextBlock Text="Anchor"/>
-                                                            <TextBlock Text="Position"/>
-                                                            <TextBlock Text="Scale"/>
-                                                            <TextBlock Text="Rotation"/>
-                                                            <TextBlock Text="Opacity"/>
-                                                            <TextBlock Text="Speed"/>
-                                                        </UniformGrid>
-                                                        <UniformGrid Grid.Column="1" Columns="1"
+                                                        <Grid Grid.Row="0" Grid.Column="0">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <UniformGrid Columns="1">
+                                                                <TextBlock Text="Anchor"/>
+                                                                <TextBlock Text="Position"/>
+                                                                <TextBlock Text="Scale"/>
+                                                                <TextBlock Text="Rotation"/>
+                                                                <TextBlock Text="Opacity"/>
+                                                                <TextBlock Text="Speed"/>
+                                                            </UniformGrid>
+                                                            <UniformGrid Grid.Column="1" Columns="1"
                                                                      Margin="4 0 0 0">
-                                                            <ws:ToggleButton/>
-                                                            <ws:ToggleButton/>
-                                                            <ws:ToggleButton/>
-                                                            <ws:ToggleButton/>
-                                                            <ws:ToggleButton/>
-                                                            <ws:ToggleButton/>
-                                                        </UniformGrid>
-                                                    </Grid>
-                                                    <Rectangle Grid.Row="0"
+                                                                <ws:ToggleButton/>
+                                                                <ws:ToggleButton/>
+                                                                <ws:ToggleButton/>
+                                                                <ws:ToggleButton/>
+                                                                <ws:ToggleButton/>
+                                                                <ws:ToggleButton/>
+                                                            </UniformGrid>
+                                                        </Grid>
+                                                        <Rectangle Grid.Row="0"
                                                                Grid.Column="2"
                                                                Margin="0 4 4 4"
                                                                Fill="#131313"
                                                                RadiusX="2"
                                                                RadiusY="2"/>
-                                                    <StackPanel Grid.Row="1"
+                                                        <StackPanel Grid.Row="1"
                                                                 Grid.ColumnSpan="3">
-                                                        <comp:TimelineExpander Header="Notes"
+                                                            <comp:TimelineExpander Header="Notes"
                                                                              IndicatorFill="#1e88da"
                                                                              HeaderBackground="Transparent"
                                                                              IsExpanded="True">
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Left"/>
-                                                                    <ColumnDefinition Width="3" SharedSizeGroup="Splitter"/>
-                                                                    <ColumnDefinition/>
-                                                                </Grid.ColumnDefinitions>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="Auto" SharedSizeGroup="Left"/>
+                                                                        <ColumnDefinition Width="3" SharedSizeGroup="Splitter"/>
+                                                                        <ColumnDefinition/>
+                                                                    </Grid.ColumnDefinitions>
 
-                                                                <Border Grid.Column="2" 
+                                                                    <Border Grid.Column="2" 
                                                                         Margin="0 4 4 4"
                                                                         Height="20"
                                                                         Background="#151515"
                                                                         BorderBrush="#262626"
                                                                         BorderThickness="1"
                                                                         ClipToBounds="True">
-                                                                    <ItemsControl ItemsSource="{Binding Notes}">
-                                                                        <ItemsControl.ItemsPanel>
-                                                                            <ItemsPanelTemplate>
-                                                                                <comp:TimelineTrackPanel Context="{Binding RelativeSource={RelativeSource AncestorType={x:Type comp:ChartTimeline}}}"/>
-                                                                            </ItemsPanelTemplate>
-                                                                        </ItemsControl.ItemsPanel>
-                                                                        <ItemsControl.ItemContainerStyle>
-                                                                            <Style TargetType="{x:Type ContentPresenter}">
-                                                                                <Setter Property="comp:TimelineTrackPanel.Time"
+                                                                        <ItemsControl ItemsSource="{Binding Notes}">
+                                                                            <ItemsControl.ItemsPanel>
+                                                                                <ItemsPanelTemplate>
+                                                                                    <comp:TimelineTrack Context="{Binding RelativeSource={RelativeSource AncestorType={x:Type comp:ChartTimeline}}}"/>
+                                                                                </ItemsPanelTemplate>
+                                                                            </ItemsControl.ItemsPanel>
+                                                                            <ItemsControl.ItemContainerStyle>
+                                                                                <Style TargetType="{x:Type ContentPresenter}">
+                                                                                    <Setter Property="comp:TimelineTrack.Time"
                                                                                     Value="{Binding HitTime}"/>
-                                                                            </Style>
-                                                                        </ItemsControl.ItemContainerStyle>
-                                                                        <ItemsControl.ItemTemplate>
-                                                                            <DataTemplate DataType="{x:Type data:Note}">
-                                                                                <Border Width="10"
+                                                                                </Style>
+                                                                            </ItemsControl.ItemContainerStyle>
+                                                                            <ItemsControl.ItemTemplate>
+                                                                                <DataTemplate DataType="{x:Type data:Note}">
+                                                                                    <Border Width="10"
                                                                                     Height="12"
                                                                                     Margin="0 4 0 0"
                                                                                     CornerRadius="2">
-                                                                                    <Border.Style>
-                                                                                        <Style TargetType="{x:Type Border}">
-                                                                                            <Setter Property="Background" Value="#5285f3"/>
-                                                                                            <Style.Triggers>
-                                                                                                <DataTrigger Binding="{Binding Kind}" Value="Drag">
-                                                                                                    <Setter Property="Background" Value="#ffde91"/>
-                                                                                                </DataTrigger>
-                                                                                                <DataTrigger Binding="{Binding Kind}" Value="Hold">
-                                                                                                    <Setter Property="Background" Value="#51b4ff"/>
-                                                                                                </DataTrigger>
-                                                                                                <DataTrigger Binding="{Binding Kind}" Value="Flick">
-                                                                                                    <Setter Property="Background" Value="#ff5f5f"/>
-                                                                                                </DataTrigger>
-                                                                                            </Style.Triggers>
-                                                                                        </Style>
-                                                                                    </Border.Style>
-                                                                                </Border>
-                                                                            </DataTemplate>
-                                                                        </ItemsControl.ItemTemplate>
-                                                                    </ItemsControl>
-                                                                </Border>
-                                                            </Grid>
-                                                        </comp:TimelineExpander>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </comp:TimelineExpander>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </DockPanel>
+                                                                                        <Border.Style>
+                                                                                            <Style TargetType="{x:Type Border}">
+                                                                                                <Setter Property="Background" Value="#5285f3"/>
+                                                                                                <Style.Triggers>
+                                                                                                    <DataTrigger Binding="{Binding Kind}" Value="Drag">
+                                                                                                        <Setter Property="Background" Value="#ffde91"/>
+                                                                                                    </DataTrigger>
+                                                                                                    <DataTrigger Binding="{Binding Kind}" Value="Hold">
+                                                                                                        <Setter Property="Background" Value="#51b4ff"/>
+                                                                                                    </DataTrigger>
+                                                                                                    <DataTrigger Binding="{Binding Kind}" Value="Flick">
+                                                                                                        <Setter Property="Background" Value="#ff5f5f"/>
+                                                                                                    </DataTrigger>
+                                                                                                </Style.Triggers>
+                                                                                            </Style>
+                                                                                        </Border.Style>
+                                                                                    </Border>
+                                                                                </DataTemplate>
+                                                                            </ItemsControl.ItemTemplate>
+                                                                        </ItemsControl>
+                                                                    </Border>
+                                                                </Grid>
+                                                            </comp:TimelineExpander>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </comp:TimelineExpander>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </DockPanel>
+
+                            <!--Overlay-->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Left"/>
+                                    <ColumnDefinition Width="3" SharedSizeGroup="Splitter"/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+
+                                <comp:ChartPlayTimeIndicator Grid.Column="2"
+                                                             Context="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}}"
+                                                             PlayTime="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=PlayTime,Mode=TwoWay}"
+                                                             AllowDragMove="True"/>
+                            </Grid>
+                        </Grid>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
@@ -291,7 +307,8 @@
 
                             <!--主内容-->
                             <ContentPresenter Grid.Row="1"
-                                              Grid.Column="1"
+                                              Grid.Column="0"
+                                              Grid.ColumnSpan="2"
                                               Content="{TemplateBinding Content}"
                                               ContentTemplate="{TemplateBinding ContentTemplate}"
                                               ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
@@ -305,5 +322,9 @@
 
     <Style TargetType="{x:Type comp:ChartTimelineRuler}">
 
+    </Style>
+
+    <Style TargetType="{x:Type comp:ChartPlayTimeIndicator}">
+        
     </Style>
 </ResourceDictionary>

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Axphi.Data.AnimatableProperties
@@ -16,6 +17,7 @@ namespace Axphi.Data.AnimatableProperties
         where TSelf : AnimatableProperty<TOwner, TSelf, TValue, TKeyFrame>
         where TKeyFrame : KeyFrame<TSelf, TValue>
     {
+        [JsonIgnore]
         public TOwner Owner { get; }
 
         public TValue InitialValue { get; set; }

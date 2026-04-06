@@ -84,23 +84,6 @@
 
                 </comp:TabPane>
 
-                <comp:TabPane Grid.Row="1"
-                              Grid.ColumnSpan="2"
-                              Header="Timeline">
-                    <comp:ChartTimeline Chart="{Binding ProjectManager.EditingProject.Chart}"/>
-                </comp:TabPane>
-
-                <comp:TabPane Header="Project"
-                              Grid.Row="1"
-                              Grid.Column="2">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <ws:Button Content="Import"
-                                       Command="{Binding ImportMusicCommand}"/>
-                        </StackPanel>
-                    </StackPanel>
-                </comp:TabPane>
-
                 <DockPanel Grid.Row="0"
                            Grid.Column="1">
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
@@ -114,6 +97,24 @@
                                         Chart="{Binding ProjectManager.EditingProject.Chart}"
                                         ClipToBounds="True"/>
                 </DockPanel>
+
+                <comp:TabPane Grid.Row="1"
+                              Grid.ColumnSpan="2"
+                              Header="Timeline">
+                    <comp:ChartTimeline Chart="{Binding ProjectManager.EditingProject.Chart}"
+                                        PlayTime="{Binding PlaybackService.Time}"/>
+                </comp:TabPane>
+
+                <comp:TabPane Header="Project"
+                              Grid.Row="1"
+                              Grid.Column="2">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <ws:Button Content="Import"
+                                       Command="{Binding ImportMusicCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </comp:TabPane>
             </Grid>
         </DockPanel>
     </ws:WindowContentAdapter>

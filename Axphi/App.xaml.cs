@@ -22,6 +22,7 @@ public partial class App : Application
         serviceCollection.AddSingleton<MainViewModel>();
 
         serviceCollection.AddSingleton<ProjectManager>();
+        serviceCollection.AddSingleton<PlaybackService>();
 
         return serviceCollection.BuildServiceProvider();
     }

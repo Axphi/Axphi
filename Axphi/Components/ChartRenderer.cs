@@ -5,13 +5,14 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
+using Axphi.Abstraction;
 using Axphi.Data;
 using Axphi.Data.KeyFrames;
 using Axphi.Utilities;
 
 namespace Axphi.Components
 {
-    public class ChartRenderer : FrameworkElement
+    public class ChartRenderer : FrameworkElement, IChartRenderer
     {
         private static SolidColorBrush _lineYellow = new SolidColorBrush(Color.FromRgb(254, 255, 169));
         private static SolidColorBrush _lineBlue = new SolidColorBrush(Color.FromRgb(162, 238, 255));
@@ -54,10 +55,6 @@ namespace Axphi.Components
 
         public static readonly DependencyProperty ShowBpmLinesProperty =
             DependencyProperty.Register("ShowBpmLines", typeof(bool), typeof(ChartRenderer), new PropertyMetadata(false));
-
-
-
-
 
         public static readonly DependencyProperty TimeProperty =
             DependencyProperty.Register("Time", typeof(TimeSpan), typeof(ChartRenderer),

@@ -25,6 +25,13 @@ namespace Axphi.Components
             get { return (TimeSpan)GetValue(TimeProperty); }
             set { SetValue(TimeProperty, value); }
         }
+
+        public TimeSpan PlayTime
+        {
+            get { return (TimeSpan)GetValue(PlayTimeProperty); }
+            set { SetValue(PlayTimeProperty, value); }
+        }
+
         public Chart Chart
         {
             get { return (Chart)GetValue(ChartProperty); }
@@ -70,6 +77,10 @@ namespace Axphi.Components
                 typeof(double),
                 typeof(ChartTimeline),
                 new FrameworkPropertyMetadata(1.0, FrameworkPropertyMetadataOptions.AffectsRender, OnViewportPropertyChanged));
+
+        public static readonly DependencyProperty PlayTimeProperty =
+            DependencyProperty.Register(nameof(PlayTime), typeof(TimeSpan), typeof(ChartTimeline), 
+                new FrameworkPropertyMetadata(default(TimeSpan), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         public double GetTimelineX(TimeSpan absoluteTime)
         {

@@ -1,4 +1,5 @@
 ﻿using Axphi.Data;
+using Axphi.Playback;
 using Axphi.Services;
 using Axphi.Utilities;
 using Axphi.ViewModels;
@@ -24,21 +25,24 @@ public partial class MainWindow : Window
 
     private MediaFoundationReader? _musicReader;
     private WasapiOut? _wasapiOut;
-
-    private DispatcherTimer? _dispatcherTimer;
-    private Stopwatch? _renderStopwatch;
+    private WasapiOutBasedPlayTimeSyncProvider _customPlayTimeSyncProvider;
 
     public MainViewModel ViewModel { get; }
     public ProjectManager ProjectManager { get; }
+    public PlaybackService PlaybackService { get; }
 
     public MainWindow(
         MainViewModel viewModel,
-        ProjectManager projectManager)
+        ProjectManager projectManager,
+        PlaybackService playbackService)
     {
         ViewModel = viewModel;
         ProjectManager = projectManager;
+        PlaybackService = playbackService;
         DataContext = this;
         InitializeComponent();
+
+        playbackService.ChartRenderer = chartRenderer;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -48,40 +52,38 @@ public partial class MainWindow : Window
         base.OnSourceInitialized(e);
     }
 
+    private void EnsurePlayTimeSyncProvider()
+    {
+        if (_wasapiOut is null)
+        {
+            PlaybackService.CustomPlayTimeSyncProvider = null;
+        }
+        else if (_customPlayTimeSyncProvider is not null)
+        {
+            PlaybackService.CustomPlayTimeSyncProvider = _customPlayTimeSyncProvider;
+        }
+    }
+
     [RelayCommand]
     private void PlayPauseChartRendering()
     {
-        _renderStopwatch ??= new Stopwatch();
-        if (_dispatcherTimer is null)
-        {
-            _dispatcherTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(1), DispatcherPriority.Render, RenderTimerCallback, Dispatcher);
-        }
-        else
-        {
-            _dispatcherTimer.IsEnabled ^= true;
-        }
+        EnsurePlayTimeSyncProvider();
 
-        if (_dispatcherTimer.IsEnabled)
+        if (PlaybackService.IsPlaying)
         {
-            _wasapiOut?.Play();
-            _renderStopwatch.Start();
+            PlaybackService.Pause();
         }
         else
         {
-            _wasapiOut?.Pause();
-            _renderStopwatch.Stop();
+            PlaybackService.Play();
         }
     }
 
     [RelayCommand]
     private void StopChartRendering()
     {
-        _dispatcherTimer?.Stop();
-        _renderStopwatch?.Stop();
-        _renderStopwatch?.Reset();
-        _wasapiOut?.Stop();
-
-        chartRenderer.Time = default;
+        EnsurePlayTimeSyncProvider();
+        PlaybackService.Stop();
     }
 
     [RelayCommand]
@@ -113,6 +115,7 @@ public partial class MainWindow : Window
         _musicReader = new MediaFoundationReader(_importMusicDialog.FileName);
         _wasapiOut ??= new WasapiOut();
         _wasapiOut.Init(_musicReader);
+        _customPlayTimeSyncProvider = new WasapiOutBasedPlayTimeSyncProvider(_musicReader, _wasapiOut);
     }
 
     [RelayCommand]
@@ -158,17 +161,4 @@ public partial class MainWindow : Window
     [RelayCommand]
     private void CloseSelf()
         => Close();
-
-    private void RenderTimerCallback(object? sender, EventArgs e)
-    {
-        if (_wasapiOut is not null &&
-            _wasapiOut.PlaybackState == PlaybackState.Playing)
-        {
-            chartRenderer.Time = _wasapiOut.GetPositionTimeSpan();
-            return;
-        }
-
-        _renderStopwatch ??= new Stopwatch();
-        chartRenderer.Time = _renderStopwatch.Elapsed;
-    }
 }

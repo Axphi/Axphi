@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Axphi.Data
 {
     public class RelationObject<TParent>
         where TParent : class
     {
+        [JsonIgnore]
         public TParent? Parent { get; private set; }
 
         public class Collection<TChild> : ObservableCollection<TChild>

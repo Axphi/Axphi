@@ -10,6 +10,9 @@ namespace Axphi.Data
     /// </summary>
     public class Chart
     {
+        [JsonIgnore]
+        private ChartLineGraphIndex? _lineGraphIndex;
+
         /// <summary>
         /// 谱面版本
         /// </summary>
@@ -93,33 +96,26 @@ namespace Axphi.Data
         /// </summary>
         public KeyFrameEasingDirection KeyFrameEasingDirection { get; set; } = KeyFrameEasingDirection.ToNext;
 
+        public IReadOnlyDictionary<string, JudgementLine> GetLineByIdMap()
+        {
+            return GetOrBuildLineGraphIndex().LineById;
+        }
+
+        public void InvalidateLineGraphIndex()
+        {
+            _lineGraphIndex = null;
+        }
+
+        private ChartLineGraphIndex GetOrBuildLineGraphIndex()
+        {
+            return _lineGraphIndex ??= ChartLineGraphIndex.Build(this);
+        }
+
         public void RebuildHierarchy()
         {
-            var lineById = new Dictionary<string, JudgementLine>(StringComparer.Ordinal);
-
-            foreach (var line in JudgementLines)
-            {
-                line.ParentChart = this;
-                line.ParentLine = null;
-
-                if (!string.IsNullOrWhiteSpace(line.ID) && !lineById.ContainsKey(line.ID))
-                {
-                    lineById[line.ID] = line;
-                }
-
-                foreach (var note in line.Notes)
-                {
-                    note.ParentLine = line;
-                }
-            }
-
-            foreach (var line in JudgementLines)
-            {
-                if (!string.IsNullOrWhiteSpace(line.ParentLineId) && lineById.TryGetValue(line.ParentLineId, out var parentLine))
-                {
-                    line.ParentLine = parentLine;
-                }
-            }
+            var graphIndex = ChartLineGraphIndex.Build(this);
+            _lineGraphIndex = graphIndex;
+            graphIndex.ApplyHierarchy(this);
         }
 
     }

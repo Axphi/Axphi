@@ -3,9 +3,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System;
+using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
+using System.Windows;
 
 namespace Axphi.ViewModels
 {
@@ -67,10 +69,66 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private double _currentCustomSpeed;
 
+        public ObservableCollection<PropertyPanelRowItem> PropertyRows { get; } = new();
+
         public NoteSelectionPanelViewModel(TimelineViewModel timeline, IMessenger messenger)
         {
             _timeline = timeline;
             _messenger = messenger;
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Kind",
+                PropertyEditorKind.NoteKind,
+                () => AddNoteKindKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Anchor",
+                PropertyEditorKind.Anchor,
+                () => AddAnchorKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Position",
+                PropertyEditorKind.Position,
+                () => AddPositionKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Scale",
+                PropertyEditorKind.Scale,
+                () => AddScaleKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Rotation",
+                PropertyEditorKind.RotationPlain,
+                () => AddRotationKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Opacity",
+                PropertyEditorKind.Opacity,
+                () => AddOpacityKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
         }
 
         public ICommand? AddNoteKindKeyframeCommand => SingleSelectedNote?.AddNoteKindKeyframeCommand;
@@ -92,6 +150,11 @@ namespace Axphi.ViewModels
             OnPropertyChanged(nameof(AddRotationKeyframeCommand));
             OnPropertyChanged(nameof(AddOpacityKeyframeCommand));
             OnPropertyChanged(nameof(CanEditKeyframes));
+
+            foreach (var row in PropertyRows)
+            {
+                row.RefreshBindings();
+            }
         }
 
         public void SyncSelection()

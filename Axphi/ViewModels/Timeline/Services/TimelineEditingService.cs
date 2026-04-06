@@ -162,15 +162,21 @@ public sealed class TimelineEditingService : ITimelineEditingService
             return true;
         }
 
+        var trackById = BuildTrackByIdMap(tracks);
+
         if (normalizedParentId != null)
         {
-            var parentTrack = tracks.FirstOrDefault(track => track.Data.ID == normalizedParentId);
+            if (!trackById.TryGetValue(normalizedParentId, out var parentTrack))
+            {
+                return false;
+            }
+
             if (parentTrack == null || ReferenceEquals(parentTrack, childTrack))
             {
                 return false;
             }
 
-            if (WillCreateParentCycle(tracks, childTrack.Data.ID, normalizedParentId))
+            if (WillCreateParentCycle(trackById, childTrack.Data.ID, normalizedParentId))
             {
                 return false;
             }
@@ -185,7 +191,8 @@ public sealed class TimelineEditingService : ITimelineEditingService
         ObservableCollection<TrackViewModel> tracks,
         Action onHierarchyChanged)
     {
-        var validIds = tracks.Select(track => track.Data.ID).ToHashSet();
+        var trackById = BuildTrackByIdMap(tracks);
+        var validIds = trackById.Keys;
         bool changed = false;
 
         foreach (var track in tracks)
@@ -283,7 +290,7 @@ public sealed class TimelineEditingService : ITimelineEditingService
     }
 
     private static bool WillCreateParentCycle(
-        ObservableCollection<TrackViewModel> tracks,
+        IReadOnlyDictionary<string, TrackViewModel> trackById,
         string childLineId,
         string candidateParentId)
     {
@@ -297,10 +304,28 @@ public sealed class TimelineEditingService : ITimelineEditingService
                 return true;
             }
 
-            var next = tracks.FirstOrDefault(track => track.Data.ID == current)?.Data.ParentLineId;
+            var next = trackById.TryGetValue(current, out var nextTrack)
+                ? nextTrack.Data.ParentLineId
+                : null;
             current = string.IsNullOrWhiteSpace(next) ? null : next;
         }
 
         return false;
+    }
+
+    private static Dictionary<string, TrackViewModel> BuildTrackByIdMap(IEnumerable<TrackViewModel> tracks)
+    {
+        var map = new Dictionary<string, TrackViewModel>(StringComparer.Ordinal);
+        foreach (var track in tracks)
+        {
+            if (string.IsNullOrWhiteSpace(track.Data.ID) || map.ContainsKey(track.Data.ID))
+            {
+                continue;
+            }
+
+            map[track.Data.ID] = track;
+        }
+
+        return map;
     }
 }

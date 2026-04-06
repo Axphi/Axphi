@@ -39,9 +39,8 @@ public partial class MainWindow : Window
     private DependencyObject? _marqueeSelectionScope;
 
 
-    // 在类成员区域添加
-    private readonly DispatcherTimer _dragTimer = new DispatcherTimer();
-    private Action? _currentDragAction = null; // 记录当前正在拖拽谁
+    // 拖拽状态机已下沉到协调器：主窗口只负责事件路由
+    private readonly TimelineContinuousDragCoordinator _dragCoordinator;
     private readonly TimelineMarqueeSelectionService _marqueeSelectionService = new();
     private readonly TimelineInteractionController _timelineInteractionController = new();
     private double _lastTimelineLeftPanelWidth = -1;
@@ -58,9 +57,12 @@ public partial class MainWindow : Window
         DataContext = mainViewModel;
 
 
-        // 🌟 新增：初始化 60FPS 拖拽刷新计时器
-        _dragTimer.Interval = TimeSpan.FromMilliseconds(16);
-        _dragTimer.Tick += DragTimer_Tick;
+        _dragCoordinator = new TimelineContinuousDragCoordinator(
+            getPointerXOnSurface: () => Mouse.GetPosition(OverlayCanvas).X,
+            getSurfaceWidth: () => OverlayCanvas.ActualWidth,
+            getScrollValue: () => GlobalHorizontalScroll.Value,
+            setScrollValue: value => GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, value),
+            getScrollMaximum: () => GlobalHorizontalScroll.Maximum);
 
         WeakReferenceMessenger.Default.Register<AudioLoadedMessage>(this, (r, message) =>
         {
@@ -147,38 +149,6 @@ public partial class MainWindow : Window
         GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, restoredOffset);
     }
 
-    private void DragTimer_Tick(object? sender, EventArgs e)
-    {
-        // 🌟 核心修复：把 TimelineMainGrid 换成了 OverlayCanvas
-        Point pos = Mouse.GetPosition(OverlayCanvas);
-        double edgeMargin = 30.0; // 边缘触发感应区宽度
-        double speedMult = 0.5;   // 速度倍率
-
-        double scrollDelta = 0;
-
-        // 向右越界
-        if (pos.X > OverlayCanvas.ActualWidth - edgeMargin)
-        {
-            scrollDelta = (pos.X - (OverlayCanvas.ActualWidth - edgeMargin)) * speedMult;
-        }
-        // 向左越界
-        else if (pos.X < edgeMargin)
-        {
-            scrollDelta = (pos.X - edgeMargin) * speedMult;
-        }
-
-        if (scrollDelta != 0)
-        {
-            double newValue = GlobalHorizontalScroll.Value + scrollDelta;
-            newValue = Math.Clamp(newValue, 0, GlobalHorizontalScroll.Maximum);
-            GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newValue);
-        }
-
-        // 强制游标更新位置
-        _currentDragAction?.Invoke();
-    }
-
-
     protected override void OnSourceInitialized(EventArgs e)
     {
         var hwndSource = (HwndSource)PresentationSource.FromVisual(this);
@@ -200,9 +170,10 @@ public partial class MainWindow : Window
                 double oldScale = vm.Timeline.ZoomScale;
                 double oldOffset = GlobalHorizontalScroll.Value;
 
+                double zoomStep = vm.Timeline.ZoomStepFactor;
                 double newScale = oldScale;
-                if (e.Delta > 0) newScale *= 1.1;
-                else if (e.Delta < 0) newScale /= 1.1;
+                if (e.Delta > 0) newScale *= zoomStep;
+                else if (e.Delta < 0) newScale /= zoomStep;
 
 
 
@@ -210,16 +181,13 @@ public partial class MainWindow : Window
 
 
                 // ================= 🌟 新增：动态计算“刚好填满屏幕”的最小缩放比例 =================
-                double basePixelsPerTick = 0.5; // 你的 TimelineViewModel 基础常数
+                double basePixelsPerTick = vm.Timeline.BasePixelsPerTick;
 
-                double rightPadding = 15.0; // 与 ViewModel 保持一致
+                double rightPadding = vm.Timeline.RightEmptyPadding;
 
-
-                double minScale = (vm.Timeline.ViewportActualWidth- rightPadding) / (vm.Timeline.TotalDurationTicks * basePixelsPerTick);
 
                 // 绝对不允许画面比屏幕窄！(防穿模、防走光)
-                if (newScale < minScale) newScale = minScale;
-                if (newScale > 100.0) newScale = 100.0;
+                newScale = vm.Timeline.ClampZoomScale(newScale, vm.Timeline.ViewportActualWidth);
                 // ==============================================================================
 
 
@@ -231,7 +199,7 @@ public partial class MainWindow : Window
 
                 // ================= 【解决频闪的终极黑科技】 =================
                 // 🌟 1. 预测新缩放下的物理总宽度
-                double expectedNewTotalWidth = vm.Timeline.TotalDurationTicks * 0.5 * newScale;
+                double expectedNewTotalWidth = vm.Timeline.TotalDurationTicks * basePixelsPerTick * newScale;
                 // 🌟 2. 预测正确的滚动条最大边界 (总宽 - 视口宽)
                 double expectedNewMaximum = Math.Max(0, expectedNewTotalWidth - vm.Timeline.ViewportActualWidth+ rightPadding);
 
@@ -422,8 +390,7 @@ public partial class MainWindow : Window
 
         WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
 
-        _currentDragAction = UpdatePlayheadPosition;
-        _dragTimer.Start();
+        _dragCoordinator.Start(UpdatePlayheadPosition, enableEdgeAutoScroll: true);
     }
 
 
@@ -432,14 +399,13 @@ public partial class MainWindow : Window
     private void Playhead_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
     {
         // 鼠标在屏幕内移动时，也强制触发一次位置更新，保证丝滑
-        _currentDragAction?.Invoke();
+        _dragCoordinator.Pulse();
     }
 
     private void Playhead_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
     {
         // 🌟 松手时立刻熄火！
-        _dragTimer.Stop();
-        _currentDragAction = null;
+        _dragCoordinator.Stop();
 
         if (this.DataContext is MainViewModel vm)
         {
@@ -613,7 +579,7 @@ public partial class MainWindow : Window
         Rect marqueeBounds = marqueeTransform.TransformBounds(new Rect(0, 0, MarqueeRect.Width, MarqueeRect.Height));
 
         var selectionRoot = _marqueeSelectionScope ?? TimelineMainGrid;
-        var allThumbs = EnumerateCandidateThumbs(selectionRoot, marqueeBounds);
+        var allThumbs = EnumerateIntersectingThumbs(selectionRoot, marqueeBounds);
 
         foreach (var thumb in allThumbs)
         {
@@ -642,54 +608,32 @@ public partial class MainWindow : Window
                 continue;
             }
 
-            try
+            var selectionNode = (ISelectionNode)dataContext;
+
+            // 3. 根据起手时的修饰键，执行不同的命运
+            if (_marqueeModifiers.HasFlag(ModifierKeys.Control))
             {
-                if (!TryGetThumbBoundsInTimeline(thumb, out Rect thumbBounds))
-                {
-                    continue;
-                }
-
-                // 2. 灵魂相交判定！
-                if (marqueeBounds.IntersectsWith(thumbBounds))
-                {
-                    var selectionNode = (ISelectionNode)dataContext;
-
-                    // 3. 根据起手时的修饰键，执行不同的命运
-                    if (_marqueeModifiers.HasFlag(ModifierKeys.Control))
-                    {
-                        // Ctrl 框选：取反 (Toggle)
-                        selectionNode.IsSelected = !selectionNode.IsSelected;
-                    }
-                    else if (_marqueeModifiers.HasFlag(ModifierKeys.Shift))
-                    {
-                        // Shift 框选：纯加选 (Add)
-                        selectionNode.IsSelected = true;
-                    }
-                    else
-                    {
-                        // 普通框选 (None)：因为前面已经清空了全场，这里直接点亮即可 (排他)
-                        selectionNode.IsSelected = true;
-                    }
-                }
+                // Ctrl 框选：取反 (Toggle)
+                selectionNode.IsSelected = !selectionNode.IsSelected;
             }
-            catch
+            else if (_marqueeModifiers.HasFlag(ModifierKeys.Shift))
             {
-                // 防止虚拟化控件报错
+                // Shift 框选：纯加选 (Add)
+                selectionNode.IsSelected = true;
+            }
+            else
+            {
+                // 普通框选 (None)：因为前面已经清空了全场，这里直接点亮即可 (排他)
+                selectionNode.IsSelected = true;
             }
         }
 
         _marqueeSelectionScope = null;
     }
 
-    private IEnumerable<Thumb> EnumerateCandidateThumbs(DependencyObject selectionRoot, Rect marqueeBounds)
+    private IEnumerable<Thumb> EnumerateIntersectingThumbs(DependencyObject selectionRoot, Rect marqueeBounds)
     {
-        return _marqueeSelectionService.EnumerateCandidateThumbs(selectionRoot, marqueeBounds, TimelineMainGrid, this);
-    }
-
-    // ================= 【工具：递归查找视觉子元素】 =================
-    private bool TryGetThumbBoundsInTimeline(Thumb thumb, out Rect thumbBounds)
-    {
-        return _marqueeSelectionService.TryGetThumbBoundsInTimeline(thumb, TimelineMainGrid, out thumbBounds);
+        return _marqueeSelectionService.EnumerateIntersectingThumbs(selectionRoot, marqueeBounds, TimelineMainGrid, this);
     }
 
     private static bool IsInNotePropertyKeyframeEditor(DependencyObject current)
@@ -718,11 +662,10 @@ public partial class MainWindow : Window
         WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
 
         // 3. 将任务交给全局 60 帧引擎！
-        _currentDragAction = UpdateRulerDragPosition;
-        _dragTimer.Start();
+        _dragCoordinator.Start(UpdateRulerDragPosition, enableEdgeAutoScroll: true);
 
         // 立刻执行一次空降
-        _currentDragAction?.Invoke();
+        _dragCoordinator.Pulse();
         e.Handled = true;
     }
 
@@ -731,7 +674,7 @@ public partial class MainWindow : Window
         // 鼠标在屏幕内移动时，也强制触发一次位置更新，保证丝滑
         if (e.LeftButton == MouseButtonState.Pressed && MainTimelineRuler.IsMouseCaptured)
         {
-            _currentDragAction?.Invoke();
+            _dragCoordinator.Pulse();
         }
     }
 
@@ -743,8 +686,7 @@ public partial class MainWindow : Window
         }
 
         // 🌟 松手时立刻熄火！
-        _dragTimer.Stop();
-        _currentDragAction = null;
+        _dragCoordinator.Stop();
 
         if (this.DataContext is MainViewModel vm)
         {
@@ -787,19 +729,17 @@ public partial class MainWindow : Window
             _timelineInteractionController.BeginWorkspaceLeftDrag(vm.Timeline, GetTimelineAbsolutePointerX());
         }
 
-        _currentDragAction = UpdateWorkspaceLeftPosition;
-        _dragTimer.Start();
+        _dragCoordinator.Start(UpdateWorkspaceLeftPosition, enableEdgeAutoScroll: true);
     }
 
     private void WorkspaceLeft_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
     {
-        _currentDragAction?.Invoke();
+        _dragCoordinator.Pulse();
     }
 
     private void WorkspaceLeft_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) // 记得在 XAML 绑定 DragCompleted 事件
     {
-        _dragTimer.Stop();
-        _currentDragAction = null;
+        _dragCoordinator.Stop();
     }
 
     private void UpdateWorkspaceLeftPosition()
@@ -827,21 +767,19 @@ public partial class MainWindow : Window
         }
 
         // 将当前动作指定为更新右手柄，并启动 60fps 引擎！
-        _currentDragAction = UpdateWorkspaceRightPosition;
-        _dragTimer.Start();
+        _dragCoordinator.Start(UpdateWorkspaceRightPosition, enableEdgeAutoScroll: true);
     }
 
     private void WorkspaceRight_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
     {
         // 只要鼠标在动，就强制触发一次绝对位置计算
-        _currentDragAction?.Invoke();
+        _dragCoordinator.Pulse();
     }
 
     private void WorkspaceRight_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
     {
         // 🌟 松手时立刻熄火！(记得在 XAML 里的右侧 Thumb 绑定此事件)
-        _dragTimer.Stop();
-        _currentDragAction = null;
+        _dragCoordinator.Stop();
     }
 
     // 🌟 右手柄位置的绝对计算函数 (被 DragDelta 和 全局计时器 共同调用)
@@ -992,10 +930,7 @@ public partial class MainWindow : Window
 
 
             // ================= 🌟 新增：窗口拉宽时的“防走光”自适应 =================
-            double basePixelsPerTick = 0.5;
-            double rightPadding = 15.0;
-            
-            double minScale = Math.Max(0.01, (visiblePixels - rightPadding) / (vm.Timeline.TotalDurationTicks * basePixelsPerTick));
+            double minScale = vm.Timeline.ComputeMinZoomScale(visiblePixels);
             // 如果窗口变宽，导致当前的缩放比例不足以填满全屏，就强行把它撑满！
             if (vm.Timeline.ZoomScale < minScale)
             {
@@ -1143,7 +1078,7 @@ public partial class MainWindow : Window
     {
         double visibleTicks = endTick - startTick;
         double rulerWidth = MainTimelineRuler.ActualWidth;
-        double basePixelsPerTick = 0.5; // 这是你定义在 TimelineViewModel 里的基础常数
+        double basePixelsPerTick = vm.Timeline.BasePixelsPerTick;
 
         // 1. 根据新的可视 Tick 数量，反推算出需要的 ZoomScale
         double newZoom = rulerWidth / (visibleTicks * basePixelsPerTick);
@@ -1151,11 +1086,8 @@ public partial class MainWindow : Window
 
 
         // ================= 🌟 新增：同样在这里限制最小缩放比例 =================
-        double rightPadding = 15.0;
-        double minScale = (vm.Timeline.ViewportActualWidth - rightPadding) / (vm.Timeline.TotalDurationTicks * basePixelsPerTick);
-
-        if (newZoom < minScale) newZoom = minScale;
-        if (newZoom > 100.0) newZoom = 100.0;
+        double rightPadding = vm.Timeline.RightEmptyPadding;
+        newZoom = vm.Timeline.ClampZoomScale(newZoom, vm.Timeline.ViewportActualWidth);
         // ========================================================================
 
         // ================= 🌟 核心修复 =================

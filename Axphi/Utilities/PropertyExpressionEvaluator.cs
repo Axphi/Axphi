@@ -6,6 +6,7 @@ using Jint.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Windows;
 
@@ -16,6 +17,22 @@ namespace Axphi.Utilities
     public static class PropertyExpressionEvaluator
     {
         private static readonly AsyncLocal<HashSet<string>?> AmbientEvaluationStack = new();
+        private static readonly AsyncLocal<BoundEvaluationState?> AmbientBoundState = new();
+        private static readonly ConditionalWeakTable<Chart, ChartBindingCache> ChartBindingCaches = new();
+        private static readonly object ChartBindingCacheLock = new();
+
+        public static void InvalidateChartCache(Chart? chart)
+        {
+            if (chart == null)
+            {
+                return;
+            }
+
+            lock (ChartBindingCacheLock)
+            {
+                ChartBindingCaches.Remove(chart);
+            }
+        }
 
         public static ExpressionRuntimeContext CreateContext(double tick, Chart? chart)
         {
@@ -180,6 +197,7 @@ namespace Axphi.Utilities
 
             string normalizedExpression = NormalizeExpression(expression, expectsVector);
             var engine = new Engine(options => options.LimitRecursion(64).MaxStatements(512));
+            BoundEvaluationState? previousBoundState = AmbientBoundState.Value;
             try
             {
                 AmbientEvaluationStack.Value = evaluationStack;
@@ -198,13 +216,16 @@ namespace Axphi.Utilities
 
                 if (chart != null)
                 {
-                    BindLineReferences(engine, chart, currentLine, context);
+                    var bindingCache = GetOrCreateBindingCache(chart);
+                    AmbientBoundState.Value = new BoundEvaluationState(chart, context, bindingCache);
+                    BindLineReferences(engine, bindingCache, currentLine);
                 }
 
                 return engine.Evaluate($"(() => {{ {normalizedExpression} }})()");
             }
             finally
             {
+                AmbientBoundState.Value = previousBoundState;
                 AmbientEvaluationStack.Value = previousStack;
                 if (currentFrameKey != null)
                 {
@@ -310,32 +331,52 @@ namespace Axphi.Utilities
             return resolvedBpm;
         }
 
-        private static void BindLineReferences(Engine engine, Chart chart, JudgementLine? currentLine, ExpressionRuntimeContext context)
+        private static ChartBindingCache GetOrCreateBindingCache(Chart chart)
+        {
+            lock (ChartBindingCacheLock)
+            {
+                if (ChartBindingCaches.TryGetValue(chart, out var existing)
+                    && existing.LineCount == chart.JudgementLines.Count)
+                {
+                    return existing;
+                }
+
+                var rebuilt = BuildBindingCache(chart);
+                ChartBindingCaches.Remove(chart);
+                ChartBindingCaches.Add(chart, rebuilt);
+                return rebuilt;
+            }
+        }
+
+        private static ChartBindingCache BuildBindingCache(Chart chart)
         {
             chart.RebuildHierarchy();
 
             var lineLookup = new Dictionary<string, ExpressionLineProxy>(StringComparer.Ordinal);
+            var lineByReference = new Dictionary<JudgementLine, ExpressionLineProxy>();
 
             foreach (JudgementLine line in chart.JudgementLines)
             {
                 var noteLookup = BuildNoteLookup(line);
-                var proxy = new ExpressionLineProxy(
-                    line,
-                    propertyName => ResolveLineProperty(line, propertyName, context, chart),
-                    noteKey => ResolveLineNote(line, noteLookup, noteKey, context, chart));
+                var proxy = new ExpressionLineProxy(line, noteLookup);
+                lineByReference[line] = proxy;
                 RegisterLineKey(lineLookup, line.ID, proxy);
                 RegisterLineKey(lineLookup, line.Name, proxy);
             }
 
+            return new ChartBindingCache(lineLookup, lineByReference, chart.JudgementLines.Count);
+        }
+
+        private static void BindLineReferences(Engine engine, ChartBindingCache bindingCache, JudgementLine? currentLine)
+        {
+            var lineLookup = bindingCache.LineLookup;
+
             if (currentLine != null)
             {
-                var currentLineNoteLookup = BuildNoteLookup(currentLine);
-                engine.SetValue("self", lineLookup.TryGetValue(currentLine.ID, out var selfProxy)
-                    ? selfProxy
-                    : new ExpressionLineProxy(
-                        currentLine,
-                        propertyName => ResolveLineProperty(currentLine, propertyName, context, chart),
-                        noteKey => ResolveLineNote(currentLine, currentLineNoteLookup, noteKey, context, chart)));
+                var selfProxy = bindingCache.LineByReference.TryGetValue(currentLine, out var cachedSelfProxy)
+                    ? cachedSelfProxy
+                    : new ExpressionLineProxy(currentLine, BuildNoteLookup(currentLine));
+                engine.SetValue("self", selfProxy);
 
                 if (!string.IsNullOrWhiteSpace(currentLine.ParentLineId) && lineLookup.TryGetValue(currentLine.ParentLineId, out var parentProxy))
                 {
@@ -395,6 +436,15 @@ namespace Axphi.Utilities
 
         private static object ResolveLineProperty(JudgementLine line, string propertyName, ExpressionRuntimeContext context, Chart chart)
         {
+            var state = AmbientBoundState.Value;
+            if (state == null)
+            {
+                return JsValue.Undefined;
+            }
+
+            context = state.Context;
+            chart = state.Chart;
+
             if (TryResolveContextProperty(propertyName, context, out var contextValue))
             {
                 return contextValue;
@@ -418,10 +468,17 @@ namespace Axphi.Utilities
         private static object? ResolveLineNote(
             JudgementLine line,
             IReadOnlyDictionary<string, Note> noteLookup,
-            string noteKey,
-            ExpressionRuntimeContext context,
-            Chart chart)
+            string noteKey)
         {
+            var state = AmbientBoundState.Value;
+            if (state == null)
+            {
+                return null;
+            }
+
+            var context = state.Context;
+            var chart = state.Chart;
+
             if (string.IsNullOrWhiteSpace(noteKey) || noteLookup.Count == 0)
             {
                 return null;
@@ -432,17 +489,25 @@ namespace Axphi.Utilities
                 return null;
             }
 
+            state.BindingCache.LineByReference.TryGetValue(line, out var lineProxy);
+
             return new ExpressionNoteProxy(
                 note,
                 propertyName => ResolveNoteProperty(note, propertyName, context, chart),
-                () => new ExpressionLineProxy(
-                    line,
-                    propertyName => ResolveLineProperty(line, propertyName, context, chart),
-                    key => ResolveLineNote(line, noteLookup, key, context, chart)));
+                () => lineProxy);
         }
 
         private static object ResolveNoteProperty(Note note, string propertyName, ExpressionRuntimeContext context, Chart chart)
         {
+            var state = AmbientBoundState.Value;
+            if (state == null)
+            {
+                return JsValue.Undefined;
+            }
+
+            context = state.Context;
+            chart = state.Chart;
+
             if (TryResolveContextProperty(propertyName, context, out var contextValue))
             {
                 return contextValue;
@@ -711,30 +776,35 @@ namespace Axphi.Utilities
             return $"{line.ID}:{propertyName}";
         }
 
+        private sealed record BoundEvaluationState(Chart Chart, ExpressionRuntimeContext Context, ChartBindingCache BindingCache);
+
+        private sealed record ChartBindingCache(
+            Dictionary<string, ExpressionLineProxy> LineLookup,
+            Dictionary<JudgementLine, ExpressionLineProxy> LineByReference,
+            int LineCount);
+
         private sealed class ExpressionLineProxy
         {
             private readonly JudgementLine _line;
-            private readonly Func<string, object> _propertyResolver;
-            private readonly Func<string, object?> _noteResolver;
+            private readonly IReadOnlyDictionary<string, Note> _noteLookup;
 
-            public ExpressionLineProxy(JudgementLine line, Func<string, object> propertyResolver, Func<string, object?> noteResolver)
+            public ExpressionLineProxy(JudgementLine line, IReadOnlyDictionary<string, Note> noteLookup)
             {
                 _line = line;
-                _propertyResolver = propertyResolver;
-                _noteResolver = noteResolver;
+                _noteLookup = noteLookup;
             }
 
             public string id => _line.ID;
             public string name => _line.Name;
             public string? parentId => _line.ParentLineId;
-            public object anchor => _propertyResolver(ExpressionPropertyNames.Anchor);
-            public object position => _propertyResolver(ExpressionPropertyNames.Position);
-            public object scale => _propertyResolver(ExpressionPropertyNames.Scale);
-            public object rotation => _propertyResolver(ExpressionPropertyNames.Rotation);
-            public object opacity => _propertyResolver(ExpressionPropertyNames.Opacity);
-            public object speed => _propertyResolver(ExpressionPropertyNames.Speed);
+            public object anchor => ResolveLineProperty(_line, ExpressionPropertyNames.Anchor, default, null!);
+            public object position => ResolveLineProperty(_line, ExpressionPropertyNames.Position, default, null!);
+            public object scale => ResolveLineProperty(_line, ExpressionPropertyNames.Scale, default, null!);
+            public object rotation => ResolveLineProperty(_line, ExpressionPropertyNames.Rotation, default, null!);
+            public object opacity => ResolveLineProperty(_line, ExpressionPropertyNames.Opacity, default, null!);
+            public object speed => ResolveLineProperty(_line, ExpressionPropertyNames.Speed, default, null!);
 
-            public object? notes(string noteKey) => _noteResolver(noteKey);
+            public object? notes(string noteKey) => ResolveLineNote(_line, _noteLookup, noteKey);
         }
 
         private sealed class ExpressionNoteProxy

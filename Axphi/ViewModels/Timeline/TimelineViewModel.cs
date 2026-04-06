@@ -62,9 +62,17 @@ namespace Axphi.ViewModels
         [NotifyPropertyChangedFor(nameof(MaxScrollOffset))]
         private int _totalDurationTicks = 10000;
 
-        // 3. 基础缩放系数：1 个 Tick 默认占多少像素？
-        // 如果给 1.0，那 10000 个 Tick 就是 10000 像素，太长了。我们默认给个 0.5 像素试试。
-        private const double BasePixelsPerTick = 0.5;
+        // 3. 时间轴几何常量（SSOT）：统一由 TimelineViewModel 提供，避免多处硬编码漂移
+        public const double DefaultBasePixelsPerTick = 0.5;
+        public const double DefaultRightEmptyPadding = 15.0;
+        public const double DefaultMinZoomScaleFloor = 0.01;
+        public const double DefaultMaxZoomScale = 100.0;
+        public const double DefaultZoomStepFactor = 1.1;
+
+        public double BasePixelsPerTick => DefaultBasePixelsPerTick;
+        public double MinZoomScaleFloor => DefaultMinZoomScaleFloor;
+        public double MaxZoomScale => DefaultMaxZoomScale;
+        public double ZoomStepFactor => DefaultZoomStepFactor;
 
         // 4. 【核心魔法】计算出右侧轨道的物理总像素宽度！UI 会绑定这个值！
         public double TotalPixelWidth => TotalDurationTicks * BasePixelsPerTick * ZoomScale;
@@ -81,7 +89,28 @@ namespace Axphi.ViewModels
 
         // 🌟 新增：在最右侧强行留出一段安全空白（单位：像素）
         // 你可以根据喜好调整大小
-        public double RightEmptyPadding => 15.0;
+        public double RightEmptyPadding => DefaultRightEmptyPadding;
+
+        public double ComputeMinZoomScale(double viewportWidth)
+        {
+            double denominator = Math.Max(1, TotalDurationTicks) * Math.Max(0.000001, BasePixelsPerTick);
+            return Math.Max(MinZoomScaleFloor, (viewportWidth - RightEmptyPadding) / denominator);
+        }
+
+        public double ComputeMinZoomScale()
+        {
+            return ComputeMinZoomScale(ViewportActualWidth);
+        }
+
+        public double ClampZoomScale(double zoomScale, double viewportWidth)
+        {
+            return Math.Clamp(zoomScale, ComputeMinZoomScale(viewportWidth), MaxZoomScale);
+        }
+
+        public double ClampZoomScale(double zoomScale)
+        {
+            return ClampZoomScale(zoomScale, ViewportActualWidth);
+        }
 
 
         // 计算真正的最大允许滚动距离（总宽 - 屏幕宽，最小为0防止缩放太小报错）
@@ -132,6 +161,13 @@ namespace Axphi.ViewModels
         // 2. 当你按 Alt+滚轮 缩放时，游标位置也必须跟着伸缩！
         partial void OnZoomScaleChanged(double value)
         {
+            double clampedValue = ClampZoomScale(value);
+            if (Math.Abs(clampedValue - value) > 0.000001)
+            {
+                ZoomScale = clampedValue;
+                return;
+            }
+
             GetProjectMetadata().ZoomScale = value;
 
             // 注意：因为 TotalPixelWidth 用了 NotifyPropertyChangedFor
@@ -263,6 +299,8 @@ namespace Axphi.ViewModels
 
             _messenger.Register<TimelineViewModel, JudgementLinesChangedMessage>(this, (recipient, message) =>
             {
+                recipient.CurrentChart.InvalidateLineGraphIndex();
+                PropertyExpressionEvaluator.InvalidateChartCache(recipient.CurrentChart);
                 recipient.ScheduleHistorySnapshotCapture();
             });
 
@@ -272,6 +310,8 @@ namespace Axphi.ViewModels
                 // 重新去抱 ProjectManager 的大腿！拿到最新的“谱面B”！
                 if (recipient._projectSession.EditingProject != null)
                 {
+                    recipient.CurrentChart.InvalidateLineGraphIndex();
+                    PropertyExpressionEvaluator.InvalidateChartCache(recipient.CurrentChart);
                     recipient._keyframeClipboard.Clear();
                     recipient.NotifyKeyframeClipboardCommandsStateChanged();
                     // 收到换工程的广播后，立刻执行重建动作！

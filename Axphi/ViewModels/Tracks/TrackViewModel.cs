@@ -86,6 +86,8 @@ namespace Axphi.ViewModels
 
         public TrackExpressionSlot SpeedExpression { get; }
 
+        public ObservableCollection<PropertyPanelRowItem> PropertyRows { get; } = new();
+
         public ObservableCollection<TimelinePropertyRowItem> TimelinePropertyRows { get; } = new();
 
         // ================= 1. 底层数据源 =================
@@ -201,6 +203,13 @@ namespace Axphi.ViewModels
                 ValidateSpeedExpression,
                 HandleExpressionToggleChanged,
                 HandleExpressionTextCommitted);
+
+            PropertyRows.Add(new PropertyPanelRowItem("Anchor", PropertyEditorKind.Anchor, AddAnchorKeyframeCommand, AnchorExpression));
+            PropertyRows.Add(new PropertyPanelRowItem("Position", PropertyEditorKind.Position, AddPositionKeyframeCommand, PositionExpression));
+            PropertyRows.Add(new PropertyPanelRowItem("Scale", PropertyEditorKind.Scale, AddScaleKeyframeCommand, ScaleExpression));
+            PropertyRows.Add(new PropertyPanelRowItem("Rotation", PropertyEditorKind.Rotation, AddRotationKeyframeCommand, RotationExpression));
+            PropertyRows.Add(new PropertyPanelRowItem("Opacity", PropertyEditorKind.Opacity, AddOpacityKeyframeCommand, OpacityExpression));
+            PropertyRows.Add(new PropertyPanelRowItem("Speed", PropertyEditorKind.Speed, AddSpeedKeyframeCommand, SpeedExpression));
 
             TimelinePropertyRows.Add(new TimelinePropertyRowItem(UIAnchorKeyframes, "Anchor 关键帧", AnchorExpression));
             TimelinePropertyRows.Add(new TimelinePropertyRowItem(UIOffsetKeyframes, "Position 关键帧", PositionExpression));
@@ -801,44 +810,53 @@ namespace Axphi.ViewModels
             where T : struct
             where TKeyFrame : KeyFrame<T> // 告诉编译器，TKeyFrame 肯定是 KeyFrame<T> 的子类
         {
+            if (dataList.Count <= 1)
+            {
+                SyncKeyframeProjection(dataList, uiList);
+                return;
+            }
+
             // 1. 先按时间排好队
             dataList.Sort((a, b) => a.Time.CompareTo(b.Time));
 
-            // 2. 倒序遍历检查碰撞（倒序遍历时删除元素才不会导致索引越界报错）
-            for (int i = dataList.Count - 1; i > 0; i--)
+            // 2. 预先建立“当前被选中关键帧模型”集合，避免在去重过程中反复线性查找 UI 包装器。
+            var selectedModels = new HashSet<TKeyFrame>();
+            foreach (var wrapper in uiList)
             {
-                // 发现两辆车撞在同一时间点了！
-                if (dataList[i].Time == dataList[i - 1].Time)
+                if (wrapper.IsSelected && wrapper.Model is TKeyFrame selectedModel)
                 {
-                    var modelA = dataList[i - 1];
-                    var modelB = dataList[i];
+                    selectedModels.Add(selectedModel);
+                }
+            }
 
-                    var wrapperA = uiList.FirstOrDefault(w => w.Model == modelA);
-                    var wrapperB = uiList.FirstOrDefault(w => w.Model == modelB);
+            // 3. 同时间点按组去重：优先保留“最后一个被选中项”；若都未选中则保留最后一个。
+            var deduped = new List<TKeyFrame>(dataList.Count);
+            int i = 0;
+            while (i < dataList.Count)
+            {
+                int j = i + 1;
+                while (j < dataList.Count && dataList[j].Time == dataList[i].Time)
+                {
+                    j++;
+                }
 
-                    if (wrapperA != null && wrapperB != null)
+                TKeyFrame winner = dataList[j - 1];
+                for (int k = i; k < j; k++)
+                {
+                    if (selectedModels.Contains(dataList[k]))
                     {
-                        // 核心判定规则：谁是被捏在手里拖过来的（被选中），谁就是赢家！
-                        KeyFrameUIWrapper<T> victim;
-
-                        if (wrapperA.IsSelected && !wrapperB.IsSelected)
-                        {
-                            victim = wrapperB; // A是拖过来的，B被覆盖
-                        }
-                        else if (!wrapperA.IsSelected && wrapperB.IsSelected)
-                        {
-                            victim = wrapperA; // B是拖过来的，A被覆盖
-                        }
-                        else
-                        {
-                            // 万一两个都没选中或者都选中了（极端情况），默认杀掉前面那个
-                            victim = wrapperA;
-                        }
-
-                        // 删除只落到底层数据，UI 集合统一按投影同步。
-                        dataList.Remove((TKeyFrame)victim.Model);
+                        winner = dataList[k];
                     }
                 }
+
+                deduped.Add(winner);
+                i = j;
+            }
+
+            if (deduped.Count != dataList.Count)
+            {
+                dataList.Clear();
+                dataList.AddRange(deduped);
             }
 
             SyncKeyframeProjection(dataList, uiList);

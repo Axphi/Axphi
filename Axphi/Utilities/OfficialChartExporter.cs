@@ -129,10 +129,7 @@ internal static class OfficialChartExporter
         var chart = project.Chart ?? new Chart();
         int endTick = GetExportEndTick(project);
         double defaultBpm = GetDefaultBpm(chart);
-        var lineById = chart.JudgementLines
-            .Where(line => !string.IsNullOrWhiteSpace(line.ID))
-            .GroupBy(line => line.ID)
-            .ToDictionary(group => group.Key, group => group.First());
+        var lineById = chart.GetLineByIdMap();
 
         var judgeLines = new List<OfficialJudgeLineDto>();
         for (int index = 0; index < chart.JudgementLines.Count; index++)

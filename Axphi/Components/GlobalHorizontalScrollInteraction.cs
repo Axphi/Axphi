@@ -34,18 +34,6 @@ public static class GlobalHorizontalScrollInteraction
         typeof(GlobalHorizontalScrollInteraction),
         new PropertyMetadata(null));
 
-    public static readonly DependencyProperty BasePixelsPerTickProperty = DependencyProperty.RegisterAttached(
-        "BasePixelsPerTick",
-        typeof(double),
-        typeof(GlobalHorizontalScrollInteraction),
-        new PropertyMetadata(0.5));
-
-    public static readonly DependencyProperty RightPaddingProperty = DependencyProperty.RegisterAttached(
-        "RightPadding",
-        typeof(double),
-        typeof(GlobalHorizontalScrollInteraction),
-        new PropertyMetadata(15.0));
-
     public static void SetEnable(DependencyObject element, bool value) => element.SetValue(EnableProperty, value);
     public static bool GetEnable(DependencyObject element) => (bool)element.GetValue(EnableProperty);
 
@@ -57,12 +45,6 @@ public static class GlobalHorizontalScrollInteraction
 
     public static void SetViewportReference(DependencyObject element, FrameworkElement? value) => element.SetValue(ViewportReferenceProperty, value);
     public static FrameworkElement? GetViewportReference(DependencyObject element) => (FrameworkElement?)element.GetValue(ViewportReferenceProperty);
-
-    public static void SetBasePixelsPerTick(DependencyObject element, double value) => element.SetValue(BasePixelsPerTickProperty, value);
-    public static double GetBasePixelsPerTick(DependencyObject element) => (double)element.GetValue(BasePixelsPerTickProperty);
-
-    public static void SetRightPadding(DependencyObject element, double value) => element.SetValue(RightPaddingProperty, value);
-    public static double GetRightPadding(DependencyObject element) => (double)element.GetValue(RightPaddingProperty);
 
     private static void OnEnableChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -128,11 +110,7 @@ public static class GlobalHorizontalScrollInteraction
 
         timeline.ViewportActualWidth = visiblePixels;
 
-        double basePixelsPerTick = Math.Max(0.000001, GetBasePixelsPerTick(scrollBar));
-        double rightPadding = GetRightPadding(scrollBar);
-
-        double denominator = Math.Max(1, timeline.TotalDurationTicks) * basePixelsPerTick;
-        double minScale = Math.Max(0.01, (visiblePixels - rightPadding) / denominator);
+        double minScale = timeline.ComputeMinZoomScale(visiblePixels);
 
         if (timeline.ZoomScale < minScale)
         {

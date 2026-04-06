@@ -24,7 +24,7 @@ public sealed class TimelineMarqueeSelectionService
             ?? GetMarqueeSelectionScopeFromPoint(mousePointInTimelineGrid, timelineMainGrid, root);
     }
 
-    public IEnumerable<Thumb> EnumerateCandidateThumbs(
+    public IEnumerable<Thumb> EnumerateIntersectingThumbs(
         DependencyObject selectionRoot,
         Rect marqueeBounds,
         FrameworkElement timelineMainGrid,
@@ -32,53 +32,25 @@ public sealed class TimelineMarqueeSelectionService
     {
         if (!ReferenceEquals(selectionRoot, timelineMainGrid))
         {
-            return FindVisualChildren<Thumb>(selectionRoot);
+            return CollectIntersectingThumbs(selectionRoot, marqueeBounds, timelineMainGrid);
         }
 
-        var candidates = new List<Thumb>();
+        var thumbs = new HashSet<Thumb>();
         foreach (var control in EnumerateMarqueeTrackControls(root))
         {
-            if (!TryGetElementBoundsInTimeline(control, timelineMainGrid, out Rect controlBounds))
+            if (!TryGetElementBoundsInTimeline(control, timelineMainGrid, out Rect controlBounds)
+                || !controlBounds.IntersectsWith(marqueeBounds))
             {
                 continue;
             }
 
-            if (!controlBounds.IntersectsWith(marqueeBounds))
+            foreach (var thumb in CollectIntersectingThumbs(control, marqueeBounds, timelineMainGrid))
             {
-                continue;
+                thumbs.Add(thumb);
             }
-
-            candidates.AddRange(FindVisualChildren<Thumb>(control));
         }
 
-        return candidates;
-    }
-
-    public bool TryGetThumbBoundsInTimeline(Thumb thumb, FrameworkElement timelineMainGrid, out Rect thumbBounds)
-    {
-        thumbBounds = Rect.Empty;
-
-        try
-        {
-            Rect localBounds = VisualTreeHelper.GetDescendantBounds(thumb);
-            if (localBounds.IsEmpty || localBounds.Width <= 0 || localBounds.Height <= 0)
-            {
-                localBounds = new Rect(0, 0, thumb.ActualWidth, thumb.ActualHeight);
-            }
-
-            if (localBounds.IsEmpty || localBounds.Width <= 0 || localBounds.Height <= 0)
-            {
-                return false;
-            }
-
-            GeneralTransform transform = thumb.TransformToAncestor(timelineMainGrid);
-            thumbBounds = transform.TransformBounds(localBounds);
-            return thumbBounds.Width > 0 && thumbBounds.Height > 0;
-        }
-        catch
-        {
-            return false;
-        }
+        return thumbs;
     }
 
     public static bool IsInNotePropertyKeyframeEditor(DependencyObject current)
@@ -180,27 +152,86 @@ public sealed class TimelineMarqueeSelectionService
         return null;
     }
 
-    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
+    private static IEnumerable<Thumb> CollectIntersectingThumbs(
+        DependencyObject selectionRoot,
+        Rect marqueeBoundsInTimeline,
+        FrameworkElement timelineMainGrid)
     {
-        if (depObj == null)
+        if (selectionRoot is not Visual visualRoot)
         {
-            yield break;
+            return Array.Empty<Thumb>();
         }
 
-        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+        Rect localBounds;
+        try
         {
-            DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
-
-            if (child is T t)
+            if (ReferenceEquals(selectionRoot, timelineMainGrid))
             {
-                yield return t;
+                localBounds = marqueeBoundsInTimeline;
             }
-
-            foreach (T childOfChild in FindVisualChildren<T>(child))
+            else
             {
-                yield return childOfChild;
+                var transform = timelineMainGrid.TransformToVisual(visualRoot);
+                localBounds = transform.TransformBounds(marqueeBoundsInTimeline);
             }
         }
+        catch
+        {
+            return Array.Empty<Thumb>();
+        }
+
+        var geometry = new RectangleGeometry(localBounds);
+        var thumbs = new HashSet<Thumb>();
+
+        HitTestFilterCallback filter = dependencyObject =>
+        {
+            if (dependencyObject is UIElement uiElement && !uiElement.IsVisible)
+            {
+                return HitTestFilterBehavior.ContinueSkipSelfAndChildren;
+            }
+
+            return HitTestFilterBehavior.Continue;
+        };
+
+        HitTestResultCallback callback = result =>
+        {
+            if (result is GeometryHitTestResult geometryResult
+                && geometryResult.IntersectionDetail == IntersectionDetail.Empty)
+            {
+                return HitTestResultBehavior.Continue;
+            }
+
+            if (FindAncestorThumb(result.VisualHit, selectionRoot) is Thumb thumb)
+            {
+                thumbs.Add(thumb);
+            }
+
+            return HitTestResultBehavior.Continue;
+        };
+
+        VisualTreeHelper.HitTest(visualRoot, filter, callback, new GeometryHitTestParameters(geometry));
+        return thumbs;
+    }
+
+    private static Thumb? FindAncestorThumb(DependencyObject? node, DependencyObject boundary)
+    {
+        DependencyObject? current = node;
+        while (current != null)
+        {
+            if (current is Thumb thumb)
+            {
+                return thumb;
+            }
+
+            if (ReferenceEquals(current, boundary))
+            {
+                break;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
     }
 
     private IEnumerable<FrameworkElement> EnumerateMarqueeTrackControls(FrameworkElement root)

@@ -50,21 +50,183 @@
                         <DockPanel Grid.IsSharedSizeScope="True">
                             <Grid DockPanel.Dock="Top">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="100" 
+                                                      MinWidth="10"
+                                                      SharedSizeGroup="Left"/>
                                     <ColumnDefinition Width="3"/>
-                                    <ColumnDefinition/>
+                                    <ColumnDefinition MinWidth="10"/>
                                 </Grid.ColumnDefinitions>
+                                <Rectangle Fill="Gray" Height="13"/>
+                                <GridSplitter Grid.Column="1"
+                                              Background="Transparent"
+                                              VerticalAlignment="Stretch"
+                                              HorizontalAlignment="Stretch"/>
+                                <Rectangle Grid.Column="2"
+                                           Fill="Azure" Height="13"/>
                             </Grid>
-                            <ItemsControl>
-                                <ItemsControl.Resources>
+                            <ItemsControl ItemsSource="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=Chart.JudgementLines}">
+                                <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type data:JudgementLine}">
                                         <Grid>
+                                            <comp:TimelineExpander>
+                                                <comp:TimelineExpander.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="Line: "/>
+                                                        <TextBlock Text="{Binding Name}"/>
+                                                    </StackPanel>
+                                                </comp:TimelineExpander.Header>
+                                                <comp:TimelineExpander.HeaderBackgroundSlot>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition SharedSizeGroup="Left"/>
+                                                            <ColumnDefinition/>
+                                                            <ColumnDefinition/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Rectangle Fill="#2d4f84"/>
+                                                    </Grid>
+                                                </comp:TimelineExpander.HeaderBackgroundSlot>
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition SharedSizeGroup="Left"/>
+                                                        <ColumnDefinition/>
+                                                        <ColumnDefinition/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid Grid.Row="0" Grid.Column="0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <UniformGrid Columns="1">
+                                                            <TextBlock Text="Anchor"/>
+                                                            <TextBlock Text="Position"/>
+                                                            <TextBlock Text="Scale"/>
+                                                            <TextBlock Text="Rotation"/>
+                                                            <TextBlock Text="Opacity"/>
+                                                            <TextBlock Text="Speed"/>
+                                                        </UniformGrid>
+                                                        <UniformGrid Grid.Column="1" Columns="1">
+                                                            <TextBlock Text="Anchor"/>
+                                                            <TextBlock Text="Position"/>
+                                                            <TextBlock Text="Scale"/>
+                                                            <TextBlock Text="Rotation"/>
+                                                            <TextBlock Text="Opacity"/>
+                                                            <TextBlock Text="Speed"/>
+                                                        </UniformGrid>
+                                                    </Grid>
+                                                    <StackPanel>
+                                                        <comp:TimelineExpander Header="Notes"
+                                                                           IndicatorFill="#1e88da"
+                                                                           HeaderBackground="Transparent">
 
+                                                        </comp:TimelineExpander>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </comp:TimelineExpander>
                                         </Grid>
                                     </DataTemplate>
-                                </ItemsControl.Resources>
+                                </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </DockPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type comp:TimelineExpander}">
+        <Setter Property="Background" Value="#252525"/>
+        <Setter Property="IndicatorFill" Value="#ffd700"/>
+        <Setter Property="ToggleButtonStroke" Value="#d6d6d6"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type comp:TimelineExpander}">
+                    <ControlTemplate.Resources>
+                        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+                    </ControlTemplate.Resources>
+
+                    <Border Background="{TemplateBinding Background}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+
+                            <!--Header 背景-->
+                            <Rectangle Grid.ColumnSpan="2"
+                                       Fill="{TemplateBinding HeaderBackground}"/>
+                            <ContentPresenter Grid.ColumnSpan="2" 
+                                              Content="{TemplateBinding HeaderBackgroundSlot}"
+                                              ContentTemplate="{TemplateBinding HeaderBackgroundSlotTemplate}"/>
+
+                            <!--图标-->
+                            <StackPanel Orientation="Horizontal"
+                                        Margin="0 0 4 0">
+                                <Rectangle Width="{TemplateBinding IndicatorThickness}"
+                                           Fill="{TemplateBinding IndicatorFill}"
+                                           VerticalAlignment="Stretch"/>
+                                <ContentPresenter Content="{TemplateBinding Icon}"
+                                              ContentTemplate="{TemplateBinding IconTemplate}"/>
+                            </StackPanel>
+
+                            <!--Toggle button 和 Header-->
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+
+                                <ToggleButton IsChecked="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=IsExpanded}"
+                                              Foreground="{TemplateBinding ToggleButtonStroke}"
+                                              Margin="0 0 4 0">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="contentRoot" 
+                                                    Background="Transparent"
+                                                    Width="10" Height="10"
+                                                    RenderTransformOrigin="0.5,0.5">
+                                                <Grid VerticalAlignment="Center"
+                                                      HorizontalAlignment="Center">
+                                                    <Line X1="0" Y1="0" X2="5" Y2="5" Stroke="{TemplateBinding Foreground}" StrokeThickness="1"/>
+                                                    <Line X1="5" Y1="0" X2="0" Y2="5" Stroke="{TemplateBinding Foreground}" StrokeThickness="1" Margin="0 5 0 0"/>
+                                                </Grid>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="contentRoot"
+                                                            Property="RenderTransform">
+                                                        <Setter.Value>
+                                                            <RotateTransform Angle="90"/>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+
+                                <ContentPresenter Grid.Column="1"
+                                          Content="{TemplateBinding Header}"
+                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                          ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}"/>
+                            </Grid>
+
+                            <!--主内容-->
+                            <ContentPresenter Grid.Row="1"
+                                              Grid.Column="1"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
+                                              Visibility="{Binding RelativeSource={RelativeSource Mode=TemplatedParent},Path=IsExpanded,Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        </Grid>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>

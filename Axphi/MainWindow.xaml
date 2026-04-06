@@ -87,7 +87,7 @@
                 <comp:TabPane Grid.Row="1"
                               Grid.ColumnSpan="2"
                               Header="Timeline">
-                    <comp:ChartTimeline/>
+                    <comp:ChartTimeline Chart="{Binding ProjectManager.EditingProject.Chart}"/>
                 </comp:TabPane>
 
                 <comp:TabPane Header="Project"

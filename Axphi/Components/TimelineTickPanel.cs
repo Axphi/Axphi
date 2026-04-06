@@ -64,12 +64,30 @@ namespace Axphi.Components
 
         protected override Size MeasureOverride(Size availableSize)
         {
+            double desiredWidth = LeftPadding;
+            double desiredHeight = 0;
+
             foreach (UIElement child in InternalChildren)
             {
                 child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+
+                double tick = GetTick(child);
+                double x = LeftPadding + (Timeline?.TickToPixel(tick) ?? tick);
+                double y = GetTop(child);
+
+                desiredWidth = Math.Max(desiredWidth, x + child.DesiredSize.Width);
+                desiredHeight = Math.Max(desiredHeight, y + child.DesiredSize.Height);
             }
 
-            return availableSize;
+            double width = double.IsInfinity(availableSize.Width)
+                ? Math.Max(0, desiredWidth)
+                : availableSize.Width;
+
+            double height = double.IsInfinity(availableSize.Height)
+                ? Math.Max(0, desiredHeight)
+                : availableSize.Height;
+
+            return new Size(width, height);
         }
 
         protected override Size ArrangeOverride(Size finalSize)

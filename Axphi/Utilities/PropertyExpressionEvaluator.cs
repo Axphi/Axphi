@@ -1,4 +1,4 @@
-using Axphi.Data;
+﻿using Axphi.Data;
 using Axphi.Data.KeyFrames;
 using Jint;
 using Jint.Native;
@@ -307,6 +307,8 @@ namespace Axphi.Utilities
 
         private static void BindLineReferences(Engine engine, Chart chart, JudgementLine? currentLine, ExpressionRuntimeContext context, HashSet<string> evaluationStack)
         {
+            chart.RebuildHierarchy();
+
             var lineLookup = new Dictionary<string, ExpressionLineProxy>(StringComparer.Ordinal);
 
             foreach (JudgementLine line in chart.JudgementLines)
@@ -408,7 +410,13 @@ namespace Axphi.Utilities
                 return null;
             }
 
-            return new ExpressionNoteProxy(note, propertyName => ResolveNoteProperty(note, propertyName, context, chart, evaluationStack));
+            return new ExpressionNoteProxy(
+                note,
+                propertyName => ResolveNoteProperty(note, propertyName, context, chart, evaluationStack),
+                () => new ExpressionLineProxy(
+                    line,
+                    propertyName => ResolveLineProperty(line, propertyName, context, chart, evaluationStack),
+                    key => ResolveLineNote(line, key, context, chart, evaluationStack)));
         }
 
         private static object ResolveNoteProperty(Note note, string propertyName, ExpressionRuntimeContext context, Chart chart, HashSet<string> evaluationStack)
@@ -663,15 +671,19 @@ namespace Axphi.Utilities
         {
             private readonly Note _note;
             private readonly Func<string, object> _propertyResolver;
+            private readonly Func<object?> _lineResolver;
 
-            public ExpressionNoteProxy(Note note, Func<string, object> propertyResolver)
+            public ExpressionNoteProxy(Note note, Func<string, object> propertyResolver, Func<object?> lineResolver)
             {
                 _note = note;
                 _propertyResolver = propertyResolver;
+                _lineResolver = lineResolver;
             }
 
             public string id => _note.ID;
             public string name => _note.Name;
+            public object? line => _lineResolver();
+            public object? parent => _lineResolver();
             public object anchor => _propertyResolver("anchor");
             public object position => _propertyResolver("position");
             public object scale => _propertyResolver("scale");

@@ -966,6 +966,8 @@ namespace Axphi.Components
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
                 note.AnimatableProperties,
+                chart,
+                line,
                 out var anchor, out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(renderInfo.ChartUnitToPixel(offset.X), renderInfo.ChartUnitToPixel(offset.Y));

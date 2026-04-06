@@ -1,41 +1,38 @@
 ﻿using Axphi.ViewModels;
 using Axphi.Utilities;
 using CommunityToolkit.Mvvm.Messaging;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using System.Windows.Controls.Primitives;
 
 namespace Axphi.Views
 {
-    /// <summary>
-    /// BpmTrackControl.xaml 的交互逻辑
-    /// </summary>
     public partial class BpmTrackControl : UserControl
     {
-
         private readonly HorizontalDragTracker _dragTracker = new();
 
         public BpmTrackControl()
         {
             InitializeComponent();
 
-            Loaded += (_, _) => ApplyCurrentHorizontalOffset();
+            Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
 
-            // 监听主窗口滚动条传来的滚动指令
-            WeakReferenceMessenger.Default.Register<BpmTrackControl, SyncHorizontalScrollMessage>(this, (recipient, message) =>
+            WeakReferenceMessenger.Default.Register<BpmTrackControl, SyncHorizontalScrollMessage>(this, static (recipient, message) =>
             {
                 recipient.BpmTrackScrollViewer.ScrollToHorizontalOffset(message.Offset);
             });
+        }
 
-            this.Unloaded += (s, e) => WeakReferenceMessenger.Default.UnregisterAll(this);
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            ApplyCurrentHorizontalOffset();
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            WeakReferenceMessenger.Default.UnregisterAll(this);
         }
 
         private void ApplyCurrentHorizontalOffset()
@@ -51,34 +48,41 @@ namespace Axphi.Views
             MouseWheelPassthrough.TryHandle(sender as UIElement, e);
         }
 
-
-        // 2. 替换拖拽起手事件
-        private void KeyframeThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        private static bool TryGetTimelineDraggable(object sender, out ITimelineDraggable draggable)
         {
-            // 🌟 取相对于外层绝对静止画板的位置！
+            if (sender is FrameworkElement { DataContext: ITimelineDraggable timelineDraggable })
+            {
+                draggable = timelineDraggable;
+                return true;
+            }
+
+            draggable = default!;
+            return false;
+        }
+
+        private void KeyframeThumb_DragStarted(object sender, DragStartedEventArgs e)
+        {
             _dragTracker.Start(this);
 
-            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
+            if (TryGetTimelineDraggable(sender, out var draggable))
             {
                 draggable.OnDragStarted();
             }
         }
 
-        // 3. 替换拖拽中事件
-        private void KeyframeThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        private void KeyframeThumb_DragDelta(object sender, DragDeltaEventArgs e)
         {
-            // 🌟 自己算稳定位移！
             double stableDelta = _dragTracker.GetDeltaX(this);
 
-            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
+            if (TryGetTimelineDraggable(sender, out var draggable))
             {
                 draggable.OnDragDelta(stableDelta);
             }
         }
 
-        private void KeyframeThumb_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        private void KeyframeThumb_DragCompleted(object sender, DragCompletedEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.DataContext is ITimelineDraggable draggable)
+            if (TryGetTimelineDraggable(sender, out var draggable))
             {
                 draggable.OnDragCompleted();
             }

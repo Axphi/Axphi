@@ -1,4 +1,4 @@
-using Axphi.Data;
+﻿using Axphi.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.IO;
 using System.IO.Compression;
@@ -95,6 +95,8 @@ public partial class ProjectManager : ObservableObject
         {
             metadata.TotalDurationTicks = chart.Duration > 0 ? chart.Duration : 10000;
         }
+
+        chart.RebuildHierarchy();
 
         return new Project
         {

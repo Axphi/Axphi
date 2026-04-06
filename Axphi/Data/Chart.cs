@@ -1,6 +1,6 @@
 ﻿using Axphi.Data.KeyFrames;
-using System.Collections.ObjectModel; // 别忘了引入这个命名空间
-using static System.Net.Mime.MediaTypeNames;
+using System;
+using System.Collections.Generic;
 
 namespace Axphi.Data
 {
@@ -75,6 +75,35 @@ namespace Axphi.Data
         /// 插值方向
         /// </summary>
         public KeyFrameEasingDirection KeyFrameEasingDirection { get; set; } = KeyFrameEasingDirection.ToNext;
+
+        public void RebuildHierarchy()
+        {
+            var lineById = new Dictionary<string, JudgementLine>(StringComparer.Ordinal);
+
+            foreach (var line in JudgementLines)
+            {
+                line.ParentChart = this;
+                line.ParentLine = null;
+
+                if (!string.IsNullOrWhiteSpace(line.ID) && !lineById.ContainsKey(line.ID))
+                {
+                    lineById[line.ID] = line;
+                }
+
+                foreach (var note in line.Notes)
+                {
+                    note.ParentLine = line;
+                }
+            }
+
+            foreach (var line in JudgementLines)
+            {
+                if (!string.IsNullOrWhiteSpace(line.ParentLineId) && lineById.TryGetValue(line.ParentLineId, out var parentLine))
+                {
+                    line.ParentLine = parentLine;
+                }
+            }
+        }
 
     }
 }

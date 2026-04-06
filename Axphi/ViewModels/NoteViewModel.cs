@@ -675,6 +675,8 @@ namespace Axphi.ViewModels
             _isSyncing = true;
             EasingUtils.CalculateObjectTransform(
                 currentTick, direction, Model.AnimatableProperties,
+                _timeline.CurrentChart,
+                ParentTrack.Data,
                 out var anchor, out var offset, out var scale, out var rotationAngle, out var opacity);
 
             CurrentAnchorX = anchor.X;

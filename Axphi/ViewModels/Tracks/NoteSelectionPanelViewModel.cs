@@ -14,6 +14,7 @@ namespace Axphi.ViewModels
         private readonly TimelineViewModel _timeline;
         private readonly IMessenger _messenger;
         private bool _isSyncing;
+        private readonly List<NoteViewModel> _selectedNotesSnapshot = new();
 
         [ObservableProperty]
         private bool _hasSelection;
@@ -95,7 +96,9 @@ namespace Axphi.ViewModels
 
         public void SyncSelection()
         {
-            var selectedNotes = GetSelectedNotesSnapshot();
+            var selectedNotes = ScanSelectedNotes();
+            _selectedNotesSnapshot.Clear();
+            _selectedNotesSnapshot.AddRange(selectedNotes);
             _isSyncing = true;
 
             HasSelection = selectedNotes.Count > 0;
@@ -175,8 +178,14 @@ namespace Axphi.ViewModels
                 return;
             }
 
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0)
+            {
+                return;
+            }
+
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in GetSelectedNotesSnapshot())
+            foreach (var note in selectedNotes)
             {
                 note.ApplyNoteKindAbsolute(kind);
             }
@@ -186,97 +195,121 @@ namespace Axphi.ViewModels
         partial void OnCurrentOffsetXChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyPositionAbsolute(CurrentOffsetX, CurrentOffsetY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyPositionAbsolute(CurrentOffsetX, CurrentOffsetY));
                 return;
             }
 
-            ApplyVectorDelta(newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyPositionDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyPositionDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentAnchorXChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyAnchorAbsolute(CurrentAnchorX, CurrentAnchorY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyAnchorAbsolute(CurrentAnchorX, CurrentAnchorY));
                 return;
             }
 
-            ApplyVectorDelta(newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyAnchorDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyAnchorDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentAnchorYChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyAnchorAbsolute(CurrentAnchorX, CurrentAnchorY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyAnchorAbsolute(CurrentAnchorX, CurrentAnchorY));
                 return;
             }
 
-            ApplyVectorDelta(0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyAnchorDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, 0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyAnchorDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentOffsetYChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyPositionAbsolute(CurrentOffsetX, CurrentOffsetY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyPositionAbsolute(CurrentOffsetX, CurrentOffsetY));
                 return;
             }
 
-            ApplyVectorDelta(0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyPositionDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, 0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyPositionDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentScaleXChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyScaleAbsolute(CurrentScaleX, CurrentScaleY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyScaleAbsolute(CurrentScaleX, CurrentScaleY));
                 return;
             }
 
-            ApplyVectorDelta(newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyScaleDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyScaleDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentScaleYChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyScaleAbsolute(CurrentScaleX, CurrentScaleY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyScaleAbsolute(CurrentScaleX, CurrentScaleY));
                 return;
             }
 
-            ApplyVectorDelta(0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyScaleDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, 0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyScaleDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentRotationChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyRotationAbsolute(newValue));
+                ApplyAbsolute(selectedNotes, note => note.ApplyRotationAbsolute(newValue));
                 return;
             }
 
-            ApplyScalarDelta(newValue - oldValue, (note, delta) => note.ApplyRotationDelta(delta));
+            ApplyScalarDelta(selectedNotes, newValue - oldValue, (note, delta) => note.ApplyRotationDelta(delta));
         }
 
         partial void OnCurrentOpacityChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyOpacityAbsolute(newValue));
+                ApplyAbsolute(selectedNotes, note => note.ApplyOpacityAbsolute(newValue));
                 return;
             }
 
-            ApplyScalarDelta(newValue - oldValue, (note, delta) => note.ApplyOpacityDelta(delta));
+            ApplyScalarDelta(selectedNotes, newValue - oldValue, (note, delta) => note.ApplyOpacityDelta(delta));
         }
 
         partial void OnHasCustomSpeedChanged(bool? value)
@@ -298,18 +331,20 @@ namespace Axphi.ViewModels
         {
             if (_isSyncing || !HasSelection || HasCustomSpeed != true) return;
 
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyCustomSpeedAbsolute(newValue));
+                ApplyAbsolute(selectedNotes, note => note.ApplyCustomSpeedAbsolute(newValue));
                 return;
             }
 
-            ApplyScalarDelta(newValue - oldValue, (note, delta) => note.ApplyCustomSpeedDelta(delta));
+            ApplyScalarDelta(selectedNotes, newValue - oldValue, (note, delta) => note.ApplyCustomSpeedDelta(delta));
         }
 
-        private void ApplyAbsolute(Action<NoteViewModel> applyAction)
+        private void ApplyAbsolute(IReadOnlyList<NoteViewModel> selectedNotes, Action<NoteViewModel> applyAction)
         {
-            var selectedNotes = GetSelectedNotesSnapshot();
             if (selectedNotes.Count == 0)
             {
                 return;
@@ -323,14 +358,13 @@ namespace Axphi.ViewModels
             _messenger.Send(new JudgementLinesChangedMessage());
         }
 
-        private void ApplyVectorDelta(double deltaX, double deltaY, Action<NoteViewModel, double, double> applyAction)
+        private void ApplyVectorDelta(IReadOnlyList<NoteViewModel> selectedNotes, double deltaX, double deltaY, Action<NoteViewModel, double, double> applyAction)
         {
             if (Math.Abs(deltaX) < double.Epsilon && Math.Abs(deltaY) < double.Epsilon)
             {
                 return;
             }
 
-            var selectedNotes = GetSelectedNotesSnapshot();
             if (selectedNotes.Count == 0)
             {
                 return;
@@ -344,14 +378,13 @@ namespace Axphi.ViewModels
             _messenger.Send(new JudgementLinesChangedMessage());
         }
 
-        private void ApplyScalarDelta(double delta, Action<NoteViewModel, double> applyAction)
+        private void ApplyScalarDelta(IReadOnlyList<NoteViewModel> selectedNotes, double delta, Action<NoteViewModel, double> applyAction)
         {
             if (Math.Abs(delta) < double.Epsilon)
             {
                 return;
             }
 
-            var selectedNotes = GetSelectedNotesSnapshot();
             if (selectedNotes.Count == 0)
             {
                 return;
@@ -366,6 +399,11 @@ namespace Axphi.ViewModels
         }
 
         private List<NoteViewModel> GetSelectedNotesSnapshot()
+        {
+            return _selectedNotesSnapshot;
+        }
+
+        private List<NoteViewModel> ScanSelectedNotes()
         {
             return _timeline.Tracks
                 .SelectMany(track => track.UINotes)

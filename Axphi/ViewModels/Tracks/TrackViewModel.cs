@@ -88,6 +88,8 @@ namespace Axphi.ViewModels
 
         public TrackExpressionSlot SpeedExpression { get; }
 
+        public ObservableCollection<TimelinePropertyRowItem> TimelinePropertyRows { get; } = new();
+
         // ================= 1. 底层数据源 =================
         // 这个属性是只读的，它紧紧抓住那个不会被污染的底层老实人
         public JudgementLine Data { get; }
@@ -186,6 +188,18 @@ namespace Axphi.ViewModels
                 ValidateSpeedExpression,
                 HandleExpressionToggleChanged,
                 HandleExpressionTextCommitted);
+
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(UIAnchorKeyframes, "Anchor 关键帧", AnchorExpression));
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(UIOffsetKeyframes, "Position 关键帧", PositionExpression));
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(UIScaleKeyframes, "Scale 关键帧", ScaleExpression));
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(UIRotationKeyframes, "Rotation 关键帧", RotationExpression));
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(UIOpacityKeyframes, "Opacity 关键帧", OpacityExpression));
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(
+                UISpeedKeyframes,
+                "Speed 关键帧",
+                SpeedExpression,
+                keyframeFill: "#B366FF",
+                rowBackground: "#1a1a1a"));
 
             // 🌟 1. 出生时，读取底层的寿命数据
             LayerStartTick = Data.StartTick;
@@ -586,17 +600,28 @@ namespace Axphi.ViewModels
             where T : struct
             where TKeyFrame : KeyFrame<T>
         {
+            var dataModels = new HashSet<TKeyFrame>(dataList);
+
             for (int i = uiList.Count - 1; i >= 0; i--)
             {
-                if (!dataList.Any(model => ReferenceEquals(model, uiList[i].Model)))
+                if (uiList[i].Model is not TKeyFrame uiModel || !dataModels.Contains(uiModel))
                 {
                     uiList.RemoveAt(i);
                 }
             }
 
+            var existingModels = new HashSet<TKeyFrame>();
+            foreach (var wrapper in uiList)
+            {
+                if (wrapper.Model is TKeyFrame uiModel)
+                {
+                    existingModels.Add(uiModel);
+                }
+            }
+
             foreach (var model in dataList)
             {
-                if (!uiList.Any(wrapper => ReferenceEquals(wrapper.Model, model)))
+                if (!existingModels.Contains(model))
                 {
                     uiList.Add(new KeyFrameUIWrapper<T>(model, _timeline, _messenger));
                 }
@@ -898,17 +923,23 @@ namespace Axphi.ViewModels
 
         public void SyncNotesProjection()
         {
+            Data.Notes ??= new List<Note>();
+            var dataNotes = Data.Notes;
+            var dataModels = new HashSet<Note>(dataNotes);
+
             for (int i = UINotes.Count - 1; i >= 0; i--)
             {
-                if (!Data.Notes.Any(model => ReferenceEquals(model, UINotes[i].Model)))
+                if (!dataModels.Contains(UINotes[i].Model))
                 {
                     UINotes.RemoveAt(i);
                 }
             }
 
-            foreach (var note in Data.Notes)
+            var existingModels = new HashSet<Note>(UINotes.Select(static vm => vm.Model));
+
+            foreach (var note in dataNotes)
             {
-                if (!UINotes.Any(vm => ReferenceEquals(vm.Model, note)))
+                if (!existingModels.Contains(note))
                 {
                     UINotes.Add(new NoteViewModel(note, _timeline, this, _messenger));
                 }

@@ -1,10 +1,29 @@
 ﻿using Axphi.Data;
+using System.Collections.Generic;
 using System;
+using System.Linq;
 
 namespace Axphi.ViewModels;
 
 public sealed class TimelineSnapService : ITimelineSnapService
 {
+    private const int SnapshotRefreshIntervalMs = 120;
+
+    private sealed class SnapSnapshot
+    {
+        public required BpmTrackViewModel? BpmTrack { get; init; }
+
+        public required object TracksIdentity { get; init; }
+
+        public required long BuiltAtMs { get; init; }
+
+        public required int[] AllTicks { get; init; }
+
+        public required int[] UnselectedTicks { get; init; }
+    }
+
+    private SnapSnapshot? _snapshot;
+
     public int ResolveSnappedTick(TimelineSnapRuntime runtime)
     {
         int rawTick = (int)Math.Round(runtime.ExactTickDouble, MidpointRounding.AwayFromZero);
@@ -63,58 +82,155 @@ public sealed class TimelineSnapService : ITimelineSnapService
             TrySnap(runtime.PlayheadTick);
         }
 
-        bool ShouldIgnore(bool isSelected) => !runtime.IsPlayhead && isSelected;
+        var snapshot = GetSnapshot(runtime);
+        int lowerTick = (int)Math.Floor(runtime.ExactTickDouble - tickThreshold);
+        int upperTick = (int)Math.Ceiling(runtime.ExactTickDouble + tickThreshold);
+        var candidates = runtime.IsPlayhead ? snapshot.AllTicks : snapshot.UnselectedTicks;
+        QueryRange(candidates, lowerTick, upperTick, TrySnap);
+
+        return bestTick;
+    }
+
+    private SnapSnapshot GetSnapshot(TimelineSnapRuntime runtime)
+    {
+        long nowMs = Environment.TickCount64;
+        if (_snapshot != null
+            && ReferenceEquals(_snapshot.TracksIdentity, runtime.Tracks)
+            && ReferenceEquals(_snapshot.BpmTrack, runtime.BpmTrack)
+            && nowMs - _snapshot.BuiltAtMs <= SnapshotRefreshIntervalMs)
+        {
+            return _snapshot;
+        }
+
+        var allTicks = new List<int>(1024);
+        var unselectedTicks = new List<int>(1024);
+
+        static void AddTick(List<int> target, int tick)
+        {
+            target.Add(tick);
+        }
+
+        void AddBySelection(bool isSelected, int tick)
+        {
+            AddTick(allTicks, tick);
+            if (!isSelected)
+            {
+                AddTick(unselectedTicks, tick);
+            }
+        }
 
         if (runtime.BpmTrack != null)
         {
             foreach (var keyframe in runtime.BpmTrack.UIBpmKeyframes)
             {
-                if (!ShouldIgnore(keyframe.IsSelected))
-                {
-                    TrySnap(keyframe.Model.Time);
-                }
+                AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
             }
         }
 
         foreach (var track in runtime.Tracks)
         {
-            foreach (var keyframe in track.UIAnchorKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
-            foreach (var keyframe in track.UIOffsetKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
-            foreach (var keyframe in track.UIScaleKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
-            foreach (var keyframe in track.UIRotationKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
-            foreach (var keyframe in track.UIOpacityKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
-            foreach (var keyframe in track.UISpeedKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
+            foreach (var keyframe in track.UIAnchorKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
+            foreach (var keyframe in track.UIOffsetKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
+            foreach (var keyframe in track.UIScaleKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
+            foreach (var keyframe in track.UIRotationKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
+            foreach (var keyframe in track.UIOpacityKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
+            foreach (var keyframe in track.UISpeedKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
 
             foreach (var note in track.UINotes)
             {
-                if (!ShouldIgnore(note.IsSelected))
+                AddBySelection(note.IsSelected, note.Model.HitTime);
+                if (note.CurrentNoteKind == NoteKind.Hold)
                 {
-                    TrySnap(note.Model.HitTime);
-                    if (note.CurrentNoteKind == NoteKind.Hold)
-                    {
-                        TrySnap(note.Model.HitTime + note.HoldDuration);
-                    }
+                    AddBySelection(note.IsSelected, note.Model.HitTime + note.HoldDuration);
                 }
 
-                foreach (var keyframe in note.UIAnchorKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
-                foreach (var keyframe in note.UIOffsetKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
-                foreach (var keyframe in note.UIScaleKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
-                foreach (var keyframe in note.UIRotationKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
-                foreach (var keyframe in note.UIOpacityKeyframes) if (!ShouldIgnore(keyframe.IsSelected)) TrySnap(keyframe.Model.Time);
+                foreach (var keyframe in note.UIAnchorKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
+                foreach (var keyframe in note.UIOffsetKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
+                foreach (var keyframe in note.UIScaleKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
+                foreach (var keyframe in note.UIRotationKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
+                foreach (var keyframe in note.UIOpacityKeyframes) AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
 
-                if (note.UINoteKindKeyframes != null)
+                foreach (var keyframe in note.UINoteKindKeyframes)
                 {
-                    foreach (var keyframe in note.UINoteKindKeyframes)
-                    {
-                        if (!ShouldIgnore(keyframe.IsSelected))
-                        {
-                            TrySnap(keyframe.Model.Time);
-                        }
-                    }
+                    AddBySelection(keyframe.IsSelected, keyframe.Model.Time);
                 }
             }
         }
 
-        return bestTick;
+        _snapshot = new SnapSnapshot
+        {
+            BpmTrack = runtime.BpmTrack,
+            TracksIdentity = runtime.Tracks,
+            BuiltAtMs = nowMs,
+            AllTicks = BuildSortedDistinctArray(allTicks),
+            UnselectedTicks = BuildSortedDistinctArray(unselectedTicks),
+        };
+
+        return _snapshot;
+    }
+
+    private static int[] BuildSortedDistinctArray(List<int> ticks)
+    {
+        if (ticks.Count == 0)
+        {
+            return [];
+        }
+
+        ticks.Sort();
+        int write = 1;
+        for (int read = 1; read < ticks.Count; read++)
+        {
+            if (ticks[read] != ticks[write - 1])
+            {
+                ticks[write++] = ticks[read];
+            }
+        }
+
+        if (write == ticks.Count)
+        {
+            return ticks.ToArray();
+        }
+
+        return ticks.Take(write).ToArray();
+    }
+
+    private static void QueryRange(int[] sortedTicks, int lowerInclusive, int upperInclusive, Action<int> onTick)
+    {
+        if (sortedTicks.Length == 0 || lowerInclusive > upperInclusive)
+        {
+            return;
+        }
+
+        int start = LowerBound(sortedTicks, lowerInclusive);
+        for (int index = start; index < sortedTicks.Length; index++)
+        {
+            int tick = sortedTicks[index];
+            if (tick > upperInclusive)
+            {
+                break;
+            }
+
+            onTick(tick);
+        }
+    }
+
+    private static int LowerBound(int[] sortedTicks, int target)
+    {
+        int lo = 0;
+        int hi = sortedTicks.Length;
+        while (lo < hi)
+        {
+            int mid = lo + ((hi - lo) >> 1);
+            if (sortedTicks[mid] < target)
+            {
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid;
+            }
+        }
+
+        return lo;
     }
 }

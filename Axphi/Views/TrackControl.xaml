@@ -37,6 +37,22 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <Style x:Key="TrackTimelinePropertyRowStyle" TargetType="local:TrackTimelinePropertyView">
+            <Setter Property="TimelineWidth" Value="{Binding Timeline.TotalPixelWidth}" />
+            <Setter Property="Timeline" Value="{Binding Timeline}" />
+            <Setter Property="ExpressionEditorStyle" Value="{StaticResource ExpressionEditorBorderStyle}" />
+            <Setter Property="ExpressionEditorTextBoxStyle" Value="{StaticResource ExpressionEditorTextBoxStyle}" />
+        </Style>
+
+        <Style x:Key="NoteTimelinePropertyRowStyle" TargetType="local:TrackTimelinePropertyView">
+            <Setter Property="TimelineWidth" Value="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+            <Setter Property="Timeline" Value="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+            <Setter Property="RowBackground" Value="#1a1a1a" />
+            <Setter Property="RowBorderBrush" Value="#444" />
+            <Setter Property="ShowExpressionEditor" Value="False" />
+            <Setter Property="EnableRightClick" Value="False" />
+        </Style>
     </UserControl.Resources>
 
 
@@ -680,55 +696,21 @@
                     </Canvas>
 
                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
-                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
-                                                         Timeline="{Binding Timeline}"
-                                                         KeyframesSource="{Binding UIAnchorKeyframes}"
-                                                         ExpressionSlot="{Binding AnchorExpression}"
-                                                         KeyframeToolTip="Anchor 关键帧"
-                                                         ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
-                                                         ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
-
-                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
-                                                         Timeline="{Binding Timeline}"
-                                                         KeyframesSource="{Binding UIOffsetKeyframes}"
-                                                         ExpressionSlot="{Binding PositionExpression}"
-                                                         KeyframeToolTip="Position 关键帧"
-                                                         ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
-                                                         ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
-
-                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
-                                                         Timeline="{Binding Timeline}"
-                                                         KeyframesSource="{Binding UIScaleKeyframes}"
-                                                         ExpressionSlot="{Binding ScaleExpression}"
-                                                         KeyframeToolTip="Scale 关键帧"
-                                                         ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
-                                                         ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
-
-                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
-                                                         Timeline="{Binding Timeline}"
-                                                         KeyframesSource="{Binding UIRotationKeyframes}"
-                                                         ExpressionSlot="{Binding RotationExpression}"
-                                                         KeyframeToolTip="Rotation 关键帧"
-                                                         ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
-                                                         ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
-
-                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
-                                                         Timeline="{Binding Timeline}"
-                                                         KeyframesSource="{Binding UIOpacityKeyframes}"
-                                                         ExpressionSlot="{Binding OpacityExpression}"
-                                                         KeyframeToolTip="Opacity 关键帧"
-                                                         ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
-                                                         ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
-
-                        <local:TrackTimelinePropertyView TimelineWidth="{Binding Timeline.TotalPixelWidth}"
-                                                         Timeline="{Binding Timeline}"
-                                                         KeyframesSource="{Binding UISpeedKeyframes}"
-                                                         ExpressionSlot="{Binding SpeedExpression}"
-                                                         KeyframeToolTip="Speed 关键帧"
-                                                         KeyframeFill="#B366FF"
-                                                         RowBackground="#1a1a1a"
-                                                         ExpressionEditorStyle="{StaticResource ExpressionEditorBorderStyle}"
-                                                         ExpressionEditorTextBoxStyle="{StaticResource ExpressionEditorTextBoxStyle}" />
+                        <ItemsControl ItemsSource="{Binding TimelinePropertyRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:TimelinePropertyRowItem}">
+                                    <local:TrackTimelinePropertyView Style="{StaticResource TrackTimelinePropertyRowStyle}"
+                                                                     KeyframesSource="{Binding KeyframesSource}"
+                                                                     ExpressionSlot="{Binding ExpressionSlot}"
+                                                                     KeyframeToolTip="{Binding KeyframeToolTip}"
+                                                                     KeyframeFill="{Binding KeyframeFill}"
+                                                                     RowBackground="{Binding RowBackground}"
+                                                                     RowBorderBrush="{Binding RowBorderBrush}"
+                                                                     ShowExpressionEditor="{Binding ShowExpressionEditor}"
+                                                                     EnableRightClick="{Binding EnableRightClick}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
 
                         <!--  note的关键帧位置  -->
@@ -829,59 +811,21 @@
 
                                 </Style>
                             </StackPanel.Style>
-                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             KeyframesSource="{Binding UINoteKindKeyframes}"
-                                                             KeyframeToolTip="Note 关键帧"
-                                                             RowBackground="#1a1a1a"
-                                                             RowBorderBrush="#444"
-                                                             ShowExpressionEditor="False"
-                                                             EnableRightClick="False" />
-
-                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             KeyframesSource="{Binding UIAnchorKeyframes}"
-                                                             KeyframeToolTip="Anchor 关键帧"
-                                                             RowBackground="#1a1a1a"
-                                                             RowBorderBrush="#444"
-                                                             ShowExpressionEditor="False"
-                                                             EnableRightClick="False" />
-
-                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             KeyframesSource="{Binding UIOffsetKeyframes}"
-                                                             KeyframeToolTip="Position 关键帧"
-                                                             RowBackground="#1a1a1a"
-                                                             RowBorderBrush="#444"
-                                                             ShowExpressionEditor="False"
-                                                             EnableRightClick="False" />
-
-                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             KeyframesSource="{Binding UIScaleKeyframes}"
-                                                             KeyframeToolTip="Scale 关键帧"
-                                                             RowBackground="#1a1a1a"
-                                                             RowBorderBrush="#444"
-                                                             ShowExpressionEditor="False"
-                                                             EnableRightClick="False" />
-
-                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             KeyframesSource="{Binding UIRotationKeyframes}"
-                                                             KeyframeToolTip="Rotation 关键帧"
-                                                             RowBackground="#1a1a1a"
-                                                             RowBorderBrush="#444"
-                                                             ShowExpressionEditor="False"
-                                                             EnableRightClick="False" />
-
-                            <local:TrackTimelinePropertyView TimelineWidth="{Binding DataContext.Timeline.TotalPixelWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             Timeline="{Binding DataContext.Timeline, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                             KeyframesSource="{Binding UIOpacityKeyframes}"
-                                                             KeyframeToolTip="Opacity 关键帧"
-                                                             RowBackground="#1a1a1a"
-                                                             RowBorderBrush="#444"
-                                                             ShowExpressionEditor="False"
-                                                             EnableRightClick="False" />
+                            <ItemsControl ItemsSource="{Binding TimelinePropertyRows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:TimelinePropertyRowItem}">
+                                        <local:TrackTimelinePropertyView Style="{StaticResource NoteTimelinePropertyRowStyle}"
+                                                                         KeyframesSource="{Binding KeyframesSource}"
+                                                                         ExpressionSlot="{Binding ExpressionSlot}"
+                                                                         KeyframeToolTip="{Binding KeyframeToolTip}"
+                                                                         KeyframeFill="{Binding KeyframeFill}"
+                                                                         RowBackground="{Binding RowBackground}"
+                                                                         RowBorderBrush="{Binding RowBorderBrush}"
+                                                                         ShowExpressionEditor="{Binding ShowExpressionEditor}"
+                                                                         EnableRightClick="{Binding EnableRightClick}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
 
 
                         </StackPanel>

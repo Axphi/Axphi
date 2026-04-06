@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -99,6 +100,8 @@ namespace Axphi.ViewModels
 
         public ObservableCollection<KeyFrameUIWrapper<NoteKind>> UINoteKindKeyframes { get; } = new();
 
+        public ObservableCollection<TimelinePropertyRowItem> TimelinePropertyRows { get; } = new();
+
         // ================= 4. 供 XAML 绑定的【音符专属】当前数值 =================
         [ObservableProperty] private double _currentAnchorX;
         [ObservableProperty] private double _currentAnchorY;
@@ -134,6 +137,54 @@ namespace Axphi.ViewModels
 
             // UI 集合是底层模型的投影，不作为独立事实源。
             SyncAllKeyframeProjections();
+
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(
+                UINoteKindKeyframes,
+                "Note 关键帧",
+                rowBackground: "#1a1a1a",
+                rowBorderBrush: "#444",
+                showExpressionEditor: false,
+                enableRightClick: false));
+
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(
+                UIAnchorKeyframes,
+                "Anchor 关键帧",
+                rowBackground: "#1a1a1a",
+                rowBorderBrush: "#444",
+                showExpressionEditor: false,
+                enableRightClick: false));
+
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(
+                UIOffsetKeyframes,
+                "Position 关键帧",
+                rowBackground: "#1a1a1a",
+                rowBorderBrush: "#444",
+                showExpressionEditor: false,
+                enableRightClick: false));
+
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(
+                UIScaleKeyframes,
+                "Scale 关键帧",
+                rowBackground: "#1a1a1a",
+                rowBorderBrush: "#444",
+                showExpressionEditor: false,
+                enableRightClick: false));
+
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(
+                UIRotationKeyframes,
+                "Rotation 关键帧",
+                rowBackground: "#1a1a1a",
+                rowBorderBrush: "#444",
+                showExpressionEditor: false,
+                enableRightClick: false));
+
+            TimelinePropertyRows.Add(new TimelinePropertyRowItem(
+                UIOpacityKeyframes,
+                "Opacity 关键帧",
+                rowBackground: "#1a1a1a",
+                rowBorderBrush: "#444",
+                showExpressionEditor: false,
+                enableRightClick: false));
 
             // TODO: 这里可以保留我们之前写的接收 NotesDragStartedMessage 等拖拽逻辑
 
@@ -286,17 +337,28 @@ namespace Axphi.ViewModels
             where T : struct
             where TKeyFrame : KeyFrame<T>
         {
+            var dataModels = new HashSet<TKeyFrame>(dataList);
+
             for (int i = uiList.Count - 1; i >= 0; i--)
             {
-                if (!dataList.Any(model => ReferenceEquals(model, uiList[i].Model)))
+                if (uiList[i].Model is not TKeyFrame uiModel || !dataModels.Contains(uiModel))
                 {
                     uiList.RemoveAt(i);
                 }
             }
 
+            var existingModels = new HashSet<TKeyFrame>();
+            foreach (var wrapper in uiList)
+            {
+                if (wrapper.Model is TKeyFrame uiModel)
+                {
+                    existingModels.Add(uiModel);
+                }
+            }
+
             foreach (var model in dataList)
             {
-                if (!uiList.Any(wrapper => ReferenceEquals(wrapper.Model, model)))
+                if (!existingModels.Contains(model))
                 {
                     uiList.Add(new KeyFrameUIWrapper<T>(model, _timeline, _messenger));
                 }

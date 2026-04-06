@@ -42,10 +42,9 @@ public partial class MainWindow : Window
     // 在类成员区域添加
     private readonly DispatcherTimer _dragTimer = new DispatcherTimer();
     private Action? _currentDragAction = null; // 记录当前正在拖拽谁
+    private readonly TimelineMarqueeSelectionService _marqueeSelectionService = new();
+    private readonly TimelineInteractionController _timelineInteractionController = new();
     private double _lastTimelineLeftPanelWidth = -1;
-    private FrameworkElement? _cachedMainBpmTrackControl;
-    private FrameworkElement? _cachedMainAudioTrackControl;
-    private ItemsControl? _cachedTrackItemsControl;
 
 
     public MainWindow(
@@ -328,6 +327,26 @@ public partial class MainWindow : Window
         }
     }
 
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T matched)
+            {
+                return matched;
+            }
+
+            var nested = FindVisualChild<T>(child);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
     private void HookVerticalTrackScrollViewer(ScrollViewer scrollViewer)
     {
         _verticalTrackScrollViewers.Add(scrollViewer);
@@ -386,18 +405,19 @@ public partial class MainWindow : Window
     // 刚捏住游标的一瞬间
     // ================= 游标拖拽逻辑 (Scrubbing) =================
 
-    // ================= 游标拖拽逻辑 =================
-    private double _playheadDragMouseOffset;
-
     // ================= 1. 游标 (Playhead) =================
+
+    private double GetTimelineAbsolutePointerX()
+    {
+        double pointerX = Mouse.GetPosition(OverlayCanvas).X;
+        return _timelineInteractionController.ToAbsolutePointerX(pointerX, GlobalHorizontalScroll.Value);
+    }
 
     private void Playhead_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
     {
-        // 🌟 换成 OverlayCanvas
-        Point mousePos = Mouse.GetPosition(OverlayCanvas);
         if (this.DataContext is MainViewModel vm)
         {
-            _playheadDragMouseOffset = vm.Timeline.PlayheadPositionX - (mousePos.X + GlobalHorizontalScroll.Value);
+            _timelineInteractionController.BeginPlayheadDrag(vm.Timeline, GetTimelineAbsolutePointerX());
         }
 
         WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
@@ -438,24 +458,11 @@ public partial class MainWindow : Window
     {
         if (this.DataContext is MainViewModel vm)
         {
-            // 🌟 换成 OverlayCanvas
-            Point currentPos = Mouse.GetPosition(OverlayCanvas);
-
             bool isSnapDragging = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
-            double targetAbsolutePixel = currentPos.X + GlobalHorizontalScroll.Value;
-            if (!isSnapDragging)
-            {
-                targetAbsolutePixel += _playheadDragMouseOffset;
-            }
-
-            if (targetAbsolutePixel < 0) targetAbsolutePixel = 0;
-            if (targetAbsolutePixel > vm.Timeline.TotalPixelWidth) targetAbsolutePixel = vm.Timeline.TotalPixelWidth;
-
-            double exactTick = vm.Timeline.PixelToTick(targetAbsolutePixel);
-            int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: true);
-
-            double newSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(
-                snappedTick, vm.Timeline.CurrentChart.BpmKeyFrames, vm.Timeline.CurrentChart.InitialBpm);
+            double newSeconds = _timelineInteractionController.ComputePlayheadSeekSeconds(
+                vm.Timeline,
+                GetTimelineAbsolutePointerX(),
+                isSnapDragging);
 
             vm.Timeline.CurrentPlayTimeSeconds = newSeconds;
 
@@ -474,7 +481,7 @@ public partial class MainWindow : Window
         DependencyObject? current = e.OriginalSource as DependencyObject;
         _marqueePreserveNoteSelection = false;
         Point mousePointInTimelineGrid = e.GetPosition(TimelineMainGrid);
-        _marqueeSelectionScope = ResolveMarqueeSelectionScope(current, mousePointInTimelineGrid);
+        _marqueeSelectionScope = _marqueeSelectionService.ResolveSelectionScope(current, mousePointInTimelineGrid, TimelineMainGrid, this);
         while (current != null && current != TimelineMainGrid)
         {
             string typeName = current.GetType().Name;
@@ -522,17 +529,10 @@ public partial class MainWindow : Window
     private void TimelineMainGrid_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         // ================= 🌟 1. 中键拖拽平移 (Pan) =================
-        if (_isMiddlePanning && e.MiddleButton == MouseButtonState.Pressed)
+        if (_timelineInteractionController.IsMiddlePanning && e.MiddleButton == MouseButtonState.Pressed)
         {
             Point currentMousePos = e.GetPosition(this);
-
-            // 鼠标向左拖 (delta为负数)，代表用户的眼睛想往右看，此时滚动条的值应该变大
-            double deltaX = currentMousePos.X - _middlePanStartMousePos.X;
-            double newScrollValue = _middlePanStartScrollValue - deltaX;
-
-            // 物理防撞墙
-            if (newScrollValue < 0) newScrollValue = 0;
-            if (newScrollValue > GlobalHorizontalScroll.Maximum) newScrollValue = GlobalHorizontalScroll.Maximum;
+            double newScrollValue = _timelineInteractionController.ComputeMiddlePanScroll(currentMousePos, GlobalHorizontalScroll.Maximum);
 
             // 🌟 魔法核心：直接强行修改底部大滚动条的值，大管家会自动联动所有的轨道和小地图！
             GlobalHorizontalScroll.SetCurrentValue(System.Windows.Controls.Primitives.RangeBase.ValueProperty, newScrollValue);
@@ -683,271 +683,23 @@ public partial class MainWindow : Window
 
     private IEnumerable<Thumb> EnumerateCandidateThumbs(DependencyObject selectionRoot, Rect marqueeBounds)
     {
-        if (!ReferenceEquals(selectionRoot, TimelineMainGrid))
-        {
-            return FindVisualChildren<Thumb>(selectionRoot);
-        }
-
-        var candidates = new List<Thumb>();
-        foreach (var control in EnumerateMarqueeTrackControls())
-        {
-            if (!TryGetElementBoundsInTimeline(control, out Rect controlBounds))
-            {
-                continue;
-            }
-
-            if (!controlBounds.IntersectsWith(marqueeBounds))
-            {
-                continue;
-            }
-
-            candidates.AddRange(FindVisualChildren<Thumb>(control));
-        }
-
-        return candidates;
+        return _marqueeSelectionService.EnumerateCandidateThumbs(selectionRoot, marqueeBounds, TimelineMainGrid, this);
     }
 
     // ================= 【工具：递归查找视觉子元素】 =================
     private bool TryGetThumbBoundsInTimeline(Thumb thumb, out Rect thumbBounds)
     {
-        thumbBounds = Rect.Empty;
-
-        try
-        {
-            Rect localBounds = VisualTreeHelper.GetDescendantBounds(thumb);
-            if (localBounds.IsEmpty || localBounds.Width <= 0 || localBounds.Height <= 0)
-            {
-                localBounds = new Rect(0, 0, thumb.ActualWidth, thumb.ActualHeight);
-            }
-
-            if (localBounds.IsEmpty || localBounds.Width <= 0 || localBounds.Height <= 0)
-            {
-                return false;
-            }
-
-            GeneralTransform transform = thumb.TransformToAncestor(TimelineMainGrid);
-            thumbBounds = transform.TransformBounds(localBounds);
-            return thumbBounds.Width > 0 && thumbBounds.Height > 0;
-        }
-        catch
-        {
-            return false;
-        }
+        return _marqueeSelectionService.TryGetThumbBoundsInTimeline(thumb, TimelineMainGrid, out thumbBounds);
     }
 
     private static bool IsInNotePropertyKeyframeEditor(DependencyObject current)
     {
-        while (current != null)
-        {
-            if (current is FrameworkElement frameworkElement && frameworkElement.Name == "NoteKeyframeEditorPanel")
-            {
-                return true;
-            }
-
-            current = VisualTreeHelper.GetParent(current);
-        }
-
-        return false;
+        return TimelineMarqueeSelectionService.IsInNotePropertyKeyframeEditor(current);
     }
 
     private static bool IsNotePropertyKeyframeEditorExpanded(DependencyObject current)
     {
-        while (current != null)
-        {
-            if (current is Axphi.Views.TrackControl trackControl && trackControl.DataContext is TrackViewModel trackViewModel)
-            {
-                return trackViewModel.IsExpanded && trackViewModel.IsNoteExpanded;
-            }
-
-            current = VisualTreeHelper.GetParent(current);
-        }
-
-        return false;
-    }
-
-    private DependencyObject? ResolveMarqueeSelectionScope(DependencyObject? current, Point mousePointInTimelineGrid)
-    {
-        return GetMarqueeSelectionScope(current) ?? GetMarqueeSelectionScopeFromPoint(mousePointInTimelineGrid);
-    }
-
-    private DependencyObject? GetMarqueeSelectionScopeFromPoint(Point mousePointInTimelineGrid)
-    {
-        foreach (var control in EnumerateMarqueeTrackControls())
-        {
-            if (IsPointInsideControl(control, mousePointInTimelineGrid)) return control;
-        }
-
-        return null;
-    }
-
-    private bool IsPointInsideControl(FrameworkElement control, Point mousePointInTimelineGrid)
-    {
-        if (!control.IsVisible || control.ActualWidth <= 0 || control.ActualHeight <= 0)
-        {
-            return false;
-        }
-
-        if (!TryGetElementBoundsInTimeline(control, out Rect bounds))
-        {
-            return false;
-        }
-
-        return bounds.Contains(mousePointInTimelineGrid);
-    }
-
-    private bool TryGetElementBoundsInTimeline(FrameworkElement control, out Rect bounds)
-    {
-        bounds = Rect.Empty;
-
-        if (!control.IsVisible || control.ActualWidth <= 0 || control.ActualHeight <= 0)
-        {
-            return false;
-        }
-
-        try
-        {
-            GeneralTransform transform = control.TransformToAncestor(TimelineMainGrid);
-            bounds = transform.TransformBounds(new Rect(0, 0, control.ActualWidth, control.ActualHeight));
-            return bounds.Width > 0 && bounds.Height > 0;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static DependencyObject? GetMarqueeSelectionScope(DependencyObject? current)
-    {
-        while (current != null)
-        {
-            if (current is Axphi.Views.TrackControl ||
-                current is Axphi.Views.BpmTrackControl ||
-                current is Axphi.Views.AudioTrackControl)
-            {
-                return current;
-            }
-
-            current = VisualTreeHelper.GetParent(current);
-        }
-
-        return null;
-    }
-
-    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
-    {
-        if (depObj == null) yield break;
-
-        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
-        {
-            DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
-
-            if (child is T t)
-                yield return t;
-
-            foreach (T childOfChild in FindVisualChildren<T>(child))
-                yield return childOfChild;
-        }
-    }
-
-    private IEnumerable<FrameworkElement> EnumerateMarqueeTrackControls()
-    {
-        var bpmTrackControl = ResolveNamedFrameworkElement("MainBpmTrackControl");
-        if (bpmTrackControl?.IsVisible == true)
-        {
-            yield return bpmTrackControl;
-        }
-
-        var audioTrackControl = ResolveNamedFrameworkElement("MainAudioTrackControl");
-        if (audioTrackControl?.IsVisible == true)
-        {
-            yield return audioTrackControl;
-        }
-
-        var trackItemsControl = ResolveNamedItemsControl("TrackItemsControl");
-        if (trackItemsControl == null || trackItemsControl.Items.Count <= 0)
-        {
-            yield break;
-        }
-
-        for (int index = 0; index < trackItemsControl.Items.Count; index++)
-        {
-            var container = trackItemsControl.ItemContainerGenerator.ContainerFromIndex(index) as DependencyObject;
-            if (container == null)
-            {
-                continue;
-            }
-
-            if (container is ContentPresenter presenter)
-            {
-                if (VisualTreeHelper.GetChildrenCount(presenter) > 0
-                    && VisualTreeHelper.GetChild(presenter, 0) is Axphi.Views.TrackControl fastTrackControl
-                    && fastTrackControl.IsVisible)
-                {
-                    yield return fastTrackControl;
-                }
-
-                continue;
-            }
-
-            var trackControl = FindVisualChild<Axphi.Views.TrackControl>(container);
-            if (trackControl?.IsVisible == true)
-            {
-                yield return trackControl;
-            }
-        }
-    }
-
-    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
-    {
-        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, i);
-            if (child is T matched)
-            {
-                return matched;
-            }
-
-            var nested = FindVisualChild<T>(child);
-            if (nested != null)
-            {
-                return nested;
-            }
-        }
-
-        return null;
-    }
-
-    private FrameworkElement? ResolveNamedFrameworkElement(string name)
-    {
-        if (name == "MainBpmTrackControl")
-        {
-            _cachedMainBpmTrackControl ??= FindName(name) as FrameworkElement
-                ?? LogicalTreeHelper.FindLogicalNode(this, name) as FrameworkElement;
-            return _cachedMainBpmTrackControl;
-        }
-
-        if (name == "MainAudioTrackControl")
-        {
-            _cachedMainAudioTrackControl ??= FindName(name) as FrameworkElement
-                ?? LogicalTreeHelper.FindLogicalNode(this, name) as FrameworkElement;
-            return _cachedMainAudioTrackControl;
-        }
-
-        return FindName(name) as FrameworkElement
-            ?? LogicalTreeHelper.FindLogicalNode(this, name) as FrameworkElement;
-    }
-
-    private ItemsControl? ResolveNamedItemsControl(string name)
-    {
-        if (_cachedTrackItemsControl != null)
-        {
-            return _cachedTrackItemsControl;
-        }
-
-        _cachedTrackItemsControl = FindName(name) as ItemsControl
-            ?? LogicalTreeHelper.FindLogicalNode(this, name) as ItemsControl;
-
-        return _cachedTrackItemsControl;
+        return TimelineMarqueeSelectionService.IsNotePropertyKeyframeEditorExpanded(current);
     }
 
 
@@ -1011,24 +763,9 @@ public partial class MainWindow : Window
     {
         if (this.DataContext is MainViewModel vm)
         {
-            // 统一使用 OverlayCanvas 作为判定坐标系，完美匹配边界！
-            Point currentPos = Mouse.GetPosition(OverlayCanvas);
-
-            // 核心公式：点击标尺不需要“初始偏差”，鼠标指哪，游标就绝对去哪
-            double targetAbsolutePixel = currentPos.X + GlobalHorizontalScroll.Value;
-
-            // 物理撞墙限制（不准拖出整首曲子的头和尾）
-            if (targetAbsolutePixel < 0) targetAbsolutePixel = 0;
-            if (targetAbsolutePixel > vm.Timeline.TotalPixelWidth) targetAbsolutePixel = vm.Timeline.TotalPixelWidth;
-
-            // 换算 Tick 并结算吸附
-            double exactTick = vm.Timeline.PixelToTick(targetAbsolutePixel);
-            int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: true);
-
-            double newSeconds = Axphi.Utilities.TimeTickConverter.TickToTime(
-                snappedTick,
-                vm.Timeline.CurrentChart.BpmKeyFrames,
-                vm.Timeline.CurrentChart.InitialBpm);
+            double newSeconds = _timelineInteractionController.ComputeRulerSeekSeconds(
+                vm.Timeline,
+                GetTimelineAbsolutePointerX());
 
             vm.Timeline.CurrentPlayTimeSeconds = newSeconds;
 
@@ -1043,15 +780,12 @@ public partial class MainWindow : Window
 
 
     // === 左手柄 ===
-    private double _workspaceLeftDragOffset;
-    private double _workspaceRightDragOffset;
-
-    // === 左手柄 ===
     private void WorkspaceLeft_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
     {
-        Point mousePos = Mouse.GetPosition(OverlayCanvas);
         if (this.DataContext is MainViewModel vm)
-            _workspaceLeftDragOffset = vm.Timeline.WorkspaceStartX - (mousePos.X + GlobalHorizontalScroll.Value);
+        {
+            _timelineInteractionController.BeginWorkspaceLeftDrag(vm.Timeline, GetTimelineAbsolutePointerX());
+        }
 
         _currentDragAction = UpdateWorkspaceLeftPosition;
         _dragTimer.Start();
@@ -1072,18 +806,9 @@ public partial class MainWindow : Window
     {
         if (this.DataContext is MainViewModel vm)
         {
-            Point currentPos = Mouse.GetPosition(OverlayCanvas);
-            double targetAbsolutePixel = currentPos.X + GlobalHorizontalScroll.Value + _workspaceLeftDragOffset;
-
-            // 撞墙限制（同时防止越过右手柄）
-            double minDistancePixels = vm.Timeline.TickToPixel(1);
-            targetAbsolutePixel = Math.Clamp(targetAbsolutePixel, 0, vm.Timeline.WorkspaceEndX - minDistancePixels);
-
-            double exactTick = vm.Timeline.PixelToTick(targetAbsolutePixel);
-            int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: false);
-
-            if (snappedTick >= vm.Timeline.WorkspaceEndTick)
-                snappedTick = vm.Timeline.WorkspaceEndTick - 1;
+            int snappedTick = _timelineInteractionController.ComputeWorkspaceStartTick(
+                vm.Timeline,
+                GetTimelineAbsolutePointerX());
 
             vm.Timeline.WorkspaceStartTick = snappedTick;
         }
@@ -1096,11 +821,9 @@ public partial class MainWindow : Window
     // === 右手柄 ===
     private void WorkspaceRight_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
     {
-        Point mousePos = Mouse.GetPosition(OverlayCanvas);
         if (this.DataContext is MainViewModel vm)
         {
-            // 记录刚捏住右手柄时，鼠标和右手柄中心的绝对物理偏差
-            _workspaceRightDragOffset = vm.Timeline.WorkspaceEndX - (mousePos.X + GlobalHorizontalScroll.Value);
+            _timelineInteractionController.BeginWorkspaceRightDrag(vm.Timeline, GetTimelineAbsolutePointerX());
         }
 
         // 将当前动作指定为更新右手柄，并启动 60fps 引擎！
@@ -1126,28 +849,9 @@ public partial class MainWindow : Window
     {
         if (this.DataContext is MainViewModel vm)
         {
-            Point currentPos = Mouse.GetPosition(OverlayCanvas);
-
-            // 核心公式：绝对物理坐标 = 鼠标当前X + 滚动条当前X + 初始握持偏差
-            double targetAbsolutePixel = currentPos.X + GlobalHorizontalScroll.Value + _workspaceRightDragOffset;
-
-            // 物理撞墙限制（右手柄的下限是左手柄，上限是整首曲子的总长度）
-            double minDistancePixels = vm.Timeline.TickToPixel(1); // 至少保持 1 个 Tick 的距离
-            targetAbsolutePixel = Math.Clamp(
-                targetAbsolutePixel,
-                vm.Timeline.WorkspaceStartX + minDistancePixels, // 撞左墙（防交叉）
-                vm.Timeline.TotalPixelWidth                      // 撞右墙（总长度）
-            );
-
-            // 换算成精确的 Tick
-            double exactTick = vm.Timeline.PixelToTick(targetAbsolutePixel);
-
-            // 磁吸算法处理（按住 Shift 会无视磁吸）
-            int snappedTick = vm.Timeline.SnapToClosest(exactTick, isPlayhead: false);
-
-            // 逻辑兜底：防止因为吸附算法导致的 Tick 越界或重叠
-            if (snappedTick <= vm.Timeline.WorkspaceStartTick)
-                snappedTick = vm.Timeline.WorkspaceStartTick + 1;
+            int snappedTick = _timelineInteractionController.ComputeWorkspaceEndTick(
+                vm.Timeline,
+                GetTimelineAbsolutePointerX());
 
             // 最终更新到 ViewModel，UI 会自动重绘
             vm.Timeline.WorkspaceEndTick = snappedTick;
@@ -1388,28 +1092,22 @@ public partial class MainWindow : Window
     {
         if (this.DataContext is MainViewModel vm)
         {
-            double ticksPerMinimapPixel = vm.Timeline.TotalDurationTicks / vm.Timeline.MinimapActualWidth;
-            double realPixelDelta = vm.Timeline.TickToPixel(e.HorizontalChange * ticksPerMinimapPixel);
-            double newValue = GlobalHorizontalScroll.Value + realPixelDelta;
-
-            if (newValue < 0) newValue = 0;
-            if (newValue > GlobalHorizontalScroll.Maximum) newValue = GlobalHorizontalScroll.Maximum;
+            double newValue = _timelineInteractionController.ComputeMinimapPanScroll(
+                vm.Timeline,
+                e.HorizontalChange,
+                GlobalHorizontalScroll.Value,
+                GlobalHorizontalScroll.Maximum);
 
             GlobalHorizontalScroll.Value = newValue; // 联动触发更新
         }
     }
-
-
-    private double _minimapViewportStartTick;
-    private double _minimapViewportEndTick;
 
     // === 左侧手柄缩放 (Zoom & Pan) ===
     private void MinimapViewportLeft_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
     {
         if (this.DataContext is MainViewModel vm)
         {
-            _minimapViewportStartTick = vm.Timeline.ViewportStartTick;
-            _minimapViewportEndTick = vm.Timeline.ViewportEndTick;
+            _timelineInteractionController.BeginMinimapViewportResize(vm.Timeline);
         }
     }
 
@@ -1417,17 +1115,8 @@ public partial class MainWindow : Window
     {
         if (this.DataContext is MainViewModel vm && MainTimelineRuler.ActualWidth > 0)
         {
-            double ticksPerPixel = vm.Timeline.TotalDurationTicks / vm.Timeline.MinimapActualWidth;
-            _minimapViewportStartTick += e.HorizontalChange * ticksPerPixel;
-
-            // 限制：视野最少保持 100 Tick，防止无限放大导致崩溃
-            double minVisibleTicks = 100;
-            if (_minimapViewportStartTick > _minimapViewportEndTick - minVisibleTicks)
-                _minimapViewportStartTick = _minimapViewportEndTick - minVisibleTicks;
-            if (_minimapViewportStartTick < 0)
-                _minimapViewportStartTick = 0;
-
-            ApplyViewportChange(vm, _minimapViewportStartTick, _minimapViewportEndTick);
+            var range = _timelineInteractionController.ComputeMinimapViewportLeftResize(vm.Timeline, e.HorizontalChange, minVisibleTicks: 100);
+            ApplyViewportChange(vm, range.StartTick, range.EndTick);
         }
     }
 
@@ -1436,8 +1125,7 @@ public partial class MainWindow : Window
     {
         if (this.DataContext is MainViewModel vm)
         {
-            _minimapViewportStartTick = vm.Timeline.ViewportStartTick;
-            _minimapViewportEndTick = vm.Timeline.ViewportEndTick;
+            _timelineInteractionController.BeginMinimapViewportResize(vm.Timeline);
         }
     }
 
@@ -1445,16 +1133,8 @@ public partial class MainWindow : Window
     {
         if (this.DataContext is MainViewModel vm && MainTimelineRuler.ActualWidth > 0)
         {
-            double ticksPerPixel = vm.Timeline.TotalDurationTicks / vm.Timeline.MinimapActualWidth;
-            _minimapViewportEndTick += e.HorizontalChange * ticksPerPixel;
-
-            double minVisibleTicks = 100;
-            if (_minimapViewportEndTick < _minimapViewportStartTick + minVisibleTicks)
-                _minimapViewportEndTick = _minimapViewportStartTick + minVisibleTicks;
-            if (_minimapViewportEndTick > vm.Timeline.TotalDurationTicks)
-                _minimapViewportEndTick = vm.Timeline.TotalDurationTicks;
-
-            ApplyViewportChange(vm, _minimapViewportStartTick, _minimapViewportEndTick);
+            var range = _timelineInteractionController.ComputeMinimapViewportRightResize(vm.Timeline, e.HorizontalChange, minVisibleTicks: 100);
+            ApplyViewportChange(vm, range.StartTick, range.EndTick);
         }
     }
 
@@ -1498,23 +1178,12 @@ public partial class MainWindow : Window
         UpdateMinimapViewport();
     }
 
-
-    // ================= 中键拖拽平移状态 =================
-    private bool _isMiddlePanning = false;
-    private Point _middlePanStartMousePos;
-    private double _middlePanStartScrollValue;
-
     // ================= 【中键拖拽逻辑 1：按下中键】 =================
     private void TimelineMainGrid_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.MiddleButton == MouseButtonState.Pressed)
         {
-            _isMiddlePanning = true;
-
-            // 🌟 极其重要的防抖细节：取相对于 Window 纯物理屏幕的绝对坐标！
-            // 如果取 Canvas 内部的相对坐标，拖拽时画面移动会导致坐标自身发生突变，画面会疯狂鬼畜！
-            _middlePanStartMousePos = e.GetPosition(this);
-            _middlePanStartScrollValue = GlobalHorizontalScroll.Value;
+            _timelineInteractionController.BeginMiddlePan(e.GetPosition(this), GlobalHorizontalScroll.Value);
 
             TimelineMainGrid.CaptureMouse();
 
@@ -1531,9 +1200,9 @@ public partial class MainWindow : Window
     // ================= 【中键拖拽逻辑 2：松开中键】 =================
     private void TimelineMainGrid_PreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (e.MiddleButton == MouseButtonState.Released && _isMiddlePanning)
+        if (e.MiddleButton == MouseButtonState.Released && _timelineInteractionController.IsMiddlePanning)
         {
-            _isMiddlePanning = false;
+            _timelineInteractionController.EndMiddlePan();
             TimelineMainGrid.ReleaseMouseCapture();
 
             // 🌟 新增：恢复默认鼠标指针！

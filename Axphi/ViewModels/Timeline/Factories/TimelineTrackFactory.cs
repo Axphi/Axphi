@@ -9,11 +9,6 @@ namespace Axphi.ViewModels
     {
         private readonly IMessenger _messenger;
 
-        public TimelineTrackFactory()
-            : this(WeakReferenceMessenger.Default)
-        {
-        }
-
         public TimelineTrackFactory(IMessenger messenger)
         {
             _messenger = messenger;

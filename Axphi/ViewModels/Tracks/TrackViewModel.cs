@@ -17,6 +17,9 @@ namespace Axphi.ViewModels
     public partial class TrackViewModel : ObservableObject, ISelectionNode, ILayerPointerInteractable, ITimelineDraggable, ILayerResizable
     {
         private readonly IMessenger _messenger;
+        private static readonly ParentLineOption NoParentOption = new(null, "无");
+        private List<ParentLineOption> _parentLineOptionsCache = new() { NoParentOption };
+        private string _parentLineDisplayName = "无";
 
         public sealed record ParentLineOption(string? LineId, string DisplayName)
         {
@@ -52,8 +55,26 @@ namespace Axphi.ViewModels
         // 供 XAML 左侧属性面板绑定的当前速度
         [ObservableProperty]
         private double _currentSpeed = 1.0; // 默认值和底层 InitialSpeed 保持一致
-        [ObservableProperty]
-        private string _currentSpeedMode = "Integral";
+        public string CurrentSpeedMode
+        {
+            get => Data.SpeedMode;
+            set
+            {
+                string normalized = string.IsNullOrWhiteSpace(value) ? "Integral" : value;
+                if (Data.SpeedMode == normalized)
+                {
+                    return;
+                }
+
+                Data.SpeedMode = normalized;
+                OnPropertyChanged();
+
+                if (!_isSyncing)
+                {
+                    _messenger.Send(new JudgementLinesChangedMessage());
+                }
+            }
+        }
 
         public TrackExpressionSlot AnchorExpression { get; }
 
@@ -78,15 +99,9 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private string _trackName; // 轨道的名字，比如 "判定线 1"
 
-        public IEnumerable<ParentLineOption> ParentLineOptions =>
-            new[] { new ParentLineOption(null, "无") }
-            .Concat(_timeline.Tracks
-                .Where(track => !ReferenceEquals(track, this))
-                .Select(track => new ParentLineOption(track.Data.ID, track.TrackName)));
+        public IEnumerable<ParentLineOption> ParentLineOptions => _parentLineOptionsCache;
 
-        public string ParentLineDisplayName => ParentLineOptions
-            .FirstOrDefault(option => option.LineId == Data.ParentLineId)
-            ?.DisplayName ?? "无";
+        public string ParentLineDisplayName => _parentLineDisplayName;
 
         public string? ParentLineId
         {
@@ -222,7 +237,11 @@ namespace Axphi.ViewModels
             var easingDir = _timeline.CurrentChart.KeyFrameEasingDirection; // 从大管家那拿全局缓动方向
 
 
-            CurrentSpeedMode = Data.SpeedMode ?? "Integral";
+            if (string.IsNullOrWhiteSpace(Data.SpeedMode))
+            {
+                Data.SpeedMode = "Integral";
+            }
+            OnPropertyChanged(nameof(CurrentSpeedMode));
 
 
             // 1. 同步轨道自己的四个属性
@@ -337,6 +356,7 @@ namespace Axphi.ViewModels
             });
 
             RecalculateLanes();
+            NotifyParentBindingChanged();
         }
 
         // ================= 5. 核心拦截器 (黑魔法) =================
@@ -395,26 +415,11 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void AddAnchorKeyframe()
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var anchorKeyframesData = Data.AnimatableProperties.Anchor.KeyFrames;
-            var existingWrapper = UIAnchorKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = new Vector(CurrentAnchorX, CurrentAnchorY);
-            }
-            else
-            {
-                var newFrame = new OffsetKeyFrame()
-                {
-                    Time = currentTick,
-                    Value = new Vector(CurrentAnchorX, CurrentAnchorY)
-                };
-
-                anchorKeyframesData.Add(newFrame);
-                anchorKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIAnchorKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline, _messenger));
-            }
+            UpsertKeyframe(
+                Data.AnimatableProperties.Anchor.KeyFrames,
+                UIAnchorKeyframes,
+                () => new OffsetKeyFrame(),
+                new Vector(CurrentAnchorX, CurrentAnchorY));
 
             _messenger.Send(new JudgementLinesChangedMessage());
         }
@@ -497,53 +502,17 @@ namespace Axphi.ViewModels
             }
         }
 
-        partial void OnCurrentSpeedModeChanged(string value)
-        {
-            if (_isSyncing || Data == null) return;
-
-            Data.SpeedMode = value; // 同步给底层
-            _messenger.Send(new JudgementLinesChangedMessage()); // 瞬间重绘！
-        }
+        // CurrentSpeedMode 已直接代理到 Data.SpeedMode（SSOT），不再保留本地回写链。
 
         // ================= 添加 Offset (Position) 关键帧 =================
         [RelayCommand]
         private void AddPositionKeyframe()
         {
-            // 1. 问爸爸：现在是第几个 Tick？
-            int currentTick = _timeline.GetCurrentTick();
-
-            // 2. 顺藤摸瓜，拿到你底层数据里的 Offset KeyFrames 集合
-            var offsetKeyframesData = Data.AnimatableProperties.Offset.KeyFrames; // 底层的纯净 List
-
-            // 重点：我们从保镖集合里去找有没有当前时间的
-            var existingWrapper = UIOffsetKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-
-            
-
-            if (existingWrapper != null)
-            {
-                // 如果有，直接修改它的值
-                // 1. 修改底层 
-                // 如果有了，直接修改保镖手里的那个底层 Model！
-                existingWrapper.Model.Value = new System.Windows.Vector(CurrentOffsetX, CurrentOffsetY);
-                
-            }
-            else
-            {
-                // 如果没有，New 一个底层的，再立刻给它配个保镖！
-                var newFrame = new OffsetKeyFrame()
-                {
-                    Time = currentTick,
-                    Value = new System.Windows.Vector(CurrentOffsetX, CurrentOffsetY)
-                };
-
-                offsetKeyframesData.Add(newFrame); // 存入底层
-
-                // 【核心修复】：每次添加完新的，立刻让底层 List 按时间 (Time) 重新排队！
-                offsetKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-
-                UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline, _messenger)); // 生成 UI 显示
-            }
+            UpsertKeyframe(
+                Data.AnimatableProperties.Offset.KeyFrames,
+                UIOffsetKeyframes,
+                () => new OffsetKeyFrame(),
+                new System.Windows.Vector(CurrentOffsetX, CurrentOffsetY));
 
             // 4. 发广播通知右侧的 ChartRenderer 重新画一下谱面
             // (借用一下你之前写的 JudgementLinesChangedMessage)
@@ -554,22 +523,12 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void AddScaleKeyframe()
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var scaleKeyframesData = Data.AnimatableProperties.Scale.KeyFrames;
-            var existingWrapper = UIScaleKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+            UpsertKeyframe(
+                Data.AnimatableProperties.Scale.KeyFrames,
+                UIScaleKeyframes,
+                () => new ScaleKeyFrame(),
+                new Vector(CurrentScaleX, CurrentScaleY));
 
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = new Vector(CurrentScaleX, CurrentScaleY);
-            }
-            else
-            {
-                // 假设你有一个 ScaleKeyFrame 继承自 KeyFrame<Vector>
-                var newFrame = new ScaleKeyFrame() { Time = currentTick, Value = new Vector(CurrentScaleX, CurrentScaleY) };
-                scaleKeyframesData.Add(newFrame);
-                scaleKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline, _messenger));
-            }
             _messenger.Send(new JudgementLinesChangedMessage());
         }
 
@@ -577,22 +536,12 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void AddRotationKeyframe()
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var rotationKeyframesData = Data.AnimatableProperties.Rotation.KeyFrames;
-            var existingWrapper = UIRotationKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+            UpsertKeyframe(
+                Data.AnimatableProperties.Rotation.KeyFrames,
+                UIRotationKeyframes,
+                () => new RotationKeyFrame(),
+                CurrentRotation);
 
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = CurrentRotation;
-            }
-            else
-            {
-                // 假设你有 RotationKeyFrame 继承自 KeyFrame<double>
-                var newFrame = new RotationKeyFrame() { Time = currentTick, Value = CurrentRotation };
-                rotationKeyframesData.Add(newFrame);
-                rotationKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline, _messenger));
-            }
             _messenger.Send(new JudgementLinesChangedMessage());
         }
 
@@ -600,22 +549,12 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void AddOpacityKeyframe()
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var opacityKeyframesData = Data.AnimatableProperties.Opacity.KeyFrames;
-            var existingWrapper = UIOpacityKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+            UpsertKeyframe(
+                Data.AnimatableProperties.Opacity.KeyFrames,
+                UIOpacityKeyframes,
+                () => new OpacityKeyFrame(),
+                CurrentOpacity);
 
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = CurrentOpacity;
-            }
-            else
-            {
-                // 假设你有 OpacityKeyFrame 继承自 KeyFrame<double>
-                var newFrame = new OpacityKeyFrame() { Time = currentTick, Value = CurrentOpacity };
-                opacityKeyframesData.Add(newFrame);
-                opacityKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline, _messenger));
-            }
             _messenger.Send(new JudgementLinesChangedMessage());
         }
 
@@ -642,23 +581,37 @@ namespace Axphi.ViewModels
         [RelayCommand]
         private void AddSpeedKeyframe()
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var speedKeyframesData = Data.SpeedKeyFrames; // 直接拿底层的 List
-            var existingWrapper = UISpeedKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+            UpsertKeyframe(
+                Data.SpeedKeyFrames,
+                UISpeedKeyframes,
+                () => new KeyFrame<double>(),
+                CurrentSpeed);
 
+            _messenger.Send(new JudgementLinesChangedMessage());
+        }
+
+        private void UpsertKeyframe<T, TKeyFrame>(
+            List<TKeyFrame> dataList,
+            ObservableCollection<KeyFrameUIWrapper<T>> uiList,
+            Func<TKeyFrame> factory,
+            T value)
+            where T : struct
+            where TKeyFrame : KeyFrame<T>
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var existingWrapper = uiList.FirstOrDefault(w => w.Model.Time == currentTick);
             if (existingWrapper != null)
             {
-                existingWrapper.Model.Value = CurrentSpeed;
+                existingWrapper.Model.Value = value;
+                return;
             }
-            else
-            {
-                // 直接 new 一个通用的 KeyFrame<double>
-                var newFrame = new KeyFrame<double>() { Time = currentTick, Value = CurrentSpeed };
-                speedKeyframesData.Add(newFrame);
-                speedKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UISpeedKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline, _messenger));
-            }
-            _messenger.Send(new JudgementLinesChangedMessage());
+
+            var newFrame = factory();
+            newFrame.Time = currentTick;
+            newFrame.Value = value;
+            dataList.Add(newFrame);
+            dataList.Sort((a, b) => a.Time.CompareTo(b.Time));
+            uiList.Add(new KeyFrameUIWrapper<T>(newFrame, _timeline, _messenger));
         }
 
         // 【新增】暴露给大管家调用的同步方法
@@ -1012,8 +965,21 @@ namespace Axphi.ViewModels
 
         // ================= 图层长度属性 =================
         // 默认给个 7680 个 Tick (比如 60 拍的长度)
-        [ObservableProperty]
-        private int _layerDurationTicks = 7680;
+        public int LayerDurationTicks
+        {
+            get => Data.DurationTicks;
+            set
+            {
+                int normalized = Math.Max(1, value);
+                if (Data.DurationTicks == normalized)
+                {
+                    return;
+                }
+
+                Data.DurationTicks = normalized;
+                OnPropertyChanged();
+            }
+        }
 
         [ObservableProperty]
         private double _layerPixelWidth;
@@ -1146,8 +1112,8 @@ namespace Axphi.ViewModels
             {
                 LayerPixelXOffset = _timeline.TickToPixel(snappedLeftTick);
                 LayerPixelWidth = _timeline.TickToPixel(rightTick - snappedLeftTick);
-                Data.StartTick = snappedLeftTick;
-                Data.DurationTicks = rightTick - snappedLeftTick;
+                LayerStartTick = snappedLeftTick;
+                LayerDurationTicks = rightTick - snappedLeftTick;
             }
             else
             {
@@ -1160,8 +1126,8 @@ namespace Axphi.ViewModels
                     tempStartTick = rightTick - 1;
                 }
 
-                Data.StartTick = tempStartTick;
-                Data.DurationTicks = rightTick - tempStartTick;
+                LayerStartTick = tempStartTick;
+                LayerDurationTicks = rightTick - tempStartTick;
             }
 
             _messenger.Send(new JudgementLinesChangedMessage());
@@ -1179,8 +1145,6 @@ namespace Axphi.ViewModels
             LayerPixelXOffset = _timeline.TickToPixel(LayerStartTick);
             LayerPixelWidth = _timeline.TickToPixel(LayerDurationTicks);
 
-            Data.StartTick = LayerStartTick;
-            Data.DurationTicks = LayerDurationTicks;
         }
 
         public void BeginResizeRight()
@@ -1210,7 +1174,7 @@ namespace Axphi.ViewModels
             if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
             {
                 LayerPixelWidth = _timeline.TickToPixel(newDurationTicks);
-                Data.DurationTicks = newDurationTicks;
+                LayerDurationTicks = newDurationTicks;
             }
             else
             {
@@ -1221,7 +1185,7 @@ namespace Axphi.ViewModels
                     tempDuration = 1;
                 }
 
-                Data.DurationTicks = tempDuration;
+                LayerDurationTicks = tempDuration;
             }
 
             _messenger.Send(new JudgementLinesChangedMessage());
@@ -1234,7 +1198,6 @@ namespace Axphi.ViewModels
 
             LayerDurationTicks = Math.Max(1, finalRightTick - LayerStartTick);
             LayerPixelWidth = _timeline.TickToPixel(LayerDurationTicks);
-            Data.DurationTicks = LayerDurationTicks;
         }
 
         private void ReceiveLayerDragStarted()
@@ -1252,7 +1215,6 @@ namespace Axphi.ViewModels
             {
                 BatchShiftAllItems(deltaTick);
                 _lastAppliedTick += deltaTick;
-                Data.StartTick = _lastAppliedTick;
                 _messenger.Send(new JudgementLinesChangedMessage());
             }
 
@@ -1269,7 +1231,6 @@ namespace Axphi.ViewModels
         private void ReceiveLayerDragCompleted()
         {
             LayerStartTick = _lastAppliedTick;
-            Data.StartTick = LayerStartTick;
             LayerPixelXOffset = _timeline.TickToPixel(_lastAppliedTick);
         }
 
@@ -1298,9 +1259,23 @@ namespace Axphi.ViewModels
 
         public void NotifyParentBindingChanged()
         {
+            RebuildParentBindingCache();
             OnPropertyChanged(nameof(ParentLineId));
             OnPropertyChanged(nameof(ParentLineOptions));
             OnPropertyChanged(nameof(ParentLineDisplayName));
+        }
+
+        private void RebuildParentBindingCache()
+        {
+            _parentLineOptionsCache = _timeline.Tracks
+                .Where(track => !ReferenceEquals(track, this))
+                .Select(track => new ParentLineOption(track.Data.ID, track.TrackName))
+                .Prepend(NoParentOption)
+                .ToList();
+
+            _parentLineDisplayName = _parentLineOptionsCache
+                .FirstOrDefault(option => option.LineId == Data.ParentLineId)
+                ?.DisplayName ?? NoParentOption.DisplayName;
         }
     }
 

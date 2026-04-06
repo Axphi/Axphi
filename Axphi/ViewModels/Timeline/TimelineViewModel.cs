@@ -363,13 +363,10 @@ namespace Axphi.ViewModels
 
                 if (preservedUiState != null)
                 {
-                    ZoomScale = preservedUiState.ZoomScale;
                     ViewportActualWidth = preservedUiState.ViewportActualWidth;
                 }
-                else
-                {
-                    ZoomScale = metadata.ZoomScale;
-                }
+
+                ZoomScale = metadata.ZoomScale;
 
                 // 1. 换绑剧本：把指针指向最新的真实谱面
                 CurrentChart = _projectSession.EditingProject.Chart;
@@ -391,7 +388,7 @@ namespace Axphi.ViewModels
                 // 2. 砸碎旧舞台：清空前端的 Track UI 集合 (这一步让旧 UI 被 GC 回收)
                 Tracks.Clear();
                 ActiveNotePanelOwner = null;
-                NoteSelectionPanel.SyncSelection(Array.Empty<NoteViewModel>());
+                NoteSelectionPanel.SyncSelection();
                 JudgementLineEditor.CloseCommand.Execute(null);
                 NotifyKeyframeClipboardCommandsStateChanged();
 
@@ -406,10 +403,10 @@ namespace Axphi.ViewModels
 
                 if (preservedUiState != null)
                 {
-                    _stateService.RestoreUiState(preservedUiState, Tracks, AudioTrack, JudgementLineEditor);
+                    _stateService.RestoreUiState(preservedUiState, Tracks, JudgementLineEditor);
                 }
 
-                var playbackState = _stateService.ResolvePlaybackState(preservedUiState, metadata);
+                var playbackState = _stateService.ResolvePlaybackState(metadata);
                 CurrentHorizontalScrollOffset = playbackState.CurrentHorizontalScrollOffset;
                 WorkspaceStartTick = playbackState.WorkspaceStartTick;
                 WorkspaceEndTick = playbackState.WorkspaceEndTick;

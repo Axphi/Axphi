@@ -13,7 +13,6 @@ namespace Axphi.ViewModels
     {
         private readonly TimelineViewModel _timeline;
         private readonly IMessenger _messenger;
-        private readonly List<NoteViewModel> _selectedNotes = new();
         private bool _isSyncing;
 
         [ObservableProperty]
@@ -94,17 +93,15 @@ namespace Axphi.ViewModels
             OnPropertyChanged(nameof(CanEditKeyframes));
         }
 
-        public void SyncSelection(IReadOnlyList<NoteViewModel> selectedNotes)
+        public void SyncSelection()
         {
-            _selectedNotes.Clear();
-            _selectedNotes.AddRange(selectedNotes);
-
+            var selectedNotes = GetSelectedNotesSnapshot();
             _isSyncing = true;
 
-            HasSelection = _selectedNotes.Count > 0;
-            SelectedCount = _selectedNotes.Count;
-            IsSingleSelection = _selectedNotes.Count == 1;
-            SingleSelectedNote = IsSingleSelection ? _selectedNotes[0] : null;
+            HasSelection = selectedNotes.Count > 0;
+            SelectedCount = selectedNotes.Count;
+            IsSingleSelection = selectedNotes.Count == 1;
+            SingleSelectedNote = IsSingleSelection ? selectedNotes[0] : null;
 
             if (!HasSelection)
             {
@@ -148,8 +145,8 @@ namespace Axphi.ViewModels
             {
                 SelectionTitle = $"{SelectedCount} Notes";
                 SelectionModeHint = "Delta";
-                CurrentNoteKind = _selectedNotes.Select(note => note.CurrentNoteKind).Distinct().Count() == 1
-                    ? _selectedNotes[0].CurrentNoteKind.ToString()
+                CurrentNoteKind = selectedNotes.Select(note => note.CurrentNoteKind).Distinct().Count() == 1
+                    ? selectedNotes[0].CurrentNoteKind.ToString()
                     : "Mixed";
                 CurrentAnchorX = 0;
                 CurrentAnchorY = 0;
@@ -160,8 +157,8 @@ namespace Axphi.ViewModels
                 CurrentRotation = 0;
                 CurrentOpacity = 0;
 
-                bool allEnabled = _selectedNotes.All(note => note.HasCustomSpeed);
-                bool allDisabled = _selectedNotes.All(note => !note.HasCustomSpeed);
+                bool allEnabled = selectedNotes.All(note => note.HasCustomSpeed);
+                bool allDisabled = selectedNotes.All(note => !note.HasCustomSpeed);
                 HasCustomSpeed = allEnabled ? true : allDisabled ? false : null;
                 CurrentCustomSpeed = 0;
             }
@@ -179,7 +176,7 @@ namespace Axphi.ViewModels
             }
 
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in _selectedNotes)
+            foreach (var note in GetSelectedNotesSnapshot())
             {
                 note.ApplyNoteKindAbsolute(kind);
             }
@@ -286,8 +283,11 @@ namespace Axphi.ViewModels
         {
             if (_isSyncing || !HasSelection || value == null) return;
 
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in _selectedNotes)
+            foreach (var note in selectedNotes)
             {
                 note.ApplyHasCustomSpeed(value.Value, IsSingleSelection ? CurrentCustomSpeed : 1.0);
             }
@@ -309,8 +309,14 @@ namespace Axphi.ViewModels
 
         private void ApplyAbsolute(Action<NoteViewModel> applyAction)
         {
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0)
+            {
+                return;
+            }
+
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in _selectedNotes)
+            foreach (var note in selectedNotes)
             {
                 applyAction(note);
             }
@@ -324,8 +330,14 @@ namespace Axphi.ViewModels
                 return;
             }
 
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0)
+            {
+                return;
+            }
+
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in _selectedNotes)
+            foreach (var note in selectedNotes)
             {
                 applyAction(note, deltaX, deltaY);
             }
@@ -339,12 +351,26 @@ namespace Axphi.ViewModels
                 return;
             }
 
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0)
+            {
+                return;
+            }
+
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in _selectedNotes)
+            foreach (var note in selectedNotes)
             {
                 applyAction(note, delta);
             }
             _messenger.Send(new JudgementLinesChangedMessage());
+        }
+
+        private List<NoteViewModel> GetSelectedNotesSnapshot()
+        {
+            return _timeline.Tracks
+                .SelectMany(track => track.UINotes)
+                .Where(note => note.IsSelected)
+                .ToList();
         }
     }
 }

@@ -16,8 +16,7 @@ public interface ITimelineStateService
     void RestoreUiState(
         TimelineUiState preservedState,
         ObservableCollection<TrackViewModel> tracks,
-        AudioTrackViewModel? audioTrack,
         JudgementLineEditorViewModel judgementLineEditor);
 
-    TimelinePlaybackRestoreState ResolvePlaybackState(TimelineUiState? preservedUiState, ProjectMetadata metadata);
+    TimelinePlaybackRestoreState ResolvePlaybackState(ProjectMetadata metadata);
 }

@@ -81,7 +81,7 @@ public class BpmTrackViewModelTests
 
         var timeline = new TimelineViewModel(
             projectManager,
-            new TimelineTrackFactory(),
+            new TimelineTrackFactory(WeakReferenceMessenger.Default),
             new TimelineHistoryCoordinator(),
             new TimelineEditingService(WeakReferenceMessenger.Default),
             new TimelineSnapService(),

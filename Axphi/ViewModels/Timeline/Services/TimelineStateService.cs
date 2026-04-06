@@ -64,13 +64,7 @@ public sealed class TimelineStateService : ITimelineStateService
         }
 
         return new TimelineUiState(
-            runtime.CurrentPlayTimeSeconds,
-            runtime.CurrentHorizontalScrollOffset,
-            runtime.ZoomScale,
             runtime.ViewportActualWidth,
-            runtime.WorkspaceStartTick,
-            runtime.WorkspaceEndTick,
-            runtime.IsAudioTrackExpanded,
             trackStates,
             editorState);
     }
@@ -78,14 +72,8 @@ public sealed class TimelineStateService : ITimelineStateService
     public void RestoreUiState(
         TimelineUiState preservedState,
         ObservableCollection<TrackViewModel> tracks,
-        AudioTrackViewModel? audioTrack,
         JudgementLineEditorViewModel judgementLineEditor)
     {
-        if (audioTrack != null)
-        {
-            audioTrack.IsExpanded = preservedState.IsAudioTrackExpanded;
-        }
-
         var trackStatesById = preservedState.Tracks.ToDictionary(track => track.TrackId);
         foreach (var track in tracks)
         {
@@ -111,18 +99,8 @@ public sealed class TimelineStateService : ITimelineStateService
         }
     }
 
-    public TimelinePlaybackRestoreState ResolvePlaybackState(TimelineUiState? preservedUiState, ProjectMetadata metadata)
+    public TimelinePlaybackRestoreState ResolvePlaybackState(ProjectMetadata metadata)
     {
-        if (preservedUiState != null)
-        {
-            return new TimelinePlaybackRestoreState(
-                preservedUiState.CurrentHorizontalScrollOffset,
-                preservedUiState.WorkspaceStartTick,
-                preservedUiState.WorkspaceEndTick,
-                preservedUiState.CurrentPlayTimeSeconds,
-                true);
-        }
-
         return new TimelinePlaybackRestoreState(
             metadata.CurrentHorizontalScrollOffset,
             metadata.WorkspaceStartTick,

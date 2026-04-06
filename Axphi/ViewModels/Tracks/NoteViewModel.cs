@@ -66,8 +66,25 @@ namespace Axphi.ViewModels
         private double _pixelX;
 
         // 供 XAML 绑定的长按持续时间（Tick）
-        [ObservableProperty]
-        private int _holdDuration;
+        public int HoldDuration
+        {
+            get => Model.HoldDuration;
+            set
+            {
+                int normalized = Math.Max(1, value);
+                if (Model.HoldDuration == normalized)
+                {
+                    return;
+                }
+
+                Model.HoldDuration = normalized;
+                OnPropertyChanged();
+
+                UIHoldPixelWidth = _timeline.TickToPixel(normalized);
+                _messenger.Send(new JudgementLinesChangedMessage());
+                _messenger.Send(new NotesNeedSortMessage());
+            }
+        }
 
         // 供 XAML 长条矩形绑定的物理像素宽度！
         [ObservableProperty]
@@ -208,115 +225,80 @@ namespace Axphi.ViewModels
 
         private void UpsertPositionKeyframe(double x, double y)
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var offsetKeyframesData = Model.AnimatableProperties.Offset.KeyFrames;
-            var existingWrapper = UIOffsetKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = new Vector(x, y);
-            }
-            else
-            {
-                var newFrame = new OffsetKeyFrame() { Time = currentTick, Value = new Vector(x, y) };
-                offsetKeyframesData.Add(newFrame);
-                offsetKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIOffsetKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline, _messenger));
-            }
+            UpsertKeyframe(
+                Model.AnimatableProperties.Offset.KeyFrames,
+                UIOffsetKeyframes,
+                () => new OffsetKeyFrame(),
+                new Vector(x, y));
         }
 
         private void UpsertAnchorKeyframe(double x, double y)
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var anchorKeyframesData = Model.AnimatableProperties.Anchor.KeyFrames;
-            var existingWrapper = UIAnchorKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = new Vector(x, y);
-            }
-            else
-            {
-                var newFrame = new OffsetKeyFrame() { Time = currentTick, Value = new Vector(x, y) };
-                anchorKeyframesData.Add(newFrame);
-                anchorKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIAnchorKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline, _messenger));
-            }
+            UpsertKeyframe(
+                Model.AnimatableProperties.Anchor.KeyFrames,
+                UIAnchorKeyframes,
+                () => new OffsetKeyFrame(),
+                new Vector(x, y));
         }
 
         private void UpsertScaleKeyframe(double x, double y)
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var scaleKeyframesData = Model.AnimatableProperties.Scale.KeyFrames;
-            var existingWrapper = UIScaleKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = new Vector(x, y);
-            }
-            else
-            {
-                var newFrame = new ScaleKeyFrame() { Time = currentTick, Value = new Vector(x, y) };
-                scaleKeyframesData.Add(newFrame);
-                scaleKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIScaleKeyframes.Add(new KeyFrameUIWrapper<Vector>(newFrame, _timeline, _messenger));
-            }
+            UpsertKeyframe(
+                Model.AnimatableProperties.Scale.KeyFrames,
+                UIScaleKeyframes,
+                () => new ScaleKeyFrame(),
+                new Vector(x, y));
         }
 
         private void UpsertRotationKeyframe(double value)
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var rotationKeyframesData = Model.AnimatableProperties.Rotation.KeyFrames;
-            var existingWrapper = UIRotationKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = value;
-            }
-            else
-            {
-                var newFrame = new RotationKeyFrame() { Time = currentTick, Value = value };
-                rotationKeyframesData.Add(newFrame);
-                rotationKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIRotationKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline, _messenger));
-            }
+            UpsertKeyframe(
+                Model.AnimatableProperties.Rotation.KeyFrames,
+                UIRotationKeyframes,
+                () => new RotationKeyFrame(),
+                value);
         }
 
         private void UpsertOpacityKeyframe(double value)
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var opacityKeyframesData = Model.AnimatableProperties.Opacity.KeyFrames;
-            var existingWrapper = UIOpacityKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
-
-            if (existingWrapper != null)
-            {
-                existingWrapper.Model.Value = value;
-            }
-            else
-            {
-                var newFrame = new OpacityKeyFrame() { Time = currentTick, Value = value };
-                opacityKeyframesData.Add(newFrame);
-                opacityKeyframesData.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UIOpacityKeyframes.Add(new KeyFrameUIWrapper<double>(newFrame, _timeline, _messenger));
-            }
+            UpsertKeyframe(
+                Model.AnimatableProperties.Opacity.KeyFrames,
+                UIOpacityKeyframes,
+                () => new OpacityKeyFrame(),
+                value);
         }
 
         private void UpsertNoteKindKeyframe(NoteKind value)
         {
-            int currentTick = _timeline.GetCurrentTick();
-            var existingWrapper = UINoteKindKeyframes.FirstOrDefault(w => w.Model.Time == currentTick);
+            UpsertKeyframe(
+                Model.KindKeyFrames,
+                UINoteKindKeyframes,
+                () => new NoteKindKeyFrame(),
+                value);
+        }
 
+        private void UpsertKeyframe<T, TKeyFrame>(
+            System.Collections.Generic.List<TKeyFrame> dataList,
+            ObservableCollection<KeyFrameUIWrapper<T>> uiList,
+            Func<TKeyFrame> factory,
+            T value)
+            where T : struct
+            where TKeyFrame : KeyFrame<T>
+        {
+            int currentTick = _timeline.GetCurrentTick();
+            var existingWrapper = uiList.FirstOrDefault(w => w.Model.Time == currentTick);
             if (existingWrapper != null)
             {
                 existingWrapper.Model.Value = value;
+                return;
             }
-            else
-            {
-                var newFrame = new NoteKindKeyFrame() { Time = currentTick, Value = value };
-                Model.KindKeyFrames.Add(newFrame);
-                Model.KindKeyFrames.Sort((a, b) => a.Time.CompareTo(b.Time));
-                UINoteKindKeyframes.Add(new KeyFrameUIWrapper<NoteKind>(newFrame, _timeline, _messenger));
-            }
+
+            var newFrame = factory();
+            newFrame.Time = currentTick;
+            newFrame.Value = value;
+            dataList.Add(newFrame);
+            dataList.Sort((a, b) => a.Time.CompareTo(b.Time));
+            uiList.Add(new KeyFrameUIWrapper<T>(newFrame, _timeline, _messenger));
         }
 
         private void ApplyPositionChangeInternal(double x, double y)
@@ -579,29 +561,7 @@ namespace Axphi.ViewModels
         }
 
 
-        // 当用户在属性面板里手动修改了数字时，同步更新底层 Model 和前端宽度
-        partial void OnHoldDurationChanged(int value)
-        {
-            if (value < 1)
-            {
-                if (HoldDuration != 1)
-                {
-                    HoldDuration = 1;
-                }
-                return;
-            }
-
-            if (Model != null)
-            {
-                Model.HoldDuration = value;
-                UIHoldPixelWidth = _timeline.TickToPixel(value);
-                // 发送重绘广播，让渲染器里的 9 宫格尾巴也跟着伸长！
-                _messenger.Send(new JudgementLinesChangedMessage());
-
-                // 2. 🌟 核心新增：尾巴变长变短了，可能会撞到别人！立刻通知大管家重新排车道！
-                _messenger.Send(new NotesNeedSortMessage());
-            }
-        }
+        // HoldDuration 已直接代理到底层 Model（SSOT），不再保留本地副本回写链。
 
         partial void OnCurrentNoteKindChanged(NoteKind value)
         {

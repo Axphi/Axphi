@@ -64,13 +64,7 @@ public partial class TimelineViewModel
     private TimelineUiState CaptureTimelineUiState()
     {
         return _stateService.CaptureUiState(new TimelineCaptureRuntime(
-            CurrentPlayTimeSeconds,
-            CurrentHorizontalScrollOffset,
-            ZoomScale,
             ViewportActualWidth,
-            WorkspaceStartTick,
-            WorkspaceEndTick,
-            AudioTrack?.IsExpanded ?? false,
             Tracks,
             JudgementLineEditor));
     }

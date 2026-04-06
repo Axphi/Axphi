@@ -74,7 +74,7 @@ public sealed class TimelineSelectionService : ITimelineSelectionService
                 owner.IsNotePanelOwner = true;
             }
 
-            panel.SyncSelection(Array.Empty<NoteViewModel>());
+            panel.SyncSelection();
             return owner;
         }
 
@@ -104,7 +104,7 @@ public sealed class TimelineSelectionService : ITimelineSelectionService
             ownerTrack.SelectedNote = selectedNote;
         }
 
-        panel.SyncSelection(selectedEntries.Select(entry => entry.note).ToList());
+        panel.SyncSelection();
         return ownerTrack;
     }
 

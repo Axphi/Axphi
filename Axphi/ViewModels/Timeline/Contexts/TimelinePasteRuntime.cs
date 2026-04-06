@@ -1,4 +1,5 @@
 ﻿using Axphi.Data;
+using CommunityToolkit.Mvvm.Messaging;
 using System.Collections.ObjectModel;
 
 namespace Axphi.ViewModels;
@@ -10,13 +11,15 @@ public sealed class TimelinePasteRuntime
         BpmTrackViewModel? bpmTrack,
         ObservableCollection<TrackViewModel> tracks,
         TimelineViewModel timeline,
-        ITimelineClipboardService clipboardService)
+        ITimelineClipboardService clipboardService,
+        IMessenger messenger)
     {
         CurrentChart = currentChart;
         BpmTrack = bpmTrack;
         Tracks = tracks;
         Timeline = timeline;
         ClipboardService = clipboardService;
+        Messenger = messenger;
     }
 
     public Chart CurrentChart { get; }
@@ -28,4 +31,6 @@ public sealed class TimelinePasteRuntime
     public TimelineViewModel Timeline { get; }
 
     public ITimelineClipboardService ClipboardService { get; }
+
+    public IMessenger Messenger { get; }
 }

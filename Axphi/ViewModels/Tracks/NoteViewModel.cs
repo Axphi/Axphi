@@ -120,11 +120,11 @@ namespace Axphi.ViewModels
 
 
         // 构造函数
-        public NoteViewModel(Note model, TimelineViewModel timeline, TrackViewModel parentTrack, IMessenger? messenger = null)
+        public NoteViewModel(Note model, TimelineViewModel timeline, TrackViewModel parentTrack, IMessenger messenger)
         {
             Model = model;
             _timeline = timeline;
-            _messenger = messenger ?? _messenger;
+            _messenger = messenger ?? throw new ArgumentNullException(nameof(messenger));
             ParentTrack = parentTrack;
             UpdatePosition();
             HoldDuration = Model.HoldDuration;

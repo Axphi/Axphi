@@ -43,6 +43,9 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _dragTimer = new DispatcherTimer();
     private Action? _currentDragAction = null; // 记录当前正在拖拽谁
     private double _lastTimelineLeftPanelWidth = -1;
+    private FrameworkElement? _cachedMainBpmTrackControl;
+    private FrameworkElement? _cachedMainAudioTrackControl;
+    private ItemsControl? _cachedTrackItemsControl;
 
 
     public MainWindow(
@@ -269,34 +272,79 @@ public partial class MainWindow : Window
     
 
     private readonly HashSet<ScrollViewer> _verticalTrackScrollViewers = new();
+    private readonly Dictionary<ItemsControl, ScrollViewer> _itemsControlScrollViewerMap = new();
     // 注册/注销 Vertical ScrollViewer 的 Loaded/Unloaded 处理器
     private void VerticalTrackScrollViewer_Loaded(object sender, RoutedEventArgs e)
     {
-        if (sender is ScrollViewer sv)
+        if (sender is ScrollViewer scrollViewer)
         {
-            // 加入集合（HashSet 会去重）
-            _verticalTrackScrollViewers.Add(sv);
+            HookVerticalTrackScrollViewer(scrollViewer);
+            return;
+        }
 
-            // 订阅 ScrollChanged 以便在用户滚动（鼠标/触摸）时更新全局 scrollbar 的范围与值
-            sv.ScrollChanged += VerticalTrackScrollViewer_ScrollChanged;
-
-            // 初始化全局 scrollbar 的范围/视口（防止刚显示时值不正确）
-            GlobalVerticalScroll.Minimum = 0;
-            GlobalVerticalScroll.Maximum = sv.ScrollableHeight;
-            GlobalVerticalScroll.ViewportSize = sv.ViewportHeight;
-            GlobalVerticalScroll.SmallChange = 16;
-            GlobalVerticalScroll.LargeChange = sv.ViewportHeight;
+        if (sender is ItemsControl itemsControl)
+        {
+            TryHookItemsControlScrollViewer(itemsControl, deferIfMissing: true);
         }
     }
 
 
     private void VerticalTrackScrollViewer_Unloaded(object sender, RoutedEventArgs e)
     {
-        if (sender is ScrollViewer sv)
+        if (sender is ScrollViewer scrollViewer)
         {
-            _verticalTrackScrollViewers.Remove(sv);
-            sv.ScrollChanged -= VerticalTrackScrollViewer_ScrollChanged;
+            UnhookVerticalTrackScrollViewer(scrollViewer);
+            return;
         }
+
+        if (sender is ItemsControl itemsControl)
+        {
+            if (_itemsControlScrollViewerMap.TryGetValue(itemsControl, out var mappedScrollViewer))
+            {
+                UnhookVerticalTrackScrollViewer(mappedScrollViewer);
+                _itemsControlScrollViewerMap.Remove(itemsControl);
+            }
+        }
+    }
+
+    private void TryHookItemsControlScrollViewer(ItemsControl itemsControl, bool deferIfMissing)
+    {
+        if (_itemsControlScrollViewerMap.ContainsKey(itemsControl))
+        {
+            return;
+        }
+
+        var innerScrollViewer = FindVisualChild<ScrollViewer>(itemsControl);
+        if (innerScrollViewer != null)
+        {
+            _itemsControlScrollViewerMap[itemsControl] = innerScrollViewer;
+            HookVerticalTrackScrollViewer(innerScrollViewer);
+            return;
+        }
+
+        if (deferIfMissing)
+        {
+            Dispatcher.BeginInvoke(new Action(() => TryHookItemsControlScrollViewer(itemsControl, deferIfMissing: false)), DispatcherPriority.Loaded);
+        }
+    }
+
+    private void HookVerticalTrackScrollViewer(ScrollViewer scrollViewer)
+    {
+        _verticalTrackScrollViewers.Add(scrollViewer);
+        scrollViewer.ScrollChanged -= VerticalTrackScrollViewer_ScrollChanged;
+        scrollViewer.ScrollChanged += VerticalTrackScrollViewer_ScrollChanged;
+
+        GlobalVerticalScroll.Minimum = 0;
+        GlobalVerticalScroll.Maximum = scrollViewer.ScrollableHeight;
+        GlobalVerticalScroll.ViewportSize = scrollViewer.ViewportHeight;
+        GlobalVerticalScroll.SmallChange = 16;
+        GlobalVerticalScroll.LargeChange = scrollViewer.ViewportHeight;
+    }
+
+    private void UnhookVerticalTrackScrollViewer(ScrollViewer scrollViewer)
+    {
+        _verticalTrackScrollViewers.Remove(scrollViewer);
+        scrollViewer.ScrollChanged -= VerticalTrackScrollViewer_ScrollChanged;
     }
 
     private void VerticalTrackScrollViewer_ScrollChanged(object? sender, ScrollChangedEventArgs e)
@@ -322,6 +370,14 @@ public partial class MainWindow : Window
             // 保护：确保 offset 在合法范围内
             double safeOffset = Math.Max(0, Math.Min(offset, sv.ScrollableHeight));
             sv.ScrollToVerticalOffset(safeOffset);
+        }
+    }
+
+    private void TrackItemsControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is Selector selector && selector.SelectedItem != null)
+        {
+            selector.SelectedItem = null;
         }
     }
 
@@ -557,15 +613,16 @@ public partial class MainWindow : Window
         Rect marqueeBounds = marqueeTransform.TransformBounds(new Rect(0, 0, MarqueeRect.Width, MarqueeRect.Height));
 
         var selectionRoot = _marqueeSelectionScope ?? TimelineMainGrid;
-        var allThumbs = FindVisualChildren<Thumb>(selectionRoot);
+        var allThumbs = EnumerateCandidateThumbs(selectionRoot, marqueeBounds);
 
         foreach (var thumb in allThumbs)
         {
             object? dataContext = thumb.DataContext;
-            bool isKeyframeThumb = dataContext?.GetType().Name.Contains("KeyFrameUIWrapper") == true;
+            bool isKeyframeThumb = dataContext is IKeyFrameUiItem;
             bool isNoteThumb = dataContext is NoteViewModel;
+            bool isSelectionNode = dataContext is ISelectionNode;
 
-            if (!isKeyframeThumb && !isNoteThumb)
+            if (!isSelectionNode || (!isKeyframeThumb && !isNoteThumb))
             {
                 continue;
             }
@@ -595,23 +652,23 @@ public partial class MainWindow : Window
                 // 2. 灵魂相交判定！
                 if (marqueeBounds.IntersectsWith(thumbBounds))
                 {
-                    dynamic wrapper = thumb.DataContext;
+                    var selectionNode = (ISelectionNode)dataContext;
 
                     // 3. 根据起手时的修饰键，执行不同的命运
                     if (_marqueeModifiers.HasFlag(ModifierKeys.Control))
                     {
                         // Ctrl 框选：取反 (Toggle)
-                        wrapper.IsSelected = !wrapper.IsSelected;
+                        selectionNode.IsSelected = !selectionNode.IsSelected;
                     }
                     else if (_marqueeModifiers.HasFlag(ModifierKeys.Shift))
                     {
                         // Shift 框选：纯加选 (Add)
-                        wrapper.IsSelected = true;
+                        selectionNode.IsSelected = true;
                     }
                     else
                     {
                         // 普通框选 (None)：因为前面已经清空了全场，这里直接点亮即可 (排他)
-                        wrapper.IsSelected = true;
+                        selectionNode.IsSelected = true;
                     }
                 }
             }
@@ -622,6 +679,32 @@ public partial class MainWindow : Window
         }
 
         _marqueeSelectionScope = null;
+    }
+
+    private IEnumerable<Thumb> EnumerateCandidateThumbs(DependencyObject selectionRoot, Rect marqueeBounds)
+    {
+        if (!ReferenceEquals(selectionRoot, TimelineMainGrid))
+        {
+            return FindVisualChildren<Thumb>(selectionRoot);
+        }
+
+        var candidates = new List<Thumb>();
+        foreach (var control in EnumerateMarqueeTrackControls())
+        {
+            if (!TryGetElementBoundsInTimeline(control, out Rect controlBounds))
+            {
+                continue;
+            }
+
+            if (!controlBounds.IntersectsWith(marqueeBounds))
+            {
+                continue;
+            }
+
+            candidates.AddRange(FindVisualChildren<Thumb>(control));
+        }
+
+        return candidates;
     }
 
     // ================= 【工具：递归查找视觉子元素】 =================
@@ -689,17 +772,7 @@ public partial class MainWindow : Window
 
     private DependencyObject? GetMarqueeSelectionScopeFromPoint(Point mousePointInTimelineGrid)
     {
-        foreach (var control in FindVisualChildren<Axphi.Views.TrackControl>(TimelineMainGrid))
-        {
-            if (IsPointInsideControl(control, mousePointInTimelineGrid)) return control;
-        }
-
-        foreach (var control in FindVisualChildren<Axphi.Views.BpmTrackControl>(TimelineMainGrid))
-        {
-            if (IsPointInsideControl(control, mousePointInTimelineGrid)) return control;
-        }
-
-        foreach (var control in FindVisualChildren<Axphi.Views.AudioTrackControl>(TimelineMainGrid))
+        foreach (var control in EnumerateMarqueeTrackControls())
         {
             if (IsPointInsideControl(control, mousePointInTimelineGrid)) return control;
         }
@@ -714,11 +787,28 @@ public partial class MainWindow : Window
             return false;
         }
 
+        if (!TryGetElementBoundsInTimeline(control, out Rect bounds))
+        {
+            return false;
+        }
+
+        return bounds.Contains(mousePointInTimelineGrid);
+    }
+
+    private bool TryGetElementBoundsInTimeline(FrameworkElement control, out Rect bounds)
+    {
+        bounds = Rect.Empty;
+
+        if (!control.IsVisible || control.ActualWidth <= 0 || control.ActualHeight <= 0)
+        {
+            return false;
+        }
+
         try
         {
             GeneralTransform transform = control.TransformToAncestor(TimelineMainGrid);
-            Rect bounds = transform.TransformBounds(new Rect(0, 0, control.ActualWidth, control.ActualHeight));
-            return bounds.Contains(mousePointInTimelineGrid);
+            bounds = transform.TransformBounds(new Rect(0, 0, control.ActualWidth, control.ActualHeight));
+            return bounds.Width > 0 && bounds.Height > 0;
         }
         catch
         {
@@ -757,6 +847,107 @@ public partial class MainWindow : Window
             foreach (T childOfChild in FindVisualChildren<T>(child))
                 yield return childOfChild;
         }
+    }
+
+    private IEnumerable<FrameworkElement> EnumerateMarqueeTrackControls()
+    {
+        var bpmTrackControl = ResolveNamedFrameworkElement("MainBpmTrackControl");
+        if (bpmTrackControl?.IsVisible == true)
+        {
+            yield return bpmTrackControl;
+        }
+
+        var audioTrackControl = ResolveNamedFrameworkElement("MainAudioTrackControl");
+        if (audioTrackControl?.IsVisible == true)
+        {
+            yield return audioTrackControl;
+        }
+
+        var trackItemsControl = ResolveNamedItemsControl("TrackItemsControl");
+        if (trackItemsControl == null || trackItemsControl.Items.Count <= 0)
+        {
+            yield break;
+        }
+
+        for (int index = 0; index < trackItemsControl.Items.Count; index++)
+        {
+            var container = trackItemsControl.ItemContainerGenerator.ContainerFromIndex(index) as DependencyObject;
+            if (container == null)
+            {
+                continue;
+            }
+
+            if (container is ContentPresenter presenter)
+            {
+                if (VisualTreeHelper.GetChildrenCount(presenter) > 0
+                    && VisualTreeHelper.GetChild(presenter, 0) is Axphi.Views.TrackControl fastTrackControl
+                    && fastTrackControl.IsVisible)
+                {
+                    yield return fastTrackControl;
+                }
+
+                continue;
+            }
+
+            var trackControl = FindVisualChild<Axphi.Views.TrackControl>(container);
+            if (trackControl?.IsVisible == true)
+            {
+                yield return trackControl;
+            }
+        }
+    }
+
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T matched)
+            {
+                return matched;
+            }
+
+            var nested = FindVisualChild<T>(child);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
+    private FrameworkElement? ResolveNamedFrameworkElement(string name)
+    {
+        if (name == "MainBpmTrackControl")
+        {
+            _cachedMainBpmTrackControl ??= FindName(name) as FrameworkElement
+                ?? LogicalTreeHelper.FindLogicalNode(this, name) as FrameworkElement;
+            return _cachedMainBpmTrackControl;
+        }
+
+        if (name == "MainAudioTrackControl")
+        {
+            _cachedMainAudioTrackControl ??= FindName(name) as FrameworkElement
+                ?? LogicalTreeHelper.FindLogicalNode(this, name) as FrameworkElement;
+            return _cachedMainAudioTrackControl;
+        }
+
+        return FindName(name) as FrameworkElement
+            ?? LogicalTreeHelper.FindLogicalNode(this, name) as FrameworkElement;
+    }
+
+    private ItemsControl? ResolveNamedItemsControl(string name)
+    {
+        if (_cachedTrackItemsControl != null)
+        {
+            return _cachedTrackItemsControl;
+        }
+
+        _cachedTrackItemsControl = FindName(name) as ItemsControl
+            ?? LogicalTreeHelper.FindLogicalNode(this, name) as ItemsControl;
+
+        return _cachedTrackItemsControl;
     }
 
 

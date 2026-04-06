@@ -163,12 +163,12 @@ namespace Axphi.ViewModels
         
 
         // ================= 4. 构造函数 =================
-        public TrackViewModel(JudgementLine data, string name, TimelineViewModel timeline, IMessenger? messenger = null)
+        public TrackViewModel(JudgementLine data, string name, TimelineViewModel timeline, IMessenger messenger)
         {
             Data = data;
             TrackName = name;
             _timeline = timeline;
-            _messenger = messenger ?? _messenger;
+            _messenger = messenger ?? throw new ArgumentNullException(nameof(messenger));
 
             AnchorExpression = CreateVectorExpressionSlot("Anchor", Data.AnimatableProperties.Anchor, "例如: [value[0], Math.sin(time)]");
             PositionExpression = CreateVectorExpressionSlot("Position", Data.AnimatableProperties.Offset, "例如: [Math.sin(time) * 4, value[1]]");
@@ -1013,6 +1013,14 @@ namespace Axphi.ViewModels
         // 专门用来抵抗 Alt 缩放的绝对物理时间
         [ObservableProperty]
         private int _layerStartTick = 0;
+
+        partial void OnLayerStartTickChanged(int value)
+        {
+            if (Data.StartTick != value)
+            {
+                Data.StartTick = value;
+            }
+        }
 
         private double _layerVirtualPixelX;
         private int _lastAppliedTick;

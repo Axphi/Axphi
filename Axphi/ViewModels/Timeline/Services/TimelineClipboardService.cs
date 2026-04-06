@@ -286,7 +286,7 @@ public sealed class TimelineClipboardService : ITimelineClipboardService
         track.Data.Notes ??= new List<Note>();
         track.Data.Notes.Add(clonedNote);
 
-        var newNoteViewModel = new NoteViewModel(clonedNote, runtime.Timeline, track);
+        var newNoteViewModel = new NoteViewModel(clonedNote, runtime.Timeline, track, runtime.Messenger);
         newNoteViewModel.SyncValuesToTime(runtime.Timeline.GetCurrentTick(), runtime.CurrentChart.KeyFrameEasingDirection);
         track.UINotes.Add(newNoteViewModel);
         return newNoteViewModel;

@@ -171,6 +171,7 @@ public partial class TimelineViewModel
             BpmTrack,
             Tracks,
             this,
-            _clipboardService);
+            _clipboardService,
+            _messenger);
     }
 }

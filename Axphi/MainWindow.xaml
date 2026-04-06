@@ -359,31 +359,60 @@
 
 
                     <!--  图层区  -->
-                    <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
-                        <StackPanel>
-                            <v:BpmTrackControl DataContext="{Binding Timeline.BpmTrack}" Margin="0,0,0,5" />
-                            <v:AudioTrackControl DataContext="{Binding Timeline.AudioTrack}">
-                                <v:AudioTrackControl.Style>
-                                    <Style TargetType="UserControl">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding}" Value="{x:Null}">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </v:AudioTrackControl.Style>
-                            </v:AudioTrackControl>
+                    <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                            <ItemsControl ItemsSource="{Binding Timeline.Tracks}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <v:TrackControl />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </ScrollViewer>
+                        <v:BpmTrackControl x:Name="MainBpmTrackControl" Grid.Row="0" DataContext="{Binding Timeline.BpmTrack}" Margin="0,0,0,5" />
+
+                        <v:AudioTrackControl x:Name="MainAudioTrackControl" Grid.Row="1" DataContext="{Binding Timeline.AudioTrack}">
+                            <v:AudioTrackControl.Style>
+                                <Style TargetType="UserControl">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </v:AudioTrackControl.Style>
+                        </v:AudioTrackControl>
+
+                        <ListBox x:Name="TrackItemsControl"
+                                 Grid.Row="2"
+                                 ItemsSource="{Binding Timeline.Tracks}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 HorizontalContentAlignment="Stretch"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                 ScrollViewer.CanContentScroll="True"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 VirtualizingPanel.VirtualizationMode="Recycling"
+                                 VirtualizingPanel.ScrollUnit="Pixel"
+                                 SelectionChanged="TrackItemsControl_SelectionChanged"
+                                 Loaded="VerticalTrackScrollViewer_Loaded"
+                                 Unloaded="VerticalTrackScrollViewer_Unloaded">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Focusable" Value="False" />
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <v:TrackControl />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
 
 
                     <!--  游标  -->

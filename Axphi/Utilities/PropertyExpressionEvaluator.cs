@@ -318,22 +318,24 @@ namespace Axphi.Utilities
 
             foreach (JudgementLine line in chart.JudgementLines)
             {
+                var noteLookup = BuildNoteLookup(line);
                 var proxy = new ExpressionLineProxy(
                     line,
                     propertyName => ResolveLineProperty(line, propertyName, context, chart),
-                    noteKey => ResolveLineNote(line, noteKey, context, chart));
+                    noteKey => ResolveLineNote(line, noteLookup, noteKey, context, chart));
                 RegisterLineKey(lineLookup, line.ID, proxy);
                 RegisterLineKey(lineLookup, line.Name, proxy);
             }
 
             if (currentLine != null)
             {
+                var currentLineNoteLookup = BuildNoteLookup(currentLine);
                 engine.SetValue("self", lineLookup.TryGetValue(currentLine.ID, out var selfProxy)
                     ? selfProxy
                     : new ExpressionLineProxy(
                         currentLine,
                         propertyName => ResolveLineProperty(currentLine, propertyName, context, chart),
-                        noteKey => ResolveLineNote(currentLine, noteKey, context, chart)));
+                        noteKey => ResolveLineNote(currentLine, currentLineNoteLookup, noteKey, context, chart)));
 
                 if (!string.IsNullOrWhiteSpace(currentLine.ParentLineId) && lineLookup.TryGetValue(currentLine.ParentLineId, out var parentProxy))
                 {
@@ -355,6 +357,30 @@ namespace Axphi.Utilities
                 lineLookup.TryGetValue(name, out var proxy);
                 return proxy;
             }));
+        }
+
+        private static Dictionary<string, Note> BuildNoteLookup(JudgementLine line)
+        {
+            var lookup = new Dictionary<string, Note>(StringComparer.Ordinal);
+            if (line.Notes == null)
+            {
+                return lookup;
+            }
+
+            foreach (var note in line.Notes)
+            {
+                if (!string.IsNullOrWhiteSpace(note.ID) && !lookup.ContainsKey(note.ID))
+                {
+                    lookup[note.ID] = note;
+                }
+
+                if (!string.IsNullOrWhiteSpace(note.Name) && !lookup.ContainsKey(note.Name))
+                {
+                    lookup[note.Name] = note;
+                }
+            }
+
+            return lookup;
         }
 
         private static void RegisterLineKey(Dictionary<string, ExpressionLineProxy> lookup, string? key, ExpressionLineProxy proxy)
@@ -389,17 +415,19 @@ namespace Axphi.Utilities
                 });
         }
 
-        private static object? ResolveLineNote(JudgementLine line, string noteKey, ExpressionRuntimeContext context, Chart chart)
+        private static object? ResolveLineNote(
+            JudgementLine line,
+            IReadOnlyDictionary<string, Note> noteLookup,
+            string noteKey,
+            ExpressionRuntimeContext context,
+            Chart chart)
         {
-            if (string.IsNullOrWhiteSpace(noteKey) || line.Notes == null)
+            if (string.IsNullOrWhiteSpace(noteKey) || noteLookup.Count == 0)
             {
                 return null;
             }
 
-            Note? note = line.Notes.FirstOrDefault(candidate => string.Equals(candidate.ID, noteKey, StringComparison.Ordinal))
-                ?? line.Notes.FirstOrDefault(candidate => string.Equals(candidate.Name, noteKey, StringComparison.Ordinal));
-
-            if (note == null)
+            if (!noteLookup.TryGetValue(noteKey, out var note))
             {
                 return null;
             }
@@ -410,7 +438,7 @@ namespace Axphi.Utilities
                 () => new ExpressionLineProxy(
                     line,
                     propertyName => ResolveLineProperty(line, propertyName, context, chart),
-                    key => ResolveLineNote(line, key, context, chart)));
+                    key => ResolveLineNote(line, noteLookup, key, context, chart)));
         }
 
         private static object ResolveNoteProperty(Note note, string propertyName, ExpressionRuntimeContext context, Chart chart)

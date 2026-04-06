@@ -245,7 +245,7 @@ namespace Axphi.Views
 
             UnhookWindowClick();
             _activeExpressionEditor = null;
-            Focus();
+            Keyboard.ClearFocus();
         }
 
         private static bool IsDescendantOf(DependencyObject descendant, DependencyObject ancestor)

@@ -11,13 +11,13 @@ namespace Axphi.Data
     public class JudgementLine : RelationObject<Chart>, IWithStandardAnimatableProperties
     {
         public string? Name { get; set; }
-        public double Speed { get; set; } = 1;
 
         #region Animatable Properties
         public OffsetProperty<JudgementLine> Offset { get; }
         public ScaleProperty<JudgementLine> Scale { get; }
         public RotationProperty<JudgementLine> Rotation { get; }
         public OpacityProperty<JudgementLine> Opacity { get; }
+        public SpeedProperty<JudgementLine> Speed { get; }
         #endregion
 
 
@@ -41,6 +41,7 @@ namespace Axphi.Data
             Scale = new ScaleProperty<JudgementLine>(this);
             Rotation = new RotationProperty<JudgementLine>(this);
             Opacity = new OpacityProperty<JudgementLine>(this);
+            Speed = new SpeedProperty<JudgementLine>(this);
             Notes = new RelationObject<JudgementLine>.Collection<Note>(this);
         }
     }

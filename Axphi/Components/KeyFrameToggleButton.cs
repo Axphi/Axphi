@@ -1,50 +1,79 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using Axphi.Data;
-using Axphi.Data.KeyFrames;
+﻿using System.Windows;
+using Axphi.Data.Abstraction;
 
 namespace Axphi.Components
 {
-    public class KeyFrameToggleButton<TParent, TKeyFrame, TValue> : EleCho.WpfSuite.Controls.Button
-        where TParent : class
-        where TKeyFrame : KeyFrame<TParent, TValue>
-        where TValue : struct
+    public class KeyFrameToggleButton : EleCho.WpfSuite.Controls.Button
     {
         static KeyFrameToggleButton()
         {
-
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(KeyFrameToggleButton), new FrameworkPropertyMetadata(typeof(KeyFrameToggleButton)));
         }
+    }
 
-
+    public class KeyFrameToggleButton<TValue> : KeyFrameToggleButton
+        where TValue : struct
+    {
         public ChartTimeline Context
         {
             get { return (ChartTimeline)GetValue(ContextProperty); }
             set { SetValue(ContextProperty, value); }
         }
 
-        public RelationObject<TParent>.Collection<TKeyFrame> KeyFrameCollection
+        public IAnimatableProperty<TValue> PropertyToToggle
         {
-            get { return (RelationObject<TParent>.Collection<TKeyFrame>)GetValue(KeyFrameCollectionProperty); }
-            set { SetValue(KeyFrameCollectionProperty, value); }
+            get { return (IAnimatableProperty<TValue>)GetValue(PropertyToToggleProperty); }
+            set { SetValue(PropertyToToggleProperty, value); }
         }
 
 
         public static readonly DependencyProperty ContextProperty =
-            DependencyProperty.Register(nameof(Context), typeof(ChartTimeline), typeof(KeyFrameToggleButton<TParent, TKeyFrame, TValue>), new PropertyMetadata(null));
+            DependencyProperty.Register(nameof(Context), typeof(ChartTimeline), typeof(KeyFrameToggleButton<TValue>), new PropertyMetadata(null));
 
-        public static readonly DependencyProperty KeyFrameCollectionProperty =
-            DependencyProperty.Register(nameof(KeyFrameCollection), typeof(RelationObject<TParent>.Collection<TKeyFrame>), typeof(KeyFrameToggleButton<TParent, TKeyFrame, TValue>), new PropertyMetadata(null));
+        public static readonly DependencyProperty PropertyToToggleProperty =
+            DependencyProperty.Register(nameof(PropertyToToggle), typeof(IAnimatableProperty<TValue>), typeof(KeyFrameToggleButton<TValue>), new PropertyMetadata(null));
+
+        private bool TimeEquals(ChartTimeline context, TimeSpan time1, TimeSpan time2)
+        {
 
 
+            return Math.Abs(time1.TotalMilliseconds - time2.TotalMilliseconds) < 50;
+        }
+
+        protected override void OnClick()
+        {
+            if (Context is { } context &&
+                PropertyToToggle is { } propertyToToggle)
+            {
+                var time = context.PlayTime;
+                int existKeyFrameIndex = -1;
+                if (propertyToToggle.KeyFrames.Count > 0)
+                {
+                    var keyFrames = propertyToToggle.KeyFrames;
+                    for (int i = 0; i < keyFrames.Count; i++)
+                    {
+                        if (TimeEquals(context, keyFrames[i].Time, time))
+                        {
+                            existKeyFrameIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                if (existKeyFrameIndex != -1)
+                {
+                    propertyToToggle.RemoveKeyFrameByIndex(existKeyFrameIndex);
+                }
+                else
+                {
+                    propertyToToggle.AddKeyFrame(time, default, null);
+                }
+            }
+
+            base.OnClick();
+        }
     }
+
+    public class VectorKeyFrameToggleButton : KeyFrameToggleButton<Vector>;
+    public class Float64KeyFrameToggleButton : KeyFrameToggleButton<double>;
 }

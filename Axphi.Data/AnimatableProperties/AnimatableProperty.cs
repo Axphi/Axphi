@@ -44,7 +44,7 @@ namespace Axphi.Data.AnimatableProperties
             KeyFrames.Add(keyFrame);
         }
 
-        public bool RemoveKeyFrame(TimeSpan time)
+        public bool RemoveKeyFrameByTime(TimeSpan time)
         {
             int index = -1;
             for (int i = 0; i < KeyFrames.Count; i++)
@@ -57,6 +57,18 @@ namespace Axphi.Data.AnimatableProperties
             }
 
             if (index == -1)
+            {
+                return false;
+            }
+
+            KeyFrames.RemoveAt(index);
+            return true;
+        }
+
+        public bool RemoveKeyFrameByIndex(int index)
+        {
+            if (index < 0 ||
+                index >= KeyFrames.Count)
             {
                 return false;
             }

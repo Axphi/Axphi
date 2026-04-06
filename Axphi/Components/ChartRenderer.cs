@@ -177,7 +177,7 @@ namespace Axphi.Components
             {
                 foreach (var note in notes)
                 {
-                    RenderNote(drawingContext, renderInfo, chart, note, time, line.Speed);
+                    RenderNote(drawingContext, renderInfo, chart, note, time, line.Speed.InitialValue);
                 }
             }
 

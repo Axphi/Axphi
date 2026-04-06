@@ -82,7 +82,7 @@ namespace Axphi.Components
                 new FrameworkPropertyMetadata(1.0, FrameworkPropertyMetadataOptions.AffectsRender, OnViewportPropertyChanged));
 
         public static readonly DependencyProperty PlayTimeProperty =
-            DependencyProperty.Register(nameof(PlayTime), typeof(TimeSpan), typeof(ChartTimeline), 
+            DependencyProperty.Register(nameof(PlayTime), typeof(TimeSpan), typeof(ChartTimeline),
                 new FrameworkPropertyMetadata(default(TimeSpan), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
         public double GetTimelineX(TimeSpan absoluteTime)
@@ -92,7 +92,11 @@ namespace Axphi.Components
 
         public TimeSpan GetTimeAtTimelineX(double x)
         {
-            return Time + TimeSpan.FromSeconds(x / EffectiveLengthPerSecond);
+            var resultTime = Time + TimeSpan.FromSeconds(x / EffectiveLengthPerSecond);
+            if (resultTime < TimeSpan.Zero)
+                return TimeSpan.Zero;
+
+            return resultTime;
         }
 
         private static void OnViewportPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

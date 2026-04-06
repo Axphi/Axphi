@@ -3,14 +3,21 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Text.Json.Serialization;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Axphi.Data
 {
-    public class RelationObject<TParent>
+    public class RelationObject<TParent> : ObservableObject
         where TParent : class
     {
+        private TParent? _parent;
+
         [JsonIgnore]
-        public TParent? Parent { get; private set; }
+        public TParent? Parent
+        {
+            get => _parent;
+            private set => SetProperty(ref _parent, value);
+        }
 
         public class Collection<TChild> : ObservableCollection<TChild>
             where TChild : RelationObject<TParent>

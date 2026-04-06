@@ -3,7 +3,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ws="https://schemas.elecho.dev/wpfsuite"
     xmlns:comp="clr-namespace:Axphi.Components"
-    xmlns:data="clr-namespace:Axphi.Data;assembly=Axphi.Data">
+    xmlns:data="clr-namespace:Axphi.Data;assembly=Axphi.Data"
+    xmlns:data_abs="clr-namespace:Axphi.Data.Abstraction;assembly=Axphi.Data"
+    xmlns:data_kf="clr-namespace:Axphi.Data.KeyFrames;assembly=Axphi.Data">
 
 
     <Style TargetType="{x:Type comp:TabPane}">
@@ -123,19 +125,110 @@
                                                             <UniformGrid Grid.Column="1" Columns="1"
                                                                      Margin="4 0 0 0">
                                                                 <ws:ToggleButton/>
-                                                                <ws:ToggleButton/>
-                                                                <ws:ToggleButton/>
-                                                                <ws:ToggleButton/>
-                                                                <ws:ToggleButton/>
-                                                                <ws:ToggleButton/>
+                                                                <comp:VectorKeyFrameToggleButton Context="{Binding RelativeSource={RelativeSource AncestorType=comp:ChartTimeline}}" PropertyToToggle="{Binding Offset}"/>
+                                                                <comp:VectorKeyFrameToggleButton Context="{Binding RelativeSource={RelativeSource AncestorType=comp:ChartTimeline}}" PropertyToToggle="{Binding Scale}"/>
+                                                                <comp:Float64KeyFrameToggleButton Context="{Binding RelativeSource={RelativeSource AncestorType=comp:ChartTimeline}}" PropertyToToggle="{Binding Rotation}"/>
+                                                                <comp:Float64KeyFrameToggleButton Context="{Binding RelativeSource={RelativeSource AncestorType=comp:ChartTimeline}}" PropertyToToggle="{Binding Opacity}"/>
+                                                                <comp:Float64KeyFrameToggleButton Context="{Binding RelativeSource={RelativeSource AncestorType=comp:ChartTimeline}}" PropertyToToggle="{Binding Speed}"/>
                                                             </UniformGrid>
                                                         </Grid>
-                                                        <Rectangle Grid.Row="0"
-                                                               Grid.Column="2"
-                                                               Margin="0 4 4 4"
-                                                               Fill="#131313"
-                                                               RadiusX="2"
-                                                               RadiusY="2"/>
+                                                        <Grid Grid.Row="0" Grid.Column="2">
+                                                            <UniformGrid Columns="1">
+                                                                <FrameworkElement/>
+                                                                <!--Placeholder for anchor (not implemented yet)-->
+                                                                <ItemsControl Grid.Column="2" ItemsSource="{Binding Offset.KeyFrames}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <comp:TimelineTrack Context="{Binding RelativeSource={RelativeSource AncestorType={x:Type comp:ChartTimeline}}}"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="{x:Type ContentPresenter}">
+                                                                            <Setter Property="comp:TimelineTrack.Time"
+                                                                                    Value="{Binding Time}"/>
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate DataType="{x:Type data_abs:IVectorKeyFrame}">
+                                                                            <comp:KeyFrameIcon Width="8" Height="8"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <ItemsControl Grid.Column="2" ItemsSource="{Binding Scale.KeyFrames}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <comp:TimelineTrack Context="{Binding RelativeSource={RelativeSource AncestorType={x:Type comp:ChartTimeline}}}"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="{x:Type ContentPresenter}">
+                                                                            <Setter Property="comp:TimelineTrack.Time"
+                                                                                    Value="{Binding Time}"/>
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate DataType="{x:Type data_abs:IVectorKeyFrame}">
+                                                                            <comp:KeyFrameIcon Width="8" Height="8"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <ItemsControl Grid.Column="2" ItemsSource="{Binding Rotation.KeyFrames}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <comp:TimelineTrack Context="{Binding RelativeSource={RelativeSource AncestorType={x:Type comp:ChartTimeline}}}"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="{x:Type ContentPresenter}">
+                                                                            <Setter Property="comp:TimelineTrack.Time"
+                                                                                    Value="{Binding Time}"/>
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate DataType="{x:Type data_abs:IFloat64KeyFrame}">
+                                                                            <comp:KeyFrameIcon Width="8" Height="8"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <ItemsControl Grid.Column="2" ItemsSource="{Binding Opacity.KeyFrames}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <comp:TimelineTrack Context="{Binding RelativeSource={RelativeSource AncestorType={x:Type comp:ChartTimeline}}}"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="{x:Type ContentPresenter}">
+                                                                            <Setter Property="comp:TimelineTrack.Time"
+                                                                                    Value="{Binding Time}"/>
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate DataType="{x:Type data_abs:IFloat64KeyFrame}">
+                                                                            <comp:KeyFrameIcon Width="8" Height="8"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <ItemsControl Grid.Column="2" ItemsSource="{Binding Speed.KeyFrames}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <comp:TimelineTrack Context="{Binding RelativeSource={RelativeSource AncestorType={x:Type comp:ChartTimeline}}}"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="{x:Type ContentPresenter}">
+                                                                            <Setter Property="comp:TimelineTrack.Time"
+                                                                                    Value="{Binding Time}"/>
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate DataType="{x:Type data_abs:IFloat64KeyFrame}">
+                                                                            <comp:KeyFrameIcon Width="8" Height="8"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </UniformGrid>
+                                                        </Grid>
+
                                                         <StackPanel Grid.Row="1"
                                                                     Grid.ColumnSpan="3">
                                                             <comp:TimelineExpander Header="Notes"
@@ -329,5 +422,22 @@
 
     <Style TargetType="{x:Type comp:ChartPlayTimeIndicator}">
 
+    </Style>
+
+    <Style TargetType="{x:Type comp:KeyFrameToggleButton}"
+           BasedOn="{StaticResource {x:Type ws:Button}}">
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="4 3"/>
+        <Setter Property="Foreground" Value="#cacaca"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="HoverBorderBrush" Value="#3d3d3d"/>
+        <Setter Property="PressedBorderBrush" Value="#4f4f4f"/>
+        <Setter Property="Background" Value="#2e2e2e"/>
+        <Setter Property="HoverBackground" Value="#3d3d3d"/>
+        <Setter Property="PressedBackground" Value="#4f4f4f"/>
+    </Style>
+
+    <Style TargetType="{x:Type comp:KeyFrameIcon}">
+        <Setter Property="Fill" Value="Yellow"/>
     </Style>
 </ResourceDictionary>

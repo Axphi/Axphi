@@ -263,32 +263,32 @@ namespace Axphi.ViewModels
 
         public void ClearKeyframeSelection(object? senderToIgnore = null)
         {
-            _timelineDomain.Selection.ClearKeyframeSelection(CreateSelectionRuntime(), senderToIgnore);
+            _timelineDomain.Editing.ClearKeyframeSelection(CreateSelectionRuntime(), senderToIgnore);
         }
 
         public void ClearLayerSelection(object? senderToIgnore = null)
         {
-            _timelineDomain.Selection.ClearLayerSelection(CreateSelectionRuntime(), senderToIgnore);
+            _timelineDomain.Editing.ClearLayerSelection(CreateSelectionRuntime(), senderToIgnore);
         }
 
         public void ClearNoteSelection(object? senderToIgnore = null)
         {
-            _timelineDomain.Selection.ClearNoteSelection(CreateSelectionRuntime(), senderToIgnore);
+            _timelineDomain.Editing.ClearNoteSelection(CreateSelectionRuntime(), senderToIgnore);
         }
 
         public void ClearAllSelections()
         {
-            _timelineDomain.Selection.ClearAllSelections(CreateSelectionRuntime());
+            _timelineDomain.Editing.ClearAllSelections(CreateSelectionRuntime());
         }
 
         public void EnterLayerSelectionContext(object? senderToIgnore = null)
         {
-            _timelineDomain.Selection.EnterLayerSelectionContext(CreateSelectionRuntime(), senderToIgnore);
+            _timelineDomain.Editing.EnterLayerSelectionContext(CreateSelectionRuntime(), senderToIgnore);
         }
 
         public void EnterSubItemSelectionContext(object? senderToIgnore = null)
         {
-            _timelineDomain.Selection.EnterSubItemSelectionContext(CreateSelectionRuntime(), senderToIgnore);
+            _timelineDomain.Editing.EnterSubItemSelectionContext(CreateSelectionRuntime(), senderToIgnore);
         }
 
         public bool IsTrackLevelKeyframeWrapperSelected(object wrapper)
@@ -540,10 +540,10 @@ namespace Axphi.ViewModels
 
                 if (preservedUiState != null)
                 {
-                    _timelineDomain.UiRestore.Restore(preservedUiState, Tracks, AudioTrack, JudgementLineEditor);
+                    _timelineDomain.State.RestoreUiState(preservedUiState, Tracks, AudioTrack, JudgementLineEditor);
                 }
 
-                var playbackState = _timelineDomain.PlaybackRestore.Resolve(preservedUiState, metadata);
+                var playbackState = _timelineDomain.State.ResolvePlaybackState(preservedUiState, metadata);
                 CurrentHorizontalScrollOffset = playbackState.CurrentHorizontalScrollOffset;
                 WorkspaceStartTick = playbackState.WorkspaceStartTick;
                 WorkspaceEndTick = playbackState.WorkspaceEndTick;
@@ -591,12 +591,12 @@ namespace Axphi.ViewModels
 
         private string SerializeHistorySnapshot()
         {
-            return _timelineDomain.Snapshot.Serialize(CurrentChart, GetProjectMetadata());
+            return _timelineDomain.State.SerializeSnapshot(CurrentChart, GetProjectMetadata());
         }
 
         private TimelineUiState CaptureTimelineUiState()
         {
-            return _timelineDomain.UiState.Capture(new TimelineCaptureRuntime(
+            return _timelineDomain.State.CaptureUiState(new TimelineCaptureRuntime(
                 CurrentPlayTimeSeconds,
                 CurrentHorizontalScrollOffset,
                 ZoomScale,
@@ -616,7 +616,7 @@ namespace Axphi.ViewModels
             }
 
             var uiState = CaptureTimelineUiState();
-            var restoredSnapshot = _timelineDomain.Snapshot.Deserialize(snapshot);
+            var restoredSnapshot = _timelineDomain.State.DeserializeSnapshot(snapshot);
             var currentProject = _projectManager.EditingProject;
 
             _isApplyingHistorySnapshot = true;
@@ -702,12 +702,12 @@ namespace Axphi.ViewModels
 
         private List<TrackViewModel> GetSelectedJudgementLineTracks()
         {
-            return _timelineDomain.ClipboardSelection.GetSelectedJudgementLineTracks(Tracks);
+            return _timelineDomain.Clipboard.GetSelectedJudgementLineTracks(Tracks);
         }
 
         private int GetSelectedKeyframeCount()
         {
-            return _timelineDomain.ClipboardSelection.GetSelectedKeyframeCount(BpmTrack, Tracks);
+            return _timelineDomain.Clipboard.GetSelectedKeyframeCount(BpmTrack, Tracks);
         }
 
         private bool CanCopySelectedKeyframes() => GetSelectedKeyframeCount() > 0 || GetSelectedJudgementLineTracks().Count > 0;
@@ -729,7 +729,7 @@ namespace Axphi.ViewModels
             _judgementLineClipboard.Clear();
             foreach (var track in selectedTracks)
             {
-                _judgementLineClipboard.Add(_timelineDomain.ClipboardClone.CloneJudgementLine(track.Data));
+                _judgementLineClipboard.Add(_timelineDomain.Clipboard.CloneJudgementLine(track.Data));
             }
 
             PasteCopiedJudgementLines();
@@ -748,7 +748,7 @@ namespace Axphi.ViewModels
                     _judgementLineClipboard.Clear();
                     foreach (var track in selectedTracks)
                     {
-                        _judgementLineClipboard.Add(_timelineDomain.ClipboardClone.CloneJudgementLine(track.Data));
+                        _judgementLineClipboard.Add(_timelineDomain.Clipboard.CloneJudgementLine(track.Data));
                     }
 
                     NotifyKeyframeClipboardCommandsStateChanged();
@@ -762,21 +762,21 @@ namespace Axphi.ViewModels
 
             if (BpmTrack != null)
             {
-                _timelineDomain.ClipboardCollector.AddSelectedWrappersToClipboard(_keyframeClipboard, BpmTrack.UIBpmKeyframes, KeyframeClipboardTarget.Bpm, null, copiedKeys);
+                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, BpmTrack.UIBpmKeyframes, KeyframeClipboardTarget.Bpm, null, copiedKeys);
             }
 
             foreach (var track in Tracks)
             {
-                _timelineDomain.ClipboardCollector.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIAnchorKeyframes, KeyframeClipboardTarget.TrackAnchor, track, copiedKeys);
-                _timelineDomain.ClipboardCollector.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIOffsetKeyframes, KeyframeClipboardTarget.TrackOffset, track, copiedKeys);
-                _timelineDomain.ClipboardCollector.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIScaleKeyframes, KeyframeClipboardTarget.TrackScale, track, copiedKeys);
-                _timelineDomain.ClipboardCollector.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIRotationKeyframes, KeyframeClipboardTarget.TrackRotation, track, copiedKeys);
-                _timelineDomain.ClipboardCollector.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIOpacityKeyframes, KeyframeClipboardTarget.TrackOpacity, track, copiedKeys);
-                _timelineDomain.ClipboardCollector.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UISpeedKeyframes, KeyframeClipboardTarget.TrackSpeed, track, copiedKeys);
+                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIAnchorKeyframes, KeyframeClipboardTarget.TrackAnchor, track, copiedKeys);
+                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIOffsetKeyframes, KeyframeClipboardTarget.TrackOffset, track, copiedKeys);
+                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIScaleKeyframes, KeyframeClipboardTarget.TrackScale, track, copiedKeys);
+                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIRotationKeyframes, KeyframeClipboardTarget.TrackRotation, track, copiedKeys);
+                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UIOpacityKeyframes, KeyframeClipboardTarget.TrackOpacity, track, copiedKeys);
+                _timelineDomain.Clipboard.AddSelectedWrappersToClipboard(_keyframeClipboard, track.UISpeedKeyframes, KeyframeClipboardTarget.TrackSpeed, track, copiedKeys);
 
                 foreach (var note in track.UINotes)
                 {
-                    _timelineDomain.ClipboardCollector.AddNoteSelectionToClipboard(_keyframeClipboard, note, track, copiedKeys);
+                    _timelineDomain.Clipboard.AddNoteSelectionToClipboard(_keyframeClipboard, note, track, copiedKeys);
                 }
             }
 
@@ -813,7 +813,7 @@ namespace Axphi.ViewModels
             var pasteRuntime = CreatePasteRuntime();
             foreach (var item in _keyframeClipboard.OrderBy(item => item.Time))
             {
-                object? pastedWrapper = _timelineDomain.ClipboardPaste.PasteClipboardItem(pasteRuntime, item, item.Time + deltaTick);
+                object? pastedWrapper = _timelineDomain.Clipboard.PasteClipboardItem(pasteRuntime, item, item.Time + deltaTick);
                 if (pastedWrapper != null)
                 {
                     pastedWrappers.Add(pastedWrapper);
@@ -860,7 +860,7 @@ namespace Axphi.ViewModels
 
             foreach (var copiedLine in _judgementLineClipboard)
             {
-                var clonedLine = _timelineDomain.ClipboardClone.CloneJudgementLine(copiedLine);
+                var clonedLine = _timelineDomain.Clipboard.CloneJudgementLine(copiedLine);
                 clonedLines.Add(clonedLine);
                 idMap[copiedLine.ID] = clonedLine.ID;
             }
@@ -895,14 +895,14 @@ namespace Axphi.ViewModels
                 BpmTrack,
                 Tracks,
                 this,
-                _timelineDomain.ClipboardClone);
+                _timelineDomain.Clipboard);
         }
 
         // ================= 核心命令：全局删除选中的关键帧 =================
         [RelayCommand]
         private void DeleteSelectedKeyframes()
         {
-            if (_timelineDomain.Deletion.DeleteSelected(CreateDeleteRuntime()))
+            if (_timelineDomain.Editing.DeleteSelected(CreateDeleteRuntime()))
             {
                 FinalizeDeleteChanges();
             }
@@ -910,7 +910,7 @@ namespace Axphi.ViewModels
 
         public void RefreshLayerSelectionVisuals()
         {
-            _timelineDomain.Selection.RefreshLayerSelectionVisuals(CreateSelectionRuntime());
+            _timelineDomain.Editing.RefreshLayerSelectionVisuals(CreateSelectionRuntime());
         }
 
         private TimelineSelectionRuntime CreateSelectionRuntime()
@@ -959,12 +959,12 @@ namespace Axphi.ViewModels
 
         private void ReindexTrackNames()
         {
-            _timelineDomain.TrackHierarchy.ReindexTrackNames(Tracks);
+            _timelineDomain.Editing.ReindexTrackNames(Tracks);
         }
 
         public bool TrySetParentLine(TrackViewModel childTrack, string? parentLineId)
         {
-            return _timelineDomain.TrackHierarchy.TrySetParentLine(
+            return _timelineDomain.Editing.TrySetParentLine(
                 Tracks,
                 childTrack,
                 parentLineId,
@@ -973,7 +973,7 @@ namespace Axphi.ViewModels
 
         private void RefreshParentLineBindings()
         {
-            _timelineDomain.TrackHierarchy.RefreshParentLineBindings(
+            _timelineDomain.Editing.RefreshParentLineBindings(
                 Tracks,
                 () => _messenger.Send(new JudgementLinesChangedMessage()));
         }

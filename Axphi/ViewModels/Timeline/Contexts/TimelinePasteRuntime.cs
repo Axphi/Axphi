@@ -10,13 +10,13 @@ public sealed class TimelinePasteRuntime
         BpmTrackViewModel? bpmTrack,
         ObservableCollection<TrackViewModel> tracks,
         TimelineViewModel timeline,
-        ITimelineClipboardCloneService clipboardCloneService)
+        ITimelineClipboardService clipboardService)
     {
         CurrentChart = currentChart;
         BpmTrack = bpmTrack;
         Tracks = tracks;
         Timeline = timeline;
-        ClipboardCloneService = clipboardCloneService;
+        ClipboardService = clipboardService;
     }
 
     public Chart CurrentChart { get; }
@@ -27,5 +27,5 @@ public sealed class TimelinePasteRuntime
 
     public TimelineViewModel Timeline { get; }
 
-    public ITimelineClipboardCloneService ClipboardCloneService { get; }
+    public ITimelineClipboardService ClipboardService { get; }
 }

@@ -1,6 +1,9 @@
-﻿namespace Axphi.ViewModels;
+﻿using System;
+using System.Collections.ObjectModel;
 
-public interface ITimelineSelectionService
+namespace Axphi.ViewModels;
+
+public interface ITimelineEditingService
 {
     void ClearKeyframeSelection(TimelineSelectionRuntime runtime, object? senderToIgnore = null);
 
@@ -15,4 +18,18 @@ public interface ITimelineSelectionService
     void EnterSubItemSelectionContext(TimelineSelectionRuntime runtime, object? senderToIgnore = null);
 
     void RefreshLayerSelectionVisuals(TimelineSelectionRuntime runtime);
+
+    bool DeleteSelected(TimelineDeleteRuntime runtime);
+
+    void ReindexTrackNames(ObservableCollection<TrackViewModel> tracks);
+
+    bool TrySetParentLine(
+        ObservableCollection<TrackViewModel> tracks,
+        TrackViewModel childTrack,
+        string? parentLineId,
+        Action onHierarchyChanged);
+
+    void RefreshParentLineBindings(
+        ObservableCollection<TrackViewModel> tracks,
+        Action onHierarchyChanged);
 }

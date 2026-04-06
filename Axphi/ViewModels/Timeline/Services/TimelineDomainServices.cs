@@ -3,52 +3,28 @@
 public sealed class TimelineDomainServices : ITimelineDomainServices
 {
     public TimelineDomainServices(
-        ITimelineSelectionService selection,
-        ITimelineTrackHierarchyService trackHierarchy,
-        ITimelineDeletionService deletion,
+        ITimelineEditingService editing,
         ITimelineSnapService snap,
-        ITimelineClipboardSelectionService clipboardSelection,
+        ITimelineClipboardService clipboard,
         ITimelineMutationSyncService mutationSync,
-        ITimelineClipboardCloneService clipboardClone,
-        ITimelineClipboardCollectorService clipboardCollector,
-        ITimelineClipboardPasteService clipboardPaste,
-        ITimelineSnapshotService snapshot,
-        ITimelineUiStateService uiState,
-        ITimelineUiRestoreService uiRestore,
-        ITimelinePlaybackRestoreService playbackRestore,
+        ITimelineStateService state,
         ITimelineWorkspaceLoopService workspaceLoop,
         ITimelineTrackMaterializerService trackMaterializer)
     {
-        Selection = selection;
-        TrackHierarchy = trackHierarchy;
-        Deletion = deletion;
+        Editing = editing;
         Snap = snap;
-        ClipboardSelection = clipboardSelection;
+        Clipboard = clipboard;
         MutationSync = mutationSync;
-        ClipboardClone = clipboardClone;
-        ClipboardCollector = clipboardCollector;
-        ClipboardPaste = clipboardPaste;
-        Snapshot = snapshot;
-        UiState = uiState;
-        UiRestore = uiRestore;
-        PlaybackRestore = playbackRestore;
+        State = state;
         WorkspaceLoop = workspaceLoop;
         TrackMaterializer = trackMaterializer;
     }
 
-    public ITimelineSelectionService Selection { get; }
-    public ITimelineTrackHierarchyService TrackHierarchy { get; }
-    public ITimelineDeletionService Deletion { get; }
+    public ITimelineEditingService Editing { get; }
     public ITimelineSnapService Snap { get; }
-    public ITimelineClipboardSelectionService ClipboardSelection { get; }
+    public ITimelineClipboardService Clipboard { get; }
     public ITimelineMutationSyncService MutationSync { get; }
-    public ITimelineClipboardCloneService ClipboardClone { get; }
-    public ITimelineClipboardCollectorService ClipboardCollector { get; }
-    public ITimelineClipboardPasteService ClipboardPaste { get; }
-    public ITimelineSnapshotService Snapshot { get; }
-    public ITimelineUiStateService UiState { get; }
-    public ITimelineUiRestoreService UiRestore { get; }
-    public ITimelinePlaybackRestoreService PlaybackRestore { get; }
+    public ITimelineStateService State { get; }
     public ITimelineWorkspaceLoopService WorkspaceLoop { get; }
     public ITimelineTrackMaterializerService TrackMaterializer { get; }
 }

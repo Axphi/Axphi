@@ -2,19 +2,11 @@
 
 public interface ITimelineDomainServices
 {
-    ITimelineSelectionService Selection { get; }
-    ITimelineTrackHierarchyService TrackHierarchy { get; }
-    ITimelineDeletionService Deletion { get; }
+    ITimelineEditingService Editing { get; }
     ITimelineSnapService Snap { get; }
-    ITimelineClipboardSelectionService ClipboardSelection { get; }
+    ITimelineClipboardService Clipboard { get; }
     ITimelineMutationSyncService MutationSync { get; }
-    ITimelineClipboardCloneService ClipboardClone { get; }
-    ITimelineClipboardCollectorService ClipboardCollector { get; }
-    ITimelineClipboardPasteService ClipboardPaste { get; }
-    ITimelineSnapshotService Snapshot { get; }
-    ITimelineUiStateService UiState { get; }
-    ITimelineUiRestoreService UiRestore { get; }
-    ITimelinePlaybackRestoreService PlaybackRestore { get; }
+    ITimelineStateService State { get; }
     ITimelineWorkspaceLoopService WorkspaceLoop { get; }
     ITimelineTrackMaterializerService TrackMaterializer { get; }
 }

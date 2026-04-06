@@ -1,9 +1,19 @@
 ﻿using Axphi.Data;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Axphi.ViewModels;
 
-public interface ITimelineClipboardCollectorService
+public interface ITimelineClipboardService
 {
+    List<TrackViewModel> GetSelectedJudgementLineTracks(ObservableCollection<TrackViewModel> tracks);
+
+    int GetSelectedKeyframeCount(BpmTrackViewModel? bpmTrack, ObservableCollection<TrackViewModel> tracks);
+
+    Note CloneNote(Note note);
+
+    JudgementLine CloneJudgementLine(JudgementLine line);
+
     void AddClipboardItem(
         ICollection<KeyframeClipboardItem> clipboard,
         HashSet<string> copiedKeys,
@@ -28,4 +38,6 @@ public interface ITimelineClipboardCollectorService
         NoteViewModel note,
         TrackViewModel track,
         HashSet<string> copiedKeys);
+
+    object? PasteClipboardItem(TimelinePasteRuntime runtime, KeyframeClipboardItem item, int targetTime);
 }

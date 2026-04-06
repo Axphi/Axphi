@@ -1,14 +1,156 @@
 ﻿using Axphi.Data;
 using Axphi.Data.KeyFrames;
+using Axphi.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
 
 namespace Axphi.ViewModels;
 
-public sealed class TimelineClipboardPasteService : ITimelineClipboardPasteService
+public sealed class TimelineClipboardService : ITimelineClipboardService
 {
+    private static readonly JsonSerializerOptions CloneJsonSerializerOptions = new()
+    {
+        IncludeFields = true,
+        PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate,
+        Converters = { new VectorJsonConverter() }
+    };
+
+    public List<TrackViewModel> GetSelectedJudgementLineTracks(ObservableCollection<TrackViewModel> tracks)
+    {
+        return tracks.Where(track => track.IsLayerSelected).ToList();
+    }
+
+    public int GetSelectedKeyframeCount(BpmTrackViewModel? bpmTrack, ObservableCollection<TrackViewModel> tracks)
+    {
+        int count = 0;
+
+        if (bpmTrack != null)
+        {
+            count += bpmTrack.UIBpmKeyframes.Count(keyframe => keyframe.IsSelected);
+        }
+
+        foreach (var track in tracks)
+        {
+            count += track.UIAnchorKeyframes.Count(keyframe => keyframe.IsSelected);
+            count += track.UIOffsetKeyframes.Count(keyframe => keyframe.IsSelected);
+            count += track.UIScaleKeyframes.Count(keyframe => keyframe.IsSelected);
+            count += track.UIRotationKeyframes.Count(keyframe => keyframe.IsSelected);
+            count += track.UIOpacityKeyframes.Count(keyframe => keyframe.IsSelected);
+            count += track.UISpeedKeyframes.Count(keyframe => keyframe.IsSelected);
+
+            foreach (var note in track.UINotes)
+            {
+                if (note.IsSelected)
+                {
+                    count += 1;
+                    continue;
+                }
+
+                count += note.UIAnchorKeyframes.Count(keyframe => keyframe.IsSelected);
+                count += note.UIOffsetKeyframes.Count(keyframe => keyframe.IsSelected);
+                count += note.UIScaleKeyframes.Count(keyframe => keyframe.IsSelected);
+                count += note.UIRotationKeyframes.Count(keyframe => keyframe.IsSelected);
+                count += note.UIOpacityKeyframes.Count(keyframe => keyframe.IsSelected);
+                count += note.UINoteKindKeyframes.Count(keyframe => keyframe.IsSelected);
+            }
+        }
+
+        return count;
+    }
+
+    public Note CloneNote(Note note)
+    {
+        var clonedNote = JsonSerializer.Deserialize<Note>(
+                JsonSerializer.Serialize(note, CloneJsonSerializerOptions),
+                CloneJsonSerializerOptions)
+            ?? new Note();
+
+        clonedNote.ID = Guid.NewGuid().ToString();
+        return clonedNote;
+    }
+
+    public JudgementLine CloneJudgementLine(JudgementLine line)
+    {
+        var clonedLine = JsonSerializer.Deserialize<JudgementLine>(
+                JsonSerializer.Serialize(line, CloneJsonSerializerOptions),
+                CloneJsonSerializerOptions)
+            ?? new JudgementLine();
+
+        clonedLine.ID = Guid.NewGuid().ToString();
+        clonedLine.Notes ??= new List<Note>();
+        foreach (var note in clonedLine.Notes)
+        {
+            note.ID = Guid.NewGuid().ToString();
+        }
+
+        return clonedLine;
+    }
+
+    public void AddClipboardItem(
+        ICollection<KeyframeClipboardItem> clipboard,
+        HashSet<string> copiedKeys,
+        KeyframeClipboardTarget target,
+        object? owner,
+        int time,
+        object value,
+        BezierEasing easing,
+        bool isFreezeKeyframe = false,
+        string? uniqueKey = null)
+    {
+        string key = uniqueKey ?? $"{target}|{owner?.GetHashCode() ?? 0}|{time}";
+        if (copiedKeys.Add(key))
+        {
+            clipboard.Add(new KeyframeClipboardItem(target, owner, time, value, easing, isFreezeKeyframe));
+        }
+    }
+
+    public void AddSelectedWrappersToClipboard<T>(
+        ICollection<KeyframeClipboardItem> clipboard,
+        IEnumerable<KeyFrameUIWrapper<T>> wrappers,
+        KeyframeClipboardTarget target,
+        object? owner,
+        HashSet<string> copiedKeys)
+        where T : struct
+    {
+        foreach (var wrapper in wrappers.Where(wrapper => wrapper.IsSelected))
+        {
+            AddClipboardItem(clipboard, copiedKeys, target, owner, wrapper.Model.Time, wrapper.Model.Value, wrapper.Model.Easing, wrapper.IsFreezeKeyframe);
+        }
+    }
+
+    public void AddNoteSelectionToClipboard(
+        ICollection<KeyframeClipboardItem> clipboard,
+        NoteViewModel note,
+        TrackViewModel track,
+        HashSet<string> copiedKeys)
+    {
+        if (note.IsSelected)
+        {
+            AddClipboardItem(
+                clipboard,
+                copiedKeys,
+                KeyframeClipboardTarget.NoteBody,
+                track,
+                note.HitTime,
+                CloneNote(note.Model),
+                default,
+                uniqueKey: $"{KeyframeClipboardTarget.NoteBody}|{track.GetHashCode()}|{note.Model.ID}");
+            return;
+        }
+
+        AddSelectedWrappersToClipboard(clipboard, note.UIOffsetKeyframes, KeyframeClipboardTarget.NoteOffset, note, copiedKeys);
+        AddSelectedWrappersToClipboard(clipboard, note.UIAnchorKeyframes, KeyframeClipboardTarget.NoteAnchor, note, copiedKeys);
+        AddSelectedWrappersToClipboard(clipboard, note.UIScaleKeyframes, KeyframeClipboardTarget.NoteScale, note, copiedKeys);
+        AddSelectedWrappersToClipboard(clipboard, note.UIRotationKeyframes, KeyframeClipboardTarget.NoteRotation, note, copiedKeys);
+        AddSelectedWrappersToClipboard(clipboard, note.UIOpacityKeyframes, KeyframeClipboardTarget.NoteOpacity, note, copiedKeys);
+        AddSelectedWrappersToClipboard(clipboard, note.UINoteKindKeyframes, KeyframeClipboardTarget.NoteKind, note, copiedKeys);
+    }
+
     public object? PasteClipboardItem(TimelinePasteRuntime runtime, KeyframeClipboardItem item, int targetTime)
     {
         return item.Target switch
@@ -90,7 +232,7 @@ public sealed class TimelineClipboardPasteService : ITimelineClipboardPasteServi
             return null;
         }
 
-        var clonedNote = runtime.ClipboardCloneService.CloneNote(sourceNote);
+        var clonedNote = runtime.ClipboardService.CloneNote(sourceNote);
         clonedNote.HitTime = Math.Max(0, targetTime);
 
         track.Data.Notes ??= new List<Note>();

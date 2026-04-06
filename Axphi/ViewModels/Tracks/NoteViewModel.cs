@@ -189,6 +189,16 @@ namespace Axphi.ViewModels
             UIHoldPixelWidth = _timeline.TickToPixel(Model.HoldDuration);
         }
 
+        public void ResizeHoldDurationByPixelDelta(double horizontalChange)
+        {
+            double newPixelWidth = Math.Max(0, UIHoldPixelWidth + horizontalChange);
+            double exactTicks = _timeline.PixelToTick(newPixelWidth);
+            double exactTailTick = Model.HitTime + exactTicks;
+            int snappedTailTick = _timeline.SnapToClosest(exactTailTick);
+
+            HoldDuration = Math.Max(1, snappedTailTick - Model.HitTime);
+        }
+
         private void UpdateDisplayedValues(Action updateAction)
         {
             _isSyncing = true;

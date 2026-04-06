@@ -1,4 +1,4 @@
-using Axphi.Data;
+﻿using Axphi.Data;
 using Axphi.Services;
 using Axphi.Utilities;
 using Axphi.ViewModels;
@@ -43,7 +43,6 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _dragTimer = new DispatcherTimer();
     private Action? _currentDragAction = null; // 记录当前正在拖拽谁
     private double _lastTimelineLeftPanelWidth = -1;
-    private string? _parentBindingDragSourceTrackId;
 
 
     public MainWindow(
@@ -78,49 +77,6 @@ public partial class MainWindow : Window
             MainChartDisplay.LoadAudio(_mainViewModel.ProjectManager.EditingProject.EncodedAudio);
             MainChartDisplay.LoadIllustration(_mainViewModel.ProjectManager.EditingProject.EncodedIllustration);
             Dispatcher.BeginInvoke(new Action(RestoreHorizontalScrollFromTimeline), DispatcherPriority.Loaded);
-        });
-
-        WeakReferenceMessenger.Default.Register<ParentBindingDragStartedMessage>(this, (_, message) =>
-        {
-            _parentBindingDragSourceTrackId = message.SourceTrackId;
-            ParentBindingGlobalPreviewLine.X1 = message.StartPoint.X;
-            ParentBindingGlobalPreviewLine.Y1 = message.StartPoint.Y;
-            ParentBindingGlobalPreviewLine.X2 = message.StartPoint.X;
-            ParentBindingGlobalPreviewLine.Y2 = message.StartPoint.Y;
-            ParentBindingGlobalPreviewLine.Visibility = Visibility.Visible;
-        });
-
-        WeakReferenceMessenger.Default.Register<ParentBindingDragUpdatedMessage>(this, (_, message) =>
-        {
-            if (_parentBindingDragSourceTrackId != message.SourceTrackId || ParentBindingGlobalPreviewLine.Visibility != Visibility.Visible)
-            {
-                return;
-            }
-
-            ParentBindingGlobalPreviewLine.X2 = message.CurrentPoint.X;
-            ParentBindingGlobalPreviewLine.Y2 = message.CurrentPoint.Y;
-        });
-
-        WeakReferenceMessenger.Default.Register<ParentBindingDragCompletedMessage>(this, (_, message) =>
-        {
-            if (_parentBindingDragSourceTrackId != message.SourceTrackId)
-            {
-                HideParentBindingPreviewLine();
-                return;
-            }
-
-            if (DataContext is MainViewModel vm)
-            {
-                var sourceTrack = vm.Timeline.Tracks.FirstOrDefault(track => track.Data.ID == message.SourceTrackId);
-                var targetTrack = ResolveTrackFromWindowPoint(message.EndPoint);
-
-                if (sourceTrack != null && targetTrack != null && !ReferenceEquals(sourceTrack, targetTrack))
-                {
-                    sourceTrack.ParentLineId = targetTrack.Data.ID;
-                }
-            }
-
-            HideParentBindingPreviewLine();
         });
 
         Loaded += (_, _) =>
@@ -172,29 +128,6 @@ public partial class MainWindow : Window
         _mainViewModel.ProjectManager.EditingProject.Metadata ??= new ProjectMetadata();
         return _mainViewModel.ProjectManager.EditingProject.Metadata;
     }
-
-    private TrackViewModel? ResolveTrackFromWindowPoint(Point windowPoint)
-    {
-        DependencyObject? hit = InputHitTest(windowPoint) as DependencyObject;
-        while (hit != null)
-        {
-            if (hit is TrackControl trackControl && trackControl.DataContext is TrackViewModel trackViewModel)
-            {
-                return trackViewModel;
-            }
-
-            hit = VisualTreeHelper.GetParent(hit);
-        }
-
-        return null;
-    }
-
-    private void HideParentBindingPreviewLine()
-    {
-        _parentBindingDragSourceTrackId = null;
-        ParentBindingGlobalPreviewLine.Visibility = Visibility.Collapsed;
-    }
-
 
     // ================= 全局拖拽 60 帧引擎 =================
 
@@ -334,36 +267,6 @@ public partial class MainWindow : Window
     }
 
     
-
-    // 当底部总滚动条被拖拽时，强制所有轨道一起滚！
-    private void GlobalHorizontalScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        // 拿到当前滚动条的进度值
-        double offset = e.NewValue;
-
-        if (DataContext is MainViewModel vm)
-        {
-            vm.Timeline.CurrentHorizontalScrollOffset = offset;
-        }
-
-        // 🌟 核心修改：大喇叭广播！所有活着的 TrackControl 收到消息后会自动滚动！
-        WeakReferenceMessenger.Default.Send(new SyncHorizontalScrollMessage(offset));
-
-        // ==========================================
-        // 【修改位置：新增这一段】
-        // 滚动条往右滚了 offset 距离，我们就把游标往左视觉平移 -offset 距离
-        // 这样它就能精准出现在屏幕里了！
-        // ==========================================
-        if (PlayheadTransform != null)
-        {
-            PlayheadTransform.X = -offset;
-        }
-
-
-        // 🌟 新增：大滚动条一动，小地图的视野框必须跟着动！
-        UpdateMinimapViewport();
-    }
-
 
     private readonly HashSet<ScrollViewer> _verticalTrackScrollViewers = new();
     // 注册/注销 Vertical ScrollViewer 的 Loaded/Unloaded 处理器

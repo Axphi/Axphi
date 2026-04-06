@@ -103,6 +103,17 @@ namespace Axphi.ViewModels
             }
         }
 
+        [ObservableProperty]
+        private bool _parentBindingPopupOpen;
+
+        [RelayCommand]
+        private void SelectParentLine(string? parentLineId)
+        {
+            string? normalizedValue = string.IsNullOrWhiteSpace(parentLineId) ? null : parentLineId;
+            _timeline.TrySetParentLine(this, normalizedValue);
+            ParentBindingPopupOpen = false;
+        }
+
         // ================= 3. 供 DraggableValueBox 绑定的双向数据 =================
         [ObservableProperty]
         private double _currentAnchorX;

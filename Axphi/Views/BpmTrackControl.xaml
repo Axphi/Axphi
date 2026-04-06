@@ -36,7 +36,9 @@
 
         <ScrollViewer x:Name="BpmTrackScrollViewer" Grid.Column="2" HorizontalScrollBarVisibility="Hidden"
                       VerticalScrollBarVisibility="Disabled"
-                      PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
+                      comp:HorizontalScrollSyncInteraction.Enable="True"
+                      comp:HorizontalScrollSyncInteraction.Timeline="{Binding Timeline}"
+                      comp:MouseWheelPassthroughInteraction.Enable="True">
             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
                 <Border Width="{Binding Timeline.TimelineSurfaceWidth}" Height="24" HorizontalAlignment="Left" Background="#2b1d1d">
                     <ItemsControl ItemsSource="{Binding UIBpmKeyframes}">

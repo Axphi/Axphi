@@ -482,7 +482,10 @@
                                Orientation="Horizontal" VerticalAlignment="Bottom"
                                Minimum="0" Maximum="{Binding Timeline.MaxScrollOffset}"
                                ViewportSize="{Binding Timeline.ViewportActualWidth}"
-                               ValueChanged="GlobalHorizontalScrollBar_ValueChanged" />
+                               comp:GlobalHorizontalScrollInteraction.Enable="True"
+                               comp:GlobalHorizontalScrollInteraction.Timeline="{Binding Timeline}"
+                               comp:GlobalHorizontalScrollInteraction.PlayheadTransform="{Binding ElementName=PlayheadTransform}"
+                               comp:GlobalHorizontalScrollInteraction.ViewportReference="{Binding ElementName=MainTimelineRuler}" />
 
                     <!--  图层全局垂直滚动条  -->
                     <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"
@@ -598,6 +601,7 @@
                 IsHitTestVisible="False"
                 Panel.ZIndex="99999">
             <Line x:Name="ParentBindingGlobalPreviewLine"
+                  comp:ParentBindingPreviewInteraction.Enable="True"
                   Visibility="Collapsed"
                   Stroke="#8AB4F8"
                   StrokeThickness="1.5"

@@ -107,7 +107,7 @@
                             CornerRadius="1"
                             Cursor="Cross"
                             comp:LayerPointerInteraction.IgnorePointerSelection="True"
-                            PreviewMouseLeftButtonDown="ParentLinkHandle_PreviewMouseLeftButtonDown" />
+                            comp:ParentBindingDragInteraction.Enable="True" />
 
                     <Grid Grid.Column="4"
                           Width="92"
@@ -116,6 +116,7 @@
                           HorizontalAlignment="Left"
                           VerticalAlignment="Center">
                         <ToggleButton x:Name="ParentBindingToggleButton"
+                                      IsChecked="{Binding ParentBindingPopupOpen, Mode=TwoWay}"
                                       Background="#1A2A40"
                                       BorderBrush="#4C6A94"
                                       BorderThickness="1"
@@ -146,7 +147,7 @@
                                Placement="Bottom"
                                StaysOpen="False"
                                AllowsTransparency="True"
-                               IsOpen="{Binding IsChecked, ElementName=ParentBindingToggleButton, Mode=TwoWay}">
+                               IsOpen="{Binding ParentBindingPopupOpen, Mode=TwoWay}">
                             <Border Background="#14253A"
                                     BorderBrush="#4C6A94"
                                     BorderThickness="1"
@@ -155,8 +156,8 @@
                                     <ItemsControl ItemsSource="{Binding ParentLineOptions}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Button Tag="{Binding LineId}"
-                                                        Click="ParentBindingOptionButton_Click"
+                                                <Button Command="{Binding DataContext.SelectParentLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding LineId}"
                                                         HorizontalContentAlignment="Left"
                                                         Padding="6,2"
                                                         Background="#14253A"
@@ -616,7 +617,9 @@
         <ScrollViewer x:Name="TrackScrollViewer"
                       Grid.Column="2" HorizontalScrollBarVisibility="Hidden"
                       VerticalScrollBarVisibility="Disabled"
-                      PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
+                      comp:HorizontalScrollSyncInteraction.Enable="True"
+                      comp:HorizontalScrollSyncInteraction.Timeline="{Binding Timeline}"
+                      comp:MouseWheelPassthroughInteraction.Enable="True">
             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
                 <StackPanel>
 
@@ -761,7 +764,7 @@
                                                    Canvas.Left="{Binding UIHoldPixelWidth}" Canvas.Top="5"
                                                    Visibility="Collapsed"
                                                    Margin="-3,0,0,0"
-                                                   DragDelta="HoldTail_DragDelta">
+                                                   comp:HoldTailDragInteraction.Enable="True">
                                                 <Thumb.Template>
                                                     <ControlTemplate>
                                                         <Rectangle Fill="#88FFFFFF" RadiusX="1" RadiusY="1" />

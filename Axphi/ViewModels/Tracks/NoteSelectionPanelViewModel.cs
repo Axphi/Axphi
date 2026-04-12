@@ -3,9 +3,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System;
+using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
+using System.Windows;
 
 namespace Axphi.ViewModels
 {
@@ -13,8 +15,8 @@ namespace Axphi.ViewModels
     {
         private readonly TimelineViewModel _timeline;
         private readonly IMessenger _messenger;
-        private readonly List<NoteViewModel> _selectedNotes = new();
         private bool _isSyncing;
+        private readonly List<NoteViewModel> _selectedNotesSnapshot = new();
 
         [ObservableProperty]
         private bool _hasSelection;
@@ -67,10 +69,66 @@ namespace Axphi.ViewModels
         [ObservableProperty]
         private double _currentCustomSpeed;
 
+        public ObservableCollection<PropertyPanelRowItem> PropertyRows { get; } = new();
+
         public NoteSelectionPanelViewModel(TimelineViewModel timeline, IMessenger messenger)
         {
             _timeline = timeline;
             _messenger = messenger;
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Kind",
+                PropertyEditorKind.NoteKind,
+                () => AddNoteKindKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Anchor",
+                PropertyEditorKind.Anchor,
+                () => AddAnchorKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Position",
+                PropertyEditorKind.Position,
+                () => AddPositionKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Scale",
+                PropertyEditorKind.Scale,
+                () => AddScaleKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Rotation",
+                PropertyEditorKind.RotationPlain,
+                () => AddRotationKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
+
+            PropertyRows.Add(new PropertyPanelRowItem(
+                "Opacity",
+                PropertyEditorKind.Opacity,
+                () => AddOpacityKeyframeCommand,
+                () => null,
+                () => CanEditKeyframes ? Visibility.Visible : Visibility.Collapsed,
+                Visibility.Collapsed,
+                new GridLength(0)));
         }
 
         public ICommand? AddNoteKindKeyframeCommand => SingleSelectedNote?.AddNoteKindKeyframeCommand;
@@ -92,19 +150,24 @@ namespace Axphi.ViewModels
             OnPropertyChanged(nameof(AddRotationKeyframeCommand));
             OnPropertyChanged(nameof(AddOpacityKeyframeCommand));
             OnPropertyChanged(nameof(CanEditKeyframes));
+
+            foreach (var row in PropertyRows)
+            {
+                row.RefreshBindings();
+            }
         }
 
-        public void SyncSelection(IReadOnlyList<NoteViewModel> selectedNotes)
+        public void SyncSelection()
         {
-            _selectedNotes.Clear();
-            _selectedNotes.AddRange(selectedNotes);
-
+            var selectedNotes = ScanSelectedNotes();
+            _selectedNotesSnapshot.Clear();
+            _selectedNotesSnapshot.AddRange(selectedNotes);
             _isSyncing = true;
 
-            HasSelection = _selectedNotes.Count > 0;
-            SelectedCount = _selectedNotes.Count;
-            IsSingleSelection = _selectedNotes.Count == 1;
-            SingleSelectedNote = IsSingleSelection ? _selectedNotes[0] : null;
+            HasSelection = selectedNotes.Count > 0;
+            SelectedCount = selectedNotes.Count;
+            IsSingleSelection = selectedNotes.Count == 1;
+            SingleSelectedNote = IsSingleSelection ? selectedNotes[0] : null;
 
             if (!HasSelection)
             {
@@ -148,8 +211,8 @@ namespace Axphi.ViewModels
             {
                 SelectionTitle = $"{SelectedCount} Notes";
                 SelectionModeHint = "Delta";
-                CurrentNoteKind = _selectedNotes.Select(note => note.CurrentNoteKind).Distinct().Count() == 1
-                    ? _selectedNotes[0].CurrentNoteKind.ToString()
+                CurrentNoteKind = selectedNotes.Select(note => note.CurrentNoteKind).Distinct().Count() == 1
+                    ? selectedNotes[0].CurrentNoteKind.ToString()
                     : "Mixed";
                 CurrentAnchorX = 0;
                 CurrentAnchorY = 0;
@@ -160,8 +223,8 @@ namespace Axphi.ViewModels
                 CurrentRotation = 0;
                 CurrentOpacity = 0;
 
-                bool allEnabled = _selectedNotes.All(note => note.HasCustomSpeed);
-                bool allDisabled = _selectedNotes.All(note => !note.HasCustomSpeed);
+                bool allEnabled = selectedNotes.All(note => note.HasCustomSpeed);
+                bool allDisabled = selectedNotes.All(note => !note.HasCustomSpeed);
                 HasCustomSpeed = allEnabled ? true : allDisabled ? false : null;
                 CurrentCustomSpeed = 0;
             }
@@ -178,8 +241,14 @@ namespace Axphi.ViewModels
                 return;
             }
 
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0)
+            {
+                return;
+            }
+
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in _selectedNotes)
+            foreach (var note in selectedNotes)
             {
                 note.ApplyNoteKindAbsolute(kind);
             }
@@ -189,105 +258,132 @@ namespace Axphi.ViewModels
         partial void OnCurrentOffsetXChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyPositionAbsolute(CurrentOffsetX, CurrentOffsetY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyPositionAbsolute(CurrentOffsetX, CurrentOffsetY));
                 return;
             }
 
-            ApplyVectorDelta(newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyPositionDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyPositionDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentAnchorXChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyAnchorAbsolute(CurrentAnchorX, CurrentAnchorY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyAnchorAbsolute(CurrentAnchorX, CurrentAnchorY));
                 return;
             }
 
-            ApplyVectorDelta(newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyAnchorDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyAnchorDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentAnchorYChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyAnchorAbsolute(CurrentAnchorX, CurrentAnchorY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyAnchorAbsolute(CurrentAnchorX, CurrentAnchorY));
                 return;
             }
 
-            ApplyVectorDelta(0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyAnchorDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, 0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyAnchorDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentOffsetYChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyPositionAbsolute(CurrentOffsetX, CurrentOffsetY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyPositionAbsolute(CurrentOffsetX, CurrentOffsetY));
                 return;
             }
 
-            ApplyVectorDelta(0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyPositionDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, 0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyPositionDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentScaleXChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyScaleAbsolute(CurrentScaleX, CurrentScaleY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyScaleAbsolute(CurrentScaleX, CurrentScaleY));
                 return;
             }
 
-            ApplyVectorDelta(newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyScaleDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, newValue - oldValue, 0, (note, deltaX, deltaY) => note.ApplyScaleDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentScaleYChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyScaleAbsolute(CurrentScaleX, CurrentScaleY));
+                ApplyAbsolute(selectedNotes, note => note.ApplyScaleAbsolute(CurrentScaleX, CurrentScaleY));
                 return;
             }
 
-            ApplyVectorDelta(0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyScaleDelta(deltaX, deltaY));
+            ApplyVectorDelta(selectedNotes, 0, newValue - oldValue, (note, deltaX, deltaY) => note.ApplyScaleDelta(deltaX, deltaY));
         }
 
         partial void OnCurrentRotationChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyRotationAbsolute(newValue));
+                ApplyAbsolute(selectedNotes, note => note.ApplyRotationAbsolute(newValue));
                 return;
             }
 
-            ApplyScalarDelta(newValue - oldValue, (note, delta) => note.ApplyRotationDelta(delta));
+            ApplyScalarDelta(selectedNotes, newValue - oldValue, (note, delta) => note.ApplyRotationDelta(delta));
         }
 
         partial void OnCurrentOpacityChanged(double oldValue, double newValue)
         {
             if (_isSyncing || !HasSelection) return;
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyOpacityAbsolute(newValue));
+                ApplyAbsolute(selectedNotes, note => note.ApplyOpacityAbsolute(newValue));
                 return;
             }
 
-            ApplyScalarDelta(newValue - oldValue, (note, delta) => note.ApplyOpacityDelta(delta));
+            ApplyScalarDelta(selectedNotes, newValue - oldValue, (note, delta) => note.ApplyOpacityDelta(delta));
         }
 
         partial void OnHasCustomSpeedChanged(bool? value)
         {
             if (_isSyncing || !HasSelection || value == null) return;
 
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in _selectedNotes)
+            foreach (var note in selectedNotes)
             {
                 note.ApplyHasCustomSpeed(value.Value, IsSingleSelection ? CurrentCustomSpeed : 1.0);
             }
@@ -298,53 +394,84 @@ namespace Axphi.ViewModels
         {
             if (_isSyncing || !HasSelection || HasCustomSpeed != true) return;
 
+            var selectedNotes = GetSelectedNotesSnapshot();
+            if (selectedNotes.Count == 0) return;
+
             if (IsSingleSelection)
             {
-                ApplyAbsolute(note => note.ApplyCustomSpeedAbsolute(newValue));
+                ApplyAbsolute(selectedNotes, note => note.ApplyCustomSpeedAbsolute(newValue));
                 return;
             }
 
-            ApplyScalarDelta(newValue - oldValue, (note, delta) => note.ApplyCustomSpeedDelta(delta));
+            ApplyScalarDelta(selectedNotes, newValue - oldValue, (note, delta) => note.ApplyCustomSpeedDelta(delta));
         }
 
-        private void ApplyAbsolute(Action<NoteViewModel> applyAction)
+        private void ApplyAbsolute(IReadOnlyList<NoteViewModel> selectedNotes, Action<NoteViewModel> applyAction)
         {
+            if (selectedNotes.Count == 0)
+            {
+                return;
+            }
+
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in _selectedNotes)
+            foreach (var note in selectedNotes)
             {
                 applyAction(note);
             }
             _messenger.Send(new JudgementLinesChangedMessage());
         }
 
-        private void ApplyVectorDelta(double deltaX, double deltaY, Action<NoteViewModel, double, double> applyAction)
+        private void ApplyVectorDelta(IReadOnlyList<NoteViewModel> selectedNotes, double deltaX, double deltaY, Action<NoteViewModel, double, double> applyAction)
         {
             if (Math.Abs(deltaX) < double.Epsilon && Math.Abs(deltaY) < double.Epsilon)
             {
                 return;
             }
 
+            if (selectedNotes.Count == 0)
+            {
+                return;
+            }
+
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in _selectedNotes)
+            foreach (var note in selectedNotes)
             {
                 applyAction(note, deltaX, deltaY);
             }
             _messenger.Send(new JudgementLinesChangedMessage());
         }
 
-        private void ApplyScalarDelta(double delta, Action<NoteViewModel, double> applyAction)
+        private void ApplyScalarDelta(IReadOnlyList<NoteViewModel> selectedNotes, double delta, Action<NoteViewModel, double> applyAction)
         {
             if (Math.Abs(delta) < double.Epsilon)
             {
                 return;
             }
 
+            if (selectedNotes.Count == 0)
+            {
+                return;
+            }
+
             _messenger.Send(new ForcePausePlaybackMessage());
-            foreach (var note in _selectedNotes)
+            foreach (var note in selectedNotes)
             {
                 applyAction(note, delta);
             }
             _messenger.Send(new JudgementLinesChangedMessage());
+        }
+
+        private List<NoteViewModel> GetSelectedNotesSnapshot()
+        {
+            return _selectedNotesSnapshot;
+        }
+
+        private List<NoteViewModel> ScanSelectedNotes()
+        {
+            return _timeline.Tracks
+                .SelectMany(track => track.UINotes)
+                .Where(note => note.IsSelected)
+                .ToList();
         }
     }
 }

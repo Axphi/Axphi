@@ -27,7 +27,7 @@ namespace Axphi.Utilities
         {
             return new Chart()
             {
-                formatVersion = "1.0",
+                FormatVersion = "1.0",
 
                 //Duration = TimeSpan.FromSeconds(60),
                 Duration = SecToTick(60),
@@ -215,7 +215,7 @@ namespace Axphi.Utilities
         {
             return new Chart()
             {
-                formatVersion = "1.0",
+                FormatVersion = "1.0",
 
                 InitialBpm = 200,
                 Duration = SecToTick(10),

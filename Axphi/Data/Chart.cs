@@ -1,6 +1,7 @@
 ﻿using Axphi.Data.KeyFrames;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Axphi.Data
 {
@@ -9,10 +10,21 @@ namespace Axphi.Data
     /// </summary>
     public class Chart
     {
+        [JsonIgnore]
+        private ChartLineGraphIndex? _lineGraphIndex;
+
         /// <summary>
         /// 谱面版本
         /// </summary>
-        public string formatVersion = "1.0";
+        [JsonPropertyName("formatVersion")]
+        public string FormatVersion { get; set; } = "1.0";
+
+        [JsonIgnore]
+        public string formatVersion
+        {
+            get => FormatVersion;
+            set => FormatVersion = value;
+        }
 
         // 关于时间的单位(int), 为 tick, 一个 tick 表示一个 128 分音符, 也就是 1.875 / bpm
 
@@ -24,7 +36,15 @@ namespace Axphi.Data
         /// <summary>
         /// 歌曲名称
         /// </summary>
-        public string SoneName { get; set; } = string.Empty;
+        [JsonPropertyName("SoneName")]
+        public string SongName { get; set; } = string.Empty;
+
+        [JsonIgnore]
+        public string SoneName
+        {
+            get => SongName;
+            set => SongName = value;
+        }
 
         /// <summary>
         /// 难度
@@ -76,33 +96,26 @@ namespace Axphi.Data
         /// </summary>
         public KeyFrameEasingDirection KeyFrameEasingDirection { get; set; } = KeyFrameEasingDirection.ToNext;
 
+        public IReadOnlyDictionary<string, JudgementLine> GetLineByIdMap()
+        {
+            return GetOrBuildLineGraphIndex().LineById;
+        }
+
+        public void InvalidateLineGraphIndex()
+        {
+            _lineGraphIndex = null;
+        }
+
+        private ChartLineGraphIndex GetOrBuildLineGraphIndex()
+        {
+            return _lineGraphIndex ??= ChartLineGraphIndex.Build(this);
+        }
+
         public void RebuildHierarchy()
         {
-            var lineById = new Dictionary<string, JudgementLine>(StringComparer.Ordinal);
-
-            foreach (var line in JudgementLines)
-            {
-                line.ParentChart = this;
-                line.ParentLine = null;
-
-                if (!string.IsNullOrWhiteSpace(line.ID) && !lineById.ContainsKey(line.ID))
-                {
-                    lineById[line.ID] = line;
-                }
-
-                foreach (var note in line.Notes)
-                {
-                    note.ParentLine = line;
-                }
-            }
-
-            foreach (var line in JudgementLines)
-            {
-                if (!string.IsNullOrWhiteSpace(line.ParentLineId) && lineById.TryGetValue(line.ParentLineId, out var parentLine))
-                {
-                    line.ParentLine = parentLine;
-                }
-            }
+            var graphIndex = ChartLineGraphIndex.Build(this);
+            _lineGraphIndex = graphIndex;
+            graphIndex.ApplyHierarchy(this);
         }
 
     }

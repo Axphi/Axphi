@@ -7,13 +7,6 @@ using System.Windows.Input;
 
 namespace Axphi.ViewModels
 {
-    public interface IKeyFrameUiItem
-    {
-        bool IsSelected { get; }
-        bool IsFreezeKeyframe { get; set; }
-        void ApplyEasing(BezierEasing easing);
-    }
-
     // 加上 <T>，这样无论是 Vector 还是 double 都能包！
     public partial class KeyFrameUIWrapper<T> : ObservableObject, IKeyFrameUiItem, ISelectionNode, ITimelineDraggable, IRightClickableTimelineItem where T : struct
     {

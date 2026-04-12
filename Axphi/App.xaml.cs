@@ -26,15 +26,14 @@ public partial class App : Application
         serviceCollection.AddSingleton<BezierViewModel>();
 
         serviceCollection.AddSingleton<ProjectManager>();
+        serviceCollection.AddSingleton<IProjectSession>(serviceProvider => serviceProvider.GetRequiredService<ProjectManager>());
 
         serviceCollection.AddSingleton<IFileService, WindowsFileService>();
 
         serviceCollection.AddSingleton<FileActionsViewModel>();
 
-        serviceCollection.AddSingleton<TimelineViewModel>();
+        serviceCollection.AddTimelineServices();
         serviceCollection.AddSingleton<IMessenger>(_ => WeakReferenceMessenger.Default);
-        serviceCollection.AddSingleton<ITimelineTrackFactory, TimelineTrackFactory>();
-        serviceCollection.AddSingleton<ITimelineHistoryCoordinator, TimelineHistoryCoordinator>();
 
         
 

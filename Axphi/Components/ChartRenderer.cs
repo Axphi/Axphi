@@ -365,10 +365,7 @@ namespace Axphi.Components
             // 【第一遍遍历】：只画所有的判定线本身（铺在最底层）
             OverlayUiFlags effectiveOverlayFlags = ShowAuxiliaryUi ? OverlayUiVisibility : OverlayUiFlags.None;
             bool effectiveShowNoteCenters = ShowAuxiliaryUi && ShowNoteCenters;
-            var lineById = judgementLines
-                .Where(line => !string.IsNullOrWhiteSpace(line.ID))
-                .GroupBy(line => line.ID)
-                .ToDictionary(group => group.Key, group => group.First());
+            var lineById = chart.GetLineByIdMap();
             foreach (var judgementLine in judgementLines)
             {
                 if (currentTick < judgementLine.StartTick || currentTick > (judgementLine.StartTick + judgementLine.DurationTicks))

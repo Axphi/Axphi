@@ -4,6 +4,9 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Folder Name="/解决方案项/">
+    <File Path="README.md" />
+  </Folder>
   <Project Path="Axphi.Tests/Axphi.Tests.csproj" />
   <Project Path="Axphi/Axphi.csproj" />
 </Solution>

@@ -66,4 +66,8 @@
     <Resource Include="Resources\UI\AxphiLogo.png" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DemoCharts\" />
+  </ItemGroup>
+
 </Project>

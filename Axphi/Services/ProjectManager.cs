@@ -1,4 +1,4 @@
-﻿using Axphi.Data;
+using Axphi.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.IO;
 using System.IO.Compression;
@@ -10,7 +10,7 @@ using Axphi.Utilities;
 
 namespace Axphi.Services;
 
-public partial class ProjectManager : ObservableObject, IProjectSession
+public partial class ProjectManager : ObservableObject
 {
     private const string ChartEntryName = "chart.json";
     private const string MetadataEntryName = "metadata.json";
@@ -95,8 +95,6 @@ public partial class ProjectManager : ObservableObject, IProjectSession
         {
             metadata.TotalDurationTicks = chart.Duration > 0 ? chart.Duration : 10000;
         }
-
-        chart.RebuildHierarchy();
 
         return new Project
         {

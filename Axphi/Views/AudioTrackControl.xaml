@@ -30,7 +30,7 @@
                 </Style>
             </Border.Style>
             <StackPanel x:Name="AudioLayerPanel">
-                <Grid Height="20" comp:LayerPointerInteraction.Enable="True">
+                <Grid Height="20" PreviewMouseLeftButtonDown="AudioHeader_PreviewMouseLeftButtonDown" PreviewMouseLeftButtonUp="AudioHeader_PreviewMouseLeftButtonUp">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="4" />
                         <ColumnDefinition Width="20" />
@@ -138,9 +138,7 @@
         <ScrollViewer x:Name="TrackScrollViewer"
                       Grid.Column="2" HorizontalScrollBarVisibility="Hidden"
                       VerticalScrollBarVisibility="Disabled"
-                      comp:HorizontalScrollSyncInteraction.Enable="True"
-                      comp:HorizontalScrollSyncInteraction.Timeline="{Binding Timeline}"
-                      comp:MouseWheelPassthroughInteraction.Enable="True">
+                      PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
 
             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1" VerticalAlignment="Top">
                 <Canvas Margin="8,0,0,0" Width="{Binding Timeline.TotalPixelWidth}" HorizontalAlignment="Left">
@@ -156,8 +154,11 @@
                     </Canvas.Style>
 
                               <Thumb Canvas.Left="{Binding LayerPixelXOffset}"
-                              comp:LayerPointerInteraction.Enable="True"
-                              comp:TimelineThumbInteraction.EnableDrag="True">
+                              PreviewMouseLeftButtonDown="AudioThumb_PreviewMouseLeftButtonDown"
+                                  PreviewMouseLeftButtonUp="AudioThumb_PreviewMouseLeftButtonUp"
+                           DragStarted="AudioThumb_DragStarted"
+                           DragDelta="AudioThumb_DragDelta"
+                           DragCompleted="AudioThumb_DragCompleted">
                         <Thumb.Style>
                             <Style TargetType="Thumb">
                                 <Setter Property="Cursor" Value="SizeWE" />

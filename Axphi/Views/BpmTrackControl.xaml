@@ -36,22 +36,22 @@
 
         <ScrollViewer x:Name="BpmTrackScrollViewer" Grid.Column="2" HorizontalScrollBarVisibility="Hidden"
                       VerticalScrollBarVisibility="Disabled"
-                      comp:HorizontalScrollSyncInteraction.Enable="True"
-                      comp:HorizontalScrollSyncInteraction.Timeline="{Binding Timeline}"
-                      comp:MouseWheelPassthroughInteraction.Enable="True">
+                      PreviewMouseWheel="InnerTrack_PreviewMouseWheel">
             <Border Margin="0,0,0,2" Background="#1e1e1e" BorderBrush="#444" BorderThickness="0,0,0,1">
                 <Border Width="{Binding Timeline.TimelineSurfaceWidth}" Height="24" HorizontalAlignment="Left" Background="#2b1d1d">
                     <ItemsControl ItemsSource="{Binding UIBpmKeyframes}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <comp:TimelineTickPanel Timeline="{Binding Timeline}" LeftPadding="8" />
+                                <Canvas Margin="8,0,0,0"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
 
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Thumb Cursor="Hand" ToolTip="BPM 突变帧"
-                                       comp:TimelineThumbInteraction.EnableDrag="True">
+                                       DragStarted="KeyframeThumb_DragStarted"
+                                       DragDelta="KeyframeThumb_DragDelta"
+                                       DragCompleted="KeyframeThumb_DragCompleted">
 
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
@@ -81,7 +81,7 @@
 
                         <ItemsControl.ItemContainerStyle>
                             <Style TargetType="ContentPresenter">
-                                <Setter Property="comp:TimelineTickPanel.Tick" Value="{Binding Time}" />
+                                <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
                             </Style>
                         </ItemsControl.ItemContainerStyle>
                     </ItemsControl>

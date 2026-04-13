@@ -1,4 +1,4 @@
-﻿using Axphi.ViewModels;
+using Axphi.ViewModels;
 using System.Collections;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,6 +9,8 @@ namespace Axphi.Views
 {
     public partial class TrackTimelinePropertyView : UserControl
     {
+        private Point _lastMousePos;
+        private Window? _parentWindow;
         private TextBox? _activeExpressionEditor;
 
         public static readonly DependencyProperty KeyframesSourceProperty = DependencyProperty.Register(
@@ -53,12 +55,6 @@ namespace Axphi.Views
             typeof(TrackTimelinePropertyView),
             new PropertyMetadata(double.NaN));
 
-        public static readonly DependencyProperty TimelineProperty = DependencyProperty.Register(
-            nameof(Timeline),
-            typeof(TimelineViewModel),
-            typeof(TrackTimelinePropertyView),
-            new PropertyMetadata(null));
-
         public static readonly DependencyProperty ShowExpressionEditorProperty = DependencyProperty.Register(
             nameof(ShowExpressionEditor),
             typeof(bool),
@@ -86,6 +82,7 @@ namespace Axphi.Views
         public TrackTimelinePropertyView()
         {
             InitializeComponent();
+            Unloaded += (_, _) => UnhookWindowClick();
         }
 
         public IEnumerable? KeyframesSource
@@ -130,12 +127,6 @@ namespace Axphi.Views
             set => SetValue(TimelineWidthProperty, value);
         }
 
-        public TimelineViewModel? Timeline
-        {
-            get => (TimelineViewModel?)GetValue(TimelineProperty);
-            set => SetValue(TimelineProperty, value);
-        }
-
         public bool ShowExpressionEditor
         {
             get => (bool)GetValue(ShowExpressionEditorProperty);
@@ -160,6 +151,55 @@ namespace Axphi.Views
             set => SetValue(ExpressionEditorTextBoxStyleProperty, value);
         }
 
+        private void KeyframeThumb_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            _lastMousePos = Mouse.GetPosition(this);
+            if (sender is FrameworkElement fe && fe.DataContext != null)
+            {
+                dynamic wrapper = fe.DataContext;
+                wrapper.OnDragStarted();
+            }
+        }
+
+        private void KeyframeThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            Point currentPos = Mouse.GetPosition(this);
+            double stableDelta = currentPos.X - _lastMousePos.X;
+            _lastMousePos = currentPos;
+
+            if (sender is FrameworkElement fe && fe.DataContext != null)
+            {
+                dynamic wrapper = fe.DataContext;
+                wrapper.OnDragDelta(stableDelta);
+            }
+        }
+
+        private void KeyframeThumb_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext != null)
+            {
+                dynamic wrapper = fe.DataContext;
+                wrapper.OnDragCompleted();
+            }
+        }
+
+        private void KeyframeThumb_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!EnableRightClick)
+            {
+                return;
+            }
+
+            if (sender is not FrameworkElement fe || fe.DataContext == null)
+            {
+                return;
+            }
+
+            dynamic wrapper = fe.DataContext;
+            wrapper.OnRightClick();
+            e.Handled = true;
+        }
+
         private void ExpressionEditorHost_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             ExpressionSlot?.UpdatePanelHeight(e.NewSize.Height);
@@ -173,6 +213,7 @@ namespace Axphi.Views
             }
 
             _activeExpressionEditor = textBox;
+            HookWindowClick();
         }
 
         private void ExpressionEditorTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -181,31 +222,31 @@ namespace Axphi.Views
             {
                 _activeExpressionEditor = null;
             }
+
+            UnhookWindowClick();
         }
 
-        private void ExpressionEditorTextBox_LostFocus(object sender, RoutedEventArgs e)
+        private void HookWindowClick()
         {
-            CommitExpressionEditor(sender as FrameworkElement);
-        }
-
-        private void ExpressionEditorTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            _parentWindow ??= Window.GetWindow(this);
+            if (_parentWindow != null)
             {
-                CommitExpressionEditor(sender as FrameworkElement);
-                e.Handled = true;
+                _parentWindow.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
+                _parentWindow.PreviewMouseDown += ParentWindow_PreviewMouseDown;
             }
         }
 
-        private static void CommitExpressionEditor(FrameworkElement? element)
+        private void UnhookWindowClick()
         {
-            if (element?.DataContext is TrackExpressionSlot slot)
+            if (_parentWindow != null)
             {
-                slot.CommitNow();
+                _parentWindow.PreviewMouseDown -= ParentWindow_PreviewMouseDown;
             }
+
+            _parentWindow = null;
         }
 
-        private void Root_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        private void ParentWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (_activeExpressionEditor == null)
             {
@@ -218,8 +259,9 @@ namespace Axphi.Views
                 return;
             }
 
+            UnhookWindowClick();
             _activeExpressionEditor = null;
-            Keyboard.ClearFocus();
+            Focus();
         }
 
         private static bool IsDescendantOf(DependencyObject descendant, DependencyObject ancestor)

@@ -1,20 +1,17 @@
 ﻿using Axphi.Data.KeyFrames;
-using Axphi.Data;
 using Axphi.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Windows.Input;
 
 namespace Axphi.ViewModels
 {
     // 加上 <T>，这样无论是 Vector 还是 double 都能包！
-    public partial class KeyFrameUIWrapper<T> : ObservableObject, IKeyFrameUiItem, ISelectionNode, ITimelineDraggable, IRightClickableTimelineItem where T : struct
+    public partial class KeyFrameUIWrapper<T> : ObservableObject where T : struct
     {
-        private const SelectionGroup KeyframeSelectionGroup = SelectionGroup.Keyframes;
-
         public KeyFrame<T> Model { get; }
         private readonly TimelineViewModel _timeline;
-        private readonly IMessenger _messenger;
 
         // 1. 核心状态：是否被选中
         [ObservableProperty]
@@ -25,16 +22,8 @@ namespace Axphi.ViewModels
             _timeline.RefreshLayerSelectionVisuals();
         }
 
-        bool ISelectionNode.IsSelected
-        {
-            get => IsSelected;
-            set => IsSelected = value;
-        }
-
         [ObservableProperty]
         private double _pixelX;
-
-        public int Time => Model.Time;
 
         public bool IsFreezeKeyframe
         {
@@ -51,86 +40,53 @@ namespace Axphi.ViewModels
             }
         }
 
-        public void ApplyEasing(BezierEasing easing)
-        {
-            Model.Easing = easing;
-        }
 
 
-
-        public KeyFrameUIWrapper(KeyFrame<T> model, TimelineViewModel timeline, IMessenger? messenger = null)
+        public KeyFrameUIWrapper(KeyFrame<T> model, TimelineViewModel timeline)
         {
             Model = model;
             _timeline = timeline;
-            _messenger = messenger ?? WeakReferenceMessenger.Default;
             UpdatePosition();
 
-            RegisterMessageHandlers();
-        }
-
-        private void RegisterMessageHandlers()
-        {
-            _messenger.Register<KeyFrameUIWrapper<T>, ZoomScaleChangedMessage>(this, (recipient, message) =>
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, ZoomScaleChangedMessage>(this, (recipient, message) =>
             {
                 recipient.UpdatePosition();
             });
 
-            _messenger.Register<KeyFrameUIWrapper<T>, ClearSelectionMessage>(this, (recipient, message) =>
+            // ================= 监听清除选中广播 =================
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, ClearSelectionMessage>(this, (recipient, message) =>
             {
-                if (message.Group == KeyframeSelectionGroup && !ReferenceEquals(recipient, message.SenderToIgnore))
+                // 如果大家都在 "Keyframes" 这个频道，且这封信不是我（自己）发的
+                if (message.GroupName == "Keyframes" && !ReferenceEquals(recipient, message.SenderToIgnore))
                 {
-                    recipient.IsSelected = false;
+                    recipient.IsSelected = false; // 乖乖熄灭
                 }
             });
 
-            _messenger.Register<KeyFrameUIWrapper<T>, KeyframesDragStartedMessage>(this, (r, m) =>
+            // ================= 新增：监听协同拖拽广播 =================
+            // 收到起手式：如果是被选中的，且不是自己发起的，就准备跟着动！
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, KeyframesDragStartedMessage>(this, (r, m) =>
             {
-                r.TryReceiveDragStarted(m.SenderToIgnore);
+                if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragStarted();
             });
 
-            _messenger.Register<KeyFrameUIWrapper<T>, KeyframesDragDeltaMessage>(this, (r, m) =>
+            // 收到位移量：跟着挪动！
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, KeyframesDragDeltaMessage>(this, (r, m) =>
             {
-                r.TryReceiveDragDelta(m.HorizontalChange, m.SenderToIgnore);
+                if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragDelta(m.HorizontalChange);
             });
 
-            _messenger.Register<KeyFrameUIWrapper<T>, KeyframesDragCompletedMessage>(this, (r, m) =>
+            // 收到收尾：更新最终位置
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, KeyframesDragCompletedMessage>(this, (r, m) =>
             {
-                r.TryReceiveDragCompleted(m.SenderToIgnore);
+                if (r.IsSelected && !ReferenceEquals(r, m.SenderToIgnore)) r.ReceiveDragCompleted(false); // 别人发起的，传 false
             });
 
-            _messenger.Register<KeyFrameUIWrapper<T>, NotesDragStartedMessage>(this, (r, m) => r.TryReceiveDragStarted());
-            _messenger.Register<KeyFrameUIWrapper<T>, NotesDragDeltaMessage>(this, (r, m) => r.TryReceiveDragDelta(m.HorizontalChange));
-            _messenger.Register<KeyFrameUIWrapper<T>, NotesDragCompletedMessage>(this, (r, m) => r.TryReceiveDragCompleted());
-        }
 
-        private void TryReceiveDragStarted(object? senderToIgnore = null)
-        {
-            if (!IsSelected || ReferenceEquals(this, senderToIgnore))
-            {
-                return;
-            }
-
-            ReceiveDragStarted();
-        }
-
-        private void TryReceiveDragDelta(double horizontalChange, object? senderToIgnore = null)
-        {
-            if (!IsSelected || ReferenceEquals(this, senderToIgnore))
-            {
-                return;
-            }
-
-            ReceiveDragDelta(horizontalChange);
-        }
-
-        private void TryReceiveDragCompleted(object? senderToIgnore = null)
-        {
-            if (!IsSelected || ReferenceEquals(this, senderToIgnore))
-            {
-                return;
-            }
-
-            ReceiveDragCompleted(false);
+            // 跨频道监听：如果音符发起了拖拽，选中的关键帧也跟着动！
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, NotesDragStartedMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragStarted(); });
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, NotesDragDeltaMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragDelta(m.HorizontalChange); });
+            WeakReferenceMessenger.Default.Register<KeyFrameUIWrapper<T>, NotesDragCompletedMessage>(this, (r, m) => { if (r.IsSelected) r.ReceiveDragCompleted(false); });
         }
 
         private void UpdatePosition()
@@ -167,12 +123,12 @@ namespace Axphi.ViewModels
 
             // 如果没被选中，按下的瞬间立刻点亮它！
             // 如果按下的是一个【尚未选中】的关键帧
-            _wasSelectedBeforeDrag = SelectionHelper.BeginSelectionGesture(KeyframeSelectionGroup.ToString(), this, IsSelected, val => IsSelected = val, _messenger);
+            _wasSelectedBeforeDrag = SelectionHelper.BeginSelectionGesture("Keyframes", this, IsSelected, val => IsSelected = val);
 
             // 如果此时我是亮着的（选中状态），大喊一声：兄弟们，准备发车！
             if (IsSelected)
             {
-                _messenger.Send(new KeyframesDragStartedMessage(this));
+                WeakReferenceMessenger.Default.Send(new KeyframesDragStartedMessage(this));
             }
 
             
@@ -183,7 +139,7 @@ namespace Axphi.ViewModels
             // 如果我被选中了，把位移量发给兄弟们
             if (IsSelected)
             {
-                _messenger.Send(new KeyframesDragDeltaMessage(horizontalChange, this));
+                WeakReferenceMessenger.Default.Send(new KeyframesDragDeltaMessage(horizontalChange, this));
             }
 
             // 自己挪动
@@ -194,7 +150,7 @@ namespace Axphi.ViewModels
         {
             if (IsSelected)
             {
-                _messenger.Send(new KeyframesDragCompletedMessage(this));
+                WeakReferenceMessenger.Default.Send(new KeyframesDragCompletedMessage(this));
             }
 
             // 自己收尾（传 true，表示我是被鼠标直接捏住的那个“带头大哥”）
@@ -210,7 +166,7 @@ namespace Axphi.ViewModels
             }
 
             _timeline.EnterSubItemSelectionContext(this);
-            SelectionHelper.HandleSelection(KeyframeSelectionGroup.ToString(), this, IsSelected, value => IsSelected = value, _messenger);
+            SelectionHelper.HandleSelection("Keyframes", this, IsSelected, value => IsSelected = value);
             _timeline.ClearNoteSelection();
 
             if (_timeline.GetSelectedTrackLevelKeyframeCount() <= 0)
@@ -222,7 +178,7 @@ namespace Axphi.ViewModels
             bool targetFreezeState = !IsFreezeKeyframe;
             _timeline.SetFreezeStateForSelectedTrackLevelKeyframes(targetFreezeState);
 
-            _messenger.Send(new JudgementLinesChangedMessage());
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             _timeline.RefreshLayerSelectionVisuals();
         }
 
@@ -247,9 +203,9 @@ namespace Axphi.ViewModels
             // 3. 只有数值真正变化了才修改底层和发重绘
             if (newTick != Model.Time)
             {
-                SetModelTime(newTick);
+                Model.Time = newTick;
                 // 性能优化提示：这里每一帧都在发重绘广播
-                _messenger.Send(new JudgementLinesChangedMessage());
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             }
 
             // 4. 【核心防闪烁】：UI 像素的更新必须放在最后，且只赋值一次！
@@ -270,11 +226,11 @@ namespace Axphi.ViewModels
             // 只有被鼠标直接捏住的那个“带头大哥”，才有资格处理单击取消选中的判定
             if (isInitiator && _wasSelectedBeforeDrag && _dragAccumulated < 2.0)
             {
-                SelectionHelper.CompleteSelectionGesture(KeyframeSelectionGroup.ToString(), this, _wasSelectedBeforeDrag, _dragAccumulated, val => IsSelected = val, _messenger, () => _timeline.ClearNoteSelection());
+                SelectionHelper.CompleteSelectionGesture("Keyframes", this, _wasSelectedBeforeDrag, _dragAccumulated, val => IsSelected = val, () => _timeline.ClearNoteSelection());
             }
 
             UpdatePosition();
-            _messenger.Send(new KeyframesNeedSortMessage());
+            WeakReferenceMessenger.Default.Send(new KeyframesNeedSortMessage());
         }
 
 
@@ -283,20 +239,9 @@ namespace Axphi.ViewModels
         // 极简平移 API
         public void ShiftBy(int deltaTick)
         {
-            SetModelTime(Model.Time + deltaTick);
+            Model.Time += deltaTick;
             // if (Model.Time < 0) Model.Time = 0; // 物理防撞墙：绝不能退到 0 以前
             UpdatePosition(); // 调用你原本就有的方法，重新算像素！
-        }
-
-        private void SetModelTime(int newTime)
-        {
-            if (Model.Time == newTime)
-            {
-                return;
-            }
-
-            Model.Time = newTime;
-            OnPropertyChanged(nameof(Time));
         }
     }
 }

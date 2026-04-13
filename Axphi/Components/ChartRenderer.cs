@@ -365,7 +365,10 @@ namespace Axphi.Components
             // 【第一遍遍历】：只画所有的判定线本身（铺在最底层）
             OverlayUiFlags effectiveOverlayFlags = ShowAuxiliaryUi ? OverlayUiVisibility : OverlayUiFlags.None;
             bool effectiveShowNoteCenters = ShowAuxiliaryUi && ShowNoteCenters;
-            var lineById = chart.GetLineByIdMap();
+            var lineById = judgementLines
+                .Where(line => !string.IsNullOrWhiteSpace(line.ID))
+                .GroupBy(line => line.ID)
+                .ToDictionary(group => group.Key, group => group.First());
             foreach (var judgementLine in judgementLines)
             {
                 if (currentTick < judgementLine.StartTick || currentTick > (judgementLine.StartTick + judgementLine.DurationTicks))
@@ -963,8 +966,6 @@ namespace Axphi.Components
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
                 note.AnimatableProperties,
-                chart,
-                line,
                 out var anchor, out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(renderInfo.ChartUnitToPixel(offset.X), renderInfo.ChartUnitToPixel(offset.Y));

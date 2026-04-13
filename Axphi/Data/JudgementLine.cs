@@ -27,12 +27,6 @@ namespace Axphi.Data
         // 默认使用实时(Realtime)模式，也可选积分(Integral)模式
         public string SpeedMode { get; set; } = "Realtime";
 
-        [JsonIgnore]
-        public Chart? ParentChart { get; internal set; }
-
-        [JsonIgnore]
-        public JudgementLine? ParentLine { get; internal set; }
-
 
         
         public int StartTick { get; set; } = 0;

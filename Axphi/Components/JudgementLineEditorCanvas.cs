@@ -3,7 +3,6 @@ using Axphi.Utilities;
 using Axphi.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
@@ -82,12 +81,7 @@ namespace Axphi.Components
         private const double HoldHighlightHeadPixels = 50.0;
         private const double HoldHighlightBottomGlowPixels = 49.0;
         private const double HoldSliceInsetPixels = 0.5;
-        private const int MultiHitSnapshotRefreshIntervalMs = 120;
         private bool _isMessengerRegistered;
-        private bool _isMultiHitSnapshotDirty = true;
-        private TimelineViewModel? _multiHitSnapshotTimeline;
-        private HashSet<int> _multiHitSnapshot = new();
-        private long _multiHitSnapshotBuiltAtMs;
 
         private readonly record struct BeatGuideVisualStyle(Pen GuidePen, Brush LabelBrush, Brush LabelBackgroundBrush);
 
@@ -192,13 +186,7 @@ namespace Axphi.Components
                 return;
             }
 
-            WeakReferenceMessenger.Default.Register<JudgementLineEditorCanvas, JudgementLinesChangedMessage>(
-                this,
-                static (recipient, _) =>
-                {
-                    recipient._isMultiHitSnapshotDirty = true;
-                    recipient.InvalidateVisual();
-                });
+            WeakReferenceMessenger.Default.Register<JudgementLineEditorCanvas, JudgementLinesChangedMessage>(this, static (recipient, _) => recipient.InvalidateVisual());
             _isMessengerRegistered = true;
         }
 
@@ -206,7 +194,6 @@ namespace Axphi.Components
         {
             WeakReferenceMessenger.Default.UnregisterAll(this);
             _isMessengerRegistered = false;
-            _isMultiHitSnapshotDirty = true;
         }
 
         public JudgementLineEditorViewModel? Editor
@@ -258,7 +245,6 @@ namespace Axphi.Components
             double centerX = RenderSize.Width / 2.0 + editor.PanX;
             double centerY = RenderSize.Height / 2.0 + editor.PanY;
             double currentTick = editor.Timeline.GetExactTick();
-            var multiHitTicks = GetMultiHitTicks(editor.Timeline);
 
             foreach (var candidate in track.UINotes.Reverse())
             {
@@ -274,10 +260,9 @@ namespace Axphi.Components
                 }
 
                 Point noteCenter = GetNoteCenter(candidate, editor, track, metrics, RenderSize, centerX, centerY, currentTick, renderState);
-                bool isMultiHit = multiHitTicks.Contains(candidate.HitTime);
                 if (renderState.Kind == NoteKind.Hold)
                 {
-                    Rect tailHandleRect = GetHoldTailHandleRect(candidate, editor, track, metrics, RenderSize, noteCenter, renderState, isMultiHit);
+                    Rect tailHandleRect = GetHoldTailHandleRect(candidate, editor, track, metrics, RenderSize, noteCenter, renderState);
                     if (tailHandleRect.Contains(viewportPoint))
                     {
                         note = candidate;
@@ -287,7 +272,7 @@ namespace Axphi.Components
                     }
                 }
 
-                Rect bodyRect = GetNoteBodyRect(candidate, editor, track, metrics, RenderSize, noteCenter, renderState, isMultiHit);
+                Rect bodyRect = GetNoteBodyRect(candidate, editor, track, metrics, RenderSize, noteCenter, renderState);
                 if (bodyRect.Contains(viewportPoint))
                 {
                     note = candidate;
@@ -321,7 +306,6 @@ namespace Axphi.Components
             double centerX = RenderSize.Width / 2.0 + editor.PanX;
             double centerY = RenderSize.Height / 2.0 + editor.PanY;
             double currentTick = editor.Timeline.GetExactTick();
-            var multiHitTicks = GetMultiHitTicks(editor.Timeline);
 
             foreach (var candidate in track.UINotes)
             {
@@ -332,9 +316,8 @@ namespace Axphi.Components
                 }
 
                 Point noteCenter = GetNoteCenter(candidate, editor, track, metrics, RenderSize, centerX, centerY, currentTick, renderState);
-                bool isMultiHit = multiHitTicks.Contains(candidate.HitTime);
                 
-                Rect bodyRect = GetNoteBodyRect(candidate, editor, track, metrics, RenderSize, noteCenter, renderState, isMultiHit);
+                Rect bodyRect = GetNoteBodyRect(candidate, editor, track, metrics, RenderSize, noteCenter, renderState);
                 if (selectionRect.IntersectsWith(bodyRect))
                 {
                     candidate.IsSelected = true;
@@ -368,7 +351,6 @@ namespace Axphi.Components
                 || e.PropertyName == nameof(JudgementLineEditorViewModel.PendingHoldChartX)
                 || e.PropertyName == nameof(JudgementLineEditorViewModel.PendingHoldStartTick))
             {
-                _isMultiHitSnapshotDirty = true;
                 InvalidateVisual();
             }
         }
@@ -391,7 +373,7 @@ namespace Axphi.Components
             double centerX = width / 2.0 + editor.PanX;
             double centerY = height / 2.0 + editor.PanY;
             double currentTick = editor.Timeline.GetExactTick();
-            var multiHitTicks = GetMultiHitTicks(editor.Timeline);
+            var multiHitTicks = CollectMultiHitTicks(editor.Timeline);
 
             DrawVerticalGrid(drawingContext, editor, width, height, centerX, centerY, metrics.PixelsPerChartUnit);
             DrawHorizontalGrid(drawingContext, editor, track, viewportSize, width, height, centerX, centerY, currentTick);
@@ -498,7 +480,6 @@ namespace Axphi.Components
             {
                 var renderState = GetNoteRenderState(editor.Timeline, note, currentTick);
                 bool isHold = renderState.Kind == NoteKind.Hold;
-                bool isMultiHit = multiHitTicks.Contains(note.HitTime);
                 if (!ShouldRenderNote(note, renderState.Kind, currentTick))
                 {
                     continue;
@@ -506,7 +487,7 @@ namespace Axphi.Components
 
                 double x = centerX + renderState.Offset.X * metrics.PixelsPerChartUnit;
                 double y = CalculateNoteY(editor.Timeline, track, note, currentTick, viewportSize, editor.ViewZoom, centerY, renderState.Offset.Y);
-                double renderedNoteWidth = GetRenderedNotePixelWidth(metrics.NotePixelWidth, renderState.Kind, isMultiHit);
+                double renderedNoteWidth = GetRenderedNotePixelWidth(metrics.NotePixelWidth, renderState.Kind, multiHitTicks.Contains(note.HitTime));
                 double noteBounds = Math.Max(renderedNoteWidth * Math.Max(Math.Abs(renderState.Scale.X), Math.Abs(renderState.Scale.Y)), 24);
                 if (isHold)
                 {
@@ -519,16 +500,16 @@ namespace Axphi.Components
                     continue;
                 }
 
-                DrawRenderedNote(dc, editor, track, note, viewportSize, metrics, currentTick, x, y, centerY, 1.0, isMultiHit, renderState);
+                DrawRenderedNote(dc, editor, track, note, viewportSize, metrics, currentTick, x, y, centerY, 1.0, multiHitTicks.Contains(note.HitTime), renderState);
 
                 if (note.IsSelected)
                 {
-                    Rect selectionRect = GetSelectionRect(note, editor, track, metrics, viewportSize, new Point(x, y), renderState, isMultiHit);
+                    Rect selectionRect = GetSelectionRect(note, editor, track, metrics, viewportSize, new Point(x, y), renderState);
                     dc.DrawRectangle(null, SelectedNotePen, selectionRect);
 
                     if (isHold)
                     {
-                        DrawHoldTailHandle(dc, note, editor, track, metrics, viewportSize, new Point(x, y), renderState, isMultiHit);
+                        DrawHoldTailHandle(dc, note, editor, track, metrics, viewportSize, new Point(x, y), renderState);
                     }
                 }
             }
@@ -778,9 +759,9 @@ namespace Axphi.Components
             }
         }
 
-        private static void DrawHoldTailHandle(DrawingContext dc, NoteViewModel note, JudgementLineEditorViewModel editor, TrackViewModel track, JudgementLineEditorRenderMath.ViewMetrics metrics, Size viewportSize, Point noteCenter, NoteRenderState renderState, bool isMultiHit)
+        private static void DrawHoldTailHandle(DrawingContext dc, NoteViewModel note, JudgementLineEditorViewModel editor, TrackViewModel track, JudgementLineEditorRenderMath.ViewMetrics metrics, Size viewportSize, Point noteCenter, NoteRenderState renderState)
         {
-            Rect handleRect = GetHoldTailHandleRect(note, editor, track, metrics, viewportSize, noteCenter, renderState, isMultiHit);
+            Rect handleRect = GetHoldTailHandleRect(note, editor, track, metrics, viewportSize, noteCenter, renderState);
             dc.DrawEllipse(HoldTailHandleBrush, HoldTailHandlePen,
                 new Point(handleRect.X + handleRect.Width / 2.0, handleRect.Y + handleRect.Height / 2.0),
                 handleRect.Width / 2.0,
@@ -810,10 +791,11 @@ namespace Axphi.Components
                 CalculateNoteY(editor.Timeline, track, note, currentTick, viewportSize, editor.ViewZoom, centerY, renderState.Offset.Y));
         }
 
-        private static Rect GetNoteBodyRect(NoteViewModel note, JudgementLineEditorViewModel editor, TrackViewModel track, JudgementLineEditorRenderMath.ViewMetrics metrics, Size viewportSize, Point noteCenter, NoteRenderState renderState, bool isMultiHit)
+        private static Rect GetNoteBodyRect(NoteViewModel note, JudgementLineEditorViewModel editor, TrackViewModel track, JudgementLineEditorRenderMath.ViewMetrics metrics, Size viewportSize, Point noteCenter, NoteRenderState renderState)
         {
             double scaleX = Math.Abs(renderState.Scale.X);
             double scaleY = Math.Abs(renderState.Scale.Y);
+            bool isMultiHit = IsMultiHitTick(editor.Timeline, note.HitTime);
             double notePixelWidth = GetRenderedNotePixelWidth(metrics.NotePixelWidth, renderState.Kind, isMultiHit) * Math.Max(scaleX, 0.1);
             ImageSource noteImage = GetNoteImage(renderState.Kind, isMultiHit);
             double notePixelHeight = notePixelWidth * (GetImagePixelHeight(noteImage) / GetImagePixelWidth(noteImage)) * Math.Max(scaleY, 0.1);
@@ -840,43 +822,25 @@ namespace Axphi.Components
             return new Rect(noteCenter.X - notePixelWidth / 2.0, top, notePixelWidth, bottom - top);
         }
 
-        private static Rect GetSelectionRect(NoteViewModel note, JudgementLineEditorViewModel editor, TrackViewModel track, JudgementLineEditorRenderMath.ViewMetrics metrics, Size viewportSize, Point noteCenter, NoteRenderState renderState, bool isMultiHit)
+        private static Rect GetSelectionRect(NoteViewModel note, JudgementLineEditorViewModel editor, TrackViewModel track, JudgementLineEditorRenderMath.ViewMetrics metrics, Size viewportSize, Point noteCenter, NoteRenderState renderState)
         {
-            Rect noteBodyRect = GetNoteBodyRect(note, editor, track, metrics, viewportSize, noteCenter, renderState, isMultiHit);
+            Rect noteBodyRect = GetNoteBodyRect(note, editor, track, metrics, viewportSize, noteCenter, renderState);
             double padding = Math.Max(4.0, Math.Min(noteBodyRect.Width, noteBodyRect.Height) * 0.08);
             noteBodyRect.Inflate(padding, padding);
             return noteBodyRect;
         }
 
-        private static Rect GetHoldTailHandleRect(NoteViewModel note, JudgementLineEditorViewModel editor, TrackViewModel track, JudgementLineEditorRenderMath.ViewMetrics metrics, Size viewportSize, Point noteCenter, NoteRenderState renderState, bool isMultiHit)
+        private static Rect GetHoldTailHandleRect(NoteViewModel note, JudgementLineEditorViewModel editor, TrackViewModel track, JudgementLineEditorRenderMath.ViewMetrics metrics, Size viewportSize, Point noteCenter, NoteRenderState renderState)
         {
             double scaleX = Math.Abs(renderState.Scale.X);
             double scaleY = Math.Abs(renderState.Scale.Y);
             double holdLength = JudgementLineEditorRenderMath.CalculateHoldLength(editor.Timeline, track, note, viewportSize, editor.ViewZoom) * Math.Max(scaleY, 0.1);
             bool isForwardFlow = (note.Model.CustomSpeed ?? 1.0) >= 0;
+            bool isMultiHit = IsMultiHitTick(editor.Timeline, note.HitTime);
             double renderedWidth = GetRenderedNotePixelWidth(metrics.NotePixelWidth, renderState.Kind, isMultiHit);
             double handleSize = Math.Max(12.0, renderedWidth * 0.22 * Math.Max(scaleX, scaleY));
             double handleCenterY = noteCenter.Y + (isForwardFlow ? -holdLength : holdLength);
             return new Rect(noteCenter.X - handleSize / 2.0, handleCenterY - handleSize / 2.0, handleSize, handleSize);
-        }
-
-        private HashSet<int> GetMultiHitTicks(TimelineViewModel timeline)
-        {
-            long nowMs = Environment.TickCount64;
-            bool shouldRebuild = _isMultiHitSnapshotDirty
-                || !ReferenceEquals(_multiHitSnapshotTimeline, timeline)
-                || nowMs - _multiHitSnapshotBuiltAtMs > MultiHitSnapshotRefreshIntervalMs;
-
-            if (!shouldRebuild)
-            {
-                return _multiHitSnapshot;
-            }
-
-            _multiHitSnapshotTimeline = timeline;
-            _multiHitSnapshot = CollectMultiHitTicks(timeline);
-            _multiHitSnapshotBuiltAtMs = nowMs;
-            _isMultiHitSnapshotDirty = false;
-            return _multiHitSnapshot;
         }
 
         private static NoteRenderState GetNoteRenderState(TimelineViewModel timeline, NoteViewModel note, double currentTick)
@@ -1007,6 +971,11 @@ namespace Axphi.Components
                 .Where(group => group.Count() > 1)
                 .Select(group => group.Key)
                 .ToHashSet();
+        }
+
+        private static bool IsMultiHitTick(TimelineViewModel timeline, int hitTick)
+        {
+            return timeline.Tracks.SelectMany(track => track.UINotes).Count(note => note.HitTime == hitTick) > 1;
         }
 
         private static double GetRenderedNotePixelWidth(double basePixelWidth, NoteKind kind, bool isMultiHit)

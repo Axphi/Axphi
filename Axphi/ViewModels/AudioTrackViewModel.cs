@@ -11,13 +11,12 @@ using System.Threading.Tasks;
 
 namespace Axphi.ViewModels
 {
-    public partial class AudioTrackViewModel : ObservableObject, ISelectionNode, ITimelineDraggable, ILayerPointerInteractable
+    public partial class AudioTrackViewModel : ObservableObject
     {
         public TimelineViewModel _timeline;
         public TimelineViewModel Timeline => _timeline;
-        private readonly IMessenger _messenger;
 
-        private readonly IProjectSession _projectSession;
+        private readonly ProjectManager _projectManager;
         public Chart Chart { get; }
 
         [ObservableProperty]
@@ -54,12 +53,6 @@ namespace Axphi.ViewModels
         [NotifyPropertyChangedFor(nameof(IsLayerHighlighted))]
         private bool _isLayerSelected;
 
-        bool ISelectionNode.IsSelected
-        {
-            get => IsLayerSelected;
-            set => IsLayerSelected = value;
-        }
-
         [ObservableProperty]
         private bool _isDragLocked;
 
@@ -72,9 +65,9 @@ namespace Axphi.ViewModels
 
         private ProjectMetadata GetMetadata()
         {
-            _projectSession.EditingProject ??= new Project { Chart = Chart };
-            _projectSession.EditingProject.Metadata ??= new ProjectMetadata();
-            return _projectSession.EditingProject.Metadata;
+            _projectManager.EditingProject ??= new Project { Chart = Chart };
+            _projectManager.EditingProject.Metadata ??= new ProjectMetadata();
+            return _projectManager.EditingProject.Metadata;
         }
 
         private int AudioOffsetTicks
@@ -97,42 +90,41 @@ namespace Axphi.ViewModels
         }
 
 
-        public AudioTrackViewModel(Chart chart, TimelineViewModel timeline, IProjectSession projectSession, IMessenger messenger)
+        public AudioTrackViewModel(Chart chart, TimelineViewModel timeline, ProjectManager projectManager)
         {
             Chart = chart;
             _timeline = timeline;
-            _projectSession = projectSession;
-            _messenger = messenger;
+            _projectManager = projectManager;
 
             IsExpanded = GetMetadata().IsAudioTrackExpanded;
             IsDragLocked = GetMetadata().IsAudioTrackLocked;
 
             UpdatePixels();
 
-            _messenger.Register<AudioTrackViewModel, ZoomScaleChangedMessage>(this, (r, m) => r.UpdatePixels());
-            _messenger.Register<AudioTrackViewModel, KeyframesNeedSortMessage>(this, (r, m) => r.UpdatePixels());
-            _messenger.Register<AudioTrackViewModel, ClearSelectionMessage>(this, (r, m) =>
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, ZoomScaleChangedMessage>(this, (r, m) => r.UpdatePixels());
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, KeyframesNeedSortMessage>(this, (r, m) => r.UpdatePixels());
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, ClearSelectionMessage>(this, (r, m) =>
             {
-                if (m.Group == SelectionGroup.Layers && !ReferenceEquals(r, m.SenderToIgnore))
+                if (m.GroupName == "Layers" && !ReferenceEquals(r, m.SenderToIgnore))
                 {
                     r.IsLayerSelected = false;
                 }
             });
-            _messenger.Register<AudioTrackViewModel, LayersDragStartedMessage>(this, (r, m) =>
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, LayersDragStartedMessage>(this, (r, m) =>
             {
                 if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
                 {
                     r.ReceiveLayerDragStarted();
                 }
             });
-            _messenger.Register<AudioTrackViewModel, LayersDragDeltaMessage>(this, (r, m) =>
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, LayersDragDeltaMessage>(this, (r, m) =>
             {
                 if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
                 {
                     r.ReceiveLayerDragDelta(m.HorizontalChange, m.DeltaTick);
                 }
             });
-            _messenger.Register<AudioTrackViewModel, LayersDragCompletedMessage>(this, (r, m) =>
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, LayersDragCompletedMessage>(this, (r, m) =>
             {
                 if (r.IsLayerSelected && !ReferenceEquals(r, m.SenderToIgnore))
                 {
@@ -141,16 +133,16 @@ namespace Axphi.ViewModels
             });
 
             // 订阅音频导入事件
-            _messenger.Register<AudioTrackViewModel, AudioLoadedMessage>(this, (r, m) =>
+            WeakReferenceMessenger.Default.Register<AudioTrackViewModel, AudioLoadedMessage>(this, (r, m) =>
             {
                 // 改为异步调用，防止扫描波形时卡住界面
                 _ = r.LoadAudioDataFromFileAsync(m.FilePath);
             });
 
             // 防御性加载
-            if (_projectSession.EditingProject?.EncodedAudio != null)
+            if (_projectManager.EditingProject?.EncodedAudio != null)
             {
-                _ = LoadAudioDataFromBytesAsync(_projectSession.EditingProject.EncodedAudio);
+                _ = LoadAudioDataFromBytesAsync(_projectManager.EditingProject.EncodedAudio);
             }
         }
 
@@ -198,7 +190,7 @@ namespace Axphi.ViewModels
 
             if (IsLayerSelected)
             {
-                _messenger.Send(new LayersDragStartedMessage(this));
+                WeakReferenceMessenger.Default.Send(new LayersDragStartedMessage(this));
             }
         }
 
@@ -217,7 +209,7 @@ namespace Axphi.ViewModels
 
             if (IsLayerSelected)
             {
-                _messenger.Send(new LayersDragDeltaMessage(horizontalChange, deltaTick, this));
+                WeakReferenceMessenger.Default.Send(new LayersDragDeltaMessage(horizontalChange, deltaTick, this));
             }
 
             ReceiveLayerDragDelta(horizontalChange, deltaTick);
@@ -232,17 +224,11 @@ namespace Axphi.ViewModels
 
             if (IsLayerSelected)
             {
-                _messenger.Send(new LayersDragCompletedMessage(this));
+                WeakReferenceMessenger.Default.Send(new LayersDragCompletedMessage(this));
             }
 
             ReceiveLayerDragCompleted();
         }
-
-        public void OnDragStarted() => OnLayerDragStarted();
-
-        public void OnDragDelta(double horizontalChange) => OnLayerDragDelta(horizontalChange);
-
-        public void OnDragCompleted() => OnLayerDragCompleted();
 
         private void ReceiveLayerDragStarted()
         {
@@ -280,9 +266,9 @@ namespace Axphi.ViewModels
 
         public void DeleteAudio()
         {
-            if (_projectSession.EditingProject != null)
+            if (_projectManager.EditingProject != null)
             {
-                _projectSession.EditingProject.EncodedAudio = null;
+                _projectManager.EditingProject.EncodedAudio = null;
             }
 
             AudioOffsetTicks = 0;

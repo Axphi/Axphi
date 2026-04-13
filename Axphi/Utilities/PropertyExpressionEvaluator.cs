@@ -1,4 +1,4 @@
-﻿using Axphi.Data;
+using Axphi.Data;
 using Axphi.Data.KeyFrames;
 using Jint;
 using Jint.Native;
@@ -6,7 +6,6 @@ using Jint.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Windows;
 
@@ -17,22 +16,6 @@ namespace Axphi.Utilities
     public static class PropertyExpressionEvaluator
     {
         private static readonly AsyncLocal<HashSet<string>?> AmbientEvaluationStack = new();
-        private static readonly AsyncLocal<BoundEvaluationState?> AmbientBoundState = new();
-        private static readonly ConditionalWeakTable<Chart, ChartBindingCache> ChartBindingCaches = new();
-        private static readonly object ChartBindingCacheLock = new();
-
-        public static void InvalidateChartCache(Chart? chart)
-        {
-            if (chart == null)
-            {
-                return;
-            }
-
-            lock (ChartBindingCacheLock)
-            {
-                ChartBindingCaches.Remove(chart);
-            }
-        }
 
         public static ExpressionRuntimeContext CreateContext(double tick, Chart? chart)
         {
@@ -77,19 +60,35 @@ namespace Axphi.Utilities
             out string? error)
         {
             value = baseValue;
-            if (!TryEvaluateCore(expression, baseValue, expectsVector: false, context, chart, currentLine, propertyName, evaluationStack, out var result, out error))
+            error = null;
+
+            if (string.IsNullOrWhiteSpace(expression))
             {
                 return false;
             }
 
-            if (!TryConvertToDouble(result, out var convertedValue))
+            try
             {
-                error = "表达式结果必须是数字";
+                var result = Evaluate(expression, context, baseValue, expectsVector: false, chart, currentLine, propertyName, evaluationStack);
+                if (!TryConvertToDouble(result, out var convertedValue))
+                {
+                    error = "表达式结果必须是数字";
+                    return false;
+                }
+
+                value = convertedValue;
+                return true;
+            }
+            catch (JavaScriptException exception)
+            {
+                error = exception.Message;
                 return false;
             }
-
-            value = convertedValue;
-            return true;
+            catch (Exception exception)
+            {
+                error = exception.Message;
+                return false;
+            }
         }
 
         public static bool TryEvaluateVector(string? expression, Vector baseValue, ExpressionRuntimeContext context, out Vector value, out string? error)
@@ -121,35 +120,7 @@ namespace Axphi.Utilities
             out string? error)
         {
             value = baseValue;
-            if (!TryEvaluateCore(expression, new[] { baseValue.X, baseValue.Y }, expectsVector: true, context, chart, currentLine, propertyName, evaluationStack, out var result, out error))
-            {
-                return false;
-            }
-
-            if (!TryConvertToVector(result, out var convertedValue))
-            {
-                error = "二维属性表达式必须返回 [x, y]";
-                return false;
-            }
-
-            value = convertedValue;
-            return true;
-        }
-
-        private static bool TryEvaluateCore(
-            string? expression,
-            object baseValue,
-            bool expectsVector,
-            ExpressionRuntimeContext context,
-            Chart? chart,
-            JudgementLine? currentLine,
-            string? propertyName,
-            HashSet<string>? evaluationStack,
-            out JsValue result,
-            out string? error)
-        {
             error = null;
-            result = JsValue.Undefined;
 
             if (string.IsNullOrWhiteSpace(expression))
             {
@@ -158,7 +129,14 @@ namespace Axphi.Utilities
 
             try
             {
-                result = Evaluate(expression, context, baseValue, expectsVector, chart, currentLine, propertyName, evaluationStack);
+                var result = Evaluate(expression, context, new[] { baseValue.X, baseValue.Y }, expectsVector: true, chart, currentLine, propertyName, evaluationStack);
+                if (!TryConvertToVector(result, out var convertedValue))
+                {
+                    error = "二维属性表达式必须返回 [x, y]";
+                    return false;
+                }
+
+                value = convertedValue;
                 return true;
             }
             catch (JavaScriptException exception)
@@ -197,7 +175,6 @@ namespace Axphi.Utilities
 
             string normalizedExpression = NormalizeExpression(expression, expectsVector);
             var engine = new Engine(options => options.LimitRecursion(64).MaxStatements(512));
-            BoundEvaluationState? previousBoundState = AmbientBoundState.Value;
             try
             {
                 AmbientEvaluationStack.Value = evaluationStack;
@@ -216,16 +193,13 @@ namespace Axphi.Utilities
 
                 if (chart != null)
                 {
-                    var bindingCache = GetOrCreateBindingCache(chart);
-                    AmbientBoundState.Value = new BoundEvaluationState(chart, context, bindingCache);
-                    BindLineReferences(engine, bindingCache, currentLine);
+                    BindLineReferences(engine, chart, currentLine, context, evaluationStack);
                 }
 
                 return engine.Evaluate($"(() => {{ {normalizedExpression} }})()");
             }
             finally
             {
-                AmbientBoundState.Value = previousBoundState;
                 AmbientEvaluationStack.Value = previousStack;
                 if (currentFrameKey != null)
                 {
@@ -331,52 +305,28 @@ namespace Axphi.Utilities
             return resolvedBpm;
         }
 
-        private static ChartBindingCache GetOrCreateBindingCache(Chart chart)
+        private static void BindLineReferences(Engine engine, Chart chart, JudgementLine? currentLine, ExpressionRuntimeContext context, HashSet<string> evaluationStack)
         {
-            lock (ChartBindingCacheLock)
-            {
-                if (ChartBindingCaches.TryGetValue(chart, out var existing)
-                    && existing.LineCount == chart.JudgementLines.Count)
-                {
-                    return existing;
-                }
-
-                var rebuilt = BuildBindingCache(chart);
-                ChartBindingCaches.Remove(chart);
-                ChartBindingCaches.Add(chart, rebuilt);
-                return rebuilt;
-            }
-        }
-
-        private static ChartBindingCache BuildBindingCache(Chart chart)
-        {
-            chart.RebuildHierarchy();
-
             var lineLookup = new Dictionary<string, ExpressionLineProxy>(StringComparer.Ordinal);
-            var lineByReference = new Dictionary<JudgementLine, ExpressionLineProxy>();
 
             foreach (JudgementLine line in chart.JudgementLines)
             {
-                var noteLookup = BuildNoteLookup(line);
-                var proxy = new ExpressionLineProxy(line, noteLookup);
-                lineByReference[line] = proxy;
+                var proxy = new ExpressionLineProxy(
+                    line,
+                    propertyName => ResolveLineProperty(line, propertyName, context, chart, evaluationStack),
+                    noteKey => ResolveLineNote(line, noteKey, context, chart, evaluationStack));
                 RegisterLineKey(lineLookup, line.ID, proxy);
                 RegisterLineKey(lineLookup, line.Name, proxy);
             }
 
-            return new ChartBindingCache(lineLookup, lineByReference, chart.JudgementLines.Count);
-        }
-
-        private static void BindLineReferences(Engine engine, ChartBindingCache bindingCache, JudgementLine? currentLine)
-        {
-            var lineLookup = bindingCache.LineLookup;
-
             if (currentLine != null)
             {
-                var selfProxy = bindingCache.LineByReference.TryGetValue(currentLine, out var cachedSelfProxy)
-                    ? cachedSelfProxy
-                    : new ExpressionLineProxy(currentLine, BuildNoteLookup(currentLine));
-                engine.SetValue("self", selfProxy);
+                engine.SetValue("self", lineLookup.TryGetValue(currentLine.ID, out var selfProxy)
+                    ? selfProxy
+                    : new ExpressionLineProxy(
+                        currentLine,
+                        propertyName => ResolveLineProperty(currentLine, propertyName, context, chart, evaluationStack),
+                        noteKey => ResolveLineNote(currentLine, noteKey, context, chart, evaluationStack)));
 
                 if (!string.IsNullOrWhiteSpace(currentLine.ParentLineId) && lineLookup.TryGetValue(currentLine.ParentLineId, out var parentProxy))
                 {
@@ -400,30 +350,6 @@ namespace Axphi.Utilities
             }));
         }
 
-        private static Dictionary<string, Note> BuildNoteLookup(JudgementLine line)
-        {
-            var lookup = new Dictionary<string, Note>(StringComparer.Ordinal);
-            if (line.Notes == null)
-            {
-                return lookup;
-            }
-
-            foreach (var note in line.Notes)
-            {
-                if (!string.IsNullOrWhiteSpace(note.ID) && !lookup.ContainsKey(note.ID))
-                {
-                    lookup[note.ID] = note;
-                }
-
-                if (!string.IsNullOrWhiteSpace(note.Name) && !lookup.ContainsKey(note.Name))
-                {
-                    lookup[note.Name] = note;
-                }
-            }
-
-            return lookup;
-        }
-
         private static void RegisterLineKey(Dictionary<string, ExpressionLineProxy> lookup, string? key, ExpressionLineProxy proxy)
         {
             if (string.IsNullOrWhiteSpace(key) || lookup.ContainsKey(key))
@@ -434,162 +360,93 @@ namespace Axphi.Utilities
             lookup[key] = proxy;
         }
 
-        private static object ResolveLineProperty(JudgementLine line, string propertyName, ExpressionRuntimeContext context, Chart chart)
-        {
-            var state = AmbientBoundState.Value;
-            if (state == null)
-            {
-                return JsValue.Undefined;
-            }
-
-            context = state.Context;
-            chart = state.Chart;
-
-            if (TryResolveContextProperty(propertyName, context, out var contextValue))
-            {
-                return contextValue;
-            }
-
-            if (propertyName == ExpressionPropertyNames.Speed)
-            {
-                EasingUtils.CalculateObjectSingleTransform(context.Tick, chart.KeyFrameEasingDirection, line.InitialSpeed, line.SpeedKeyFrames, MathUtils.Lerp, line.SpeedExpressionEnabled, line.SpeedExpressionText, chart, line, out var speed);
-                return speed;
-            }
-
-            return ResolveTransformProperty(
-                propertyName,
-                () =>
-                {
-                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out var anchor, out var position, out var scale, out var rotation, out var opacity);
-                    return (anchor, position, scale, rotation, opacity);
-                });
-        }
-
-        private static object? ResolveLineNote(
-            JudgementLine line,
-            IReadOnlyDictionary<string, Note> noteLookup,
-            string noteKey)
-        {
-            var state = AmbientBoundState.Value;
-            if (state == null)
-            {
-                return null;
-            }
-
-            var context = state.Context;
-            var chart = state.Chart;
-
-            if (string.IsNullOrWhiteSpace(noteKey) || noteLookup.Count == 0)
-            {
-                return null;
-            }
-
-            if (!noteLookup.TryGetValue(noteKey, out var note))
-            {
-                return null;
-            }
-
-            state.BindingCache.LineByReference.TryGetValue(line, out var lineProxy);
-
-            return new ExpressionNoteProxy(
-                note,
-                propertyName => ResolveNoteProperty(note, propertyName, context, chart),
-                () => lineProxy);
-        }
-
-        private static object ResolveNoteProperty(Note note, string propertyName, ExpressionRuntimeContext context, Chart chart)
-        {
-            var state = AmbientBoundState.Value;
-            if (state == null)
-            {
-                return JsValue.Undefined;
-            }
-
-            context = state.Context;
-            chart = state.Chart;
-
-            if (TryResolveContextProperty(propertyName, context, out var contextValue))
-            {
-                return contextValue;
-            }
-
-            return propertyName switch
-            {
-                ExpressionPropertyNames.Kind => KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, (int)Math.Round(context.Tick, MidpointRounding.AwayFromZero), note.InitialKind).ToString(),
-                ExpressionPropertyNames.HitTime => note.HitTime,
-                ExpressionPropertyNames.HoldDuration => note.HoldDuration,
-                ExpressionPropertyNames.CustomSpeed => note.CustomSpeed ?? JsValue.Null,
-                _ => ResolveTransformProperty(
-                    propertyName,
-                    () =>
-                    {
-                        EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out var anchor, out var position, out var scale, out var rotation, out var opacity);
-                        return (anchor, position, scale, rotation, opacity);
-                    })
-            };
-        }
-
-        private static bool TryResolveContextProperty(string propertyName, ExpressionRuntimeContext context, out object value)
+        private static object ResolveLineProperty(JudgementLine line, string propertyName, ExpressionRuntimeContext context, Chart chart, HashSet<string> evaluationStack)
         {
             switch (propertyName)
             {
-                case ExpressionPropertyNames.Tick:
-                    value = context.Tick;
-                    return true;
-                case ExpressionPropertyNames.Time:
-                    value = context.Time;
-                    return true;
-                case ExpressionPropertyNames.Bpm:
-                    value = context.Bpm;
-                    return true;
+                case "anchor":
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out var anchor, out _, out _, out _, out _);
+                    return new[] { anchor.X, anchor.Y };
+                case "position":
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out _, out var position, out _, out _, out _);
+                    return new[] { position.X, position.Y };
+                case "scale":
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out _, out _, out var scale, out _, out _);
+                    return new[] { scale.X, scale.Y };
+                case "rotation":
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out _, out _, out _, out var rotation, out _);
+                    return rotation;
+                case "opacity":
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, line.AnimatableProperties, chart, line, out _, out _, out _, out _, out var opacity);
+                    return opacity;
+                case "speed":
+                    EasingUtils.CalculateObjectSingleTransform(context.Tick, chart.KeyFrameEasingDirection, line.InitialSpeed, line.SpeedKeyFrames, MathUtils.Lerp, line.SpeedExpressionEnabled, line.SpeedExpressionText, chart, line, out var speed);
+                    return speed;
+                case "tick":
+                    return context.Tick;
+                case "time":
+                    return context.Time;
+                case "bpm":
+                    return context.Bpm;
                 default:
-                    value = JsValue.Undefined;
-                    return false;
+                    return JsValue.Undefined;
             }
         }
 
-        private static object ResolveTransformProperty(
-            string propertyName,
-            Func<(Vector Anchor, Vector Position, Vector Scale, double Rotation, double Opacity)> resolveTransform)
+        private static object? ResolveLineNote(JudgementLine line, string noteKey, ExpressionRuntimeContext context, Chart chart, HashSet<string> evaluationStack)
         {
-            if (propertyName is not (ExpressionPropertyNames.Anchor
-                or ExpressionPropertyNames.Position
-                or ExpressionPropertyNames.Scale
-                or ExpressionPropertyNames.Rotation
-                or ExpressionPropertyNames.Opacity))
+            if (string.IsNullOrWhiteSpace(noteKey) || line.Notes == null)
             {
-                return JsValue.Undefined;
+                return null;
             }
 
-            var transform = resolveTransform();
-            return propertyName switch
+            Note? note = line.Notes.FirstOrDefault(candidate => string.Equals(candidate.ID, noteKey, StringComparison.Ordinal))
+                ?? line.Notes.FirstOrDefault(candidate => string.Equals(candidate.Name, noteKey, StringComparison.Ordinal));
+
+            if (note == null)
             {
-                ExpressionPropertyNames.Anchor => ToVectorArray(transform.Anchor),
-                ExpressionPropertyNames.Position => ToVectorArray(transform.Position),
-                ExpressionPropertyNames.Scale => ToVectorArray(transform.Scale),
-                ExpressionPropertyNames.Rotation => transform.Rotation,
-                ExpressionPropertyNames.Opacity => transform.Opacity,
-                _ => JsValue.Undefined,
-            };
+                return null;
+            }
+
+            return new ExpressionNoteProxy(note, propertyName => ResolveNoteProperty(note, propertyName, context, chart, evaluationStack));
         }
 
-        private static double[] ToVectorArray(Vector vector) => [vector.X, vector.Y];
-
-        private static class ExpressionPropertyNames
+        private static object ResolveNoteProperty(Note note, string propertyName, ExpressionRuntimeContext context, Chart chart, HashSet<string> evaluationStack)
         {
-            public const string Anchor = "anchor";
-            public const string Position = "position";
-            public const string Scale = "scale";
-            public const string Rotation = "rotation";
-            public const string Opacity = "opacity";
-            public const string Speed = "speed";
-            public const string Kind = "kind";
-            public const string HitTime = "hitTime";
-            public const string HoldDuration = "holdDuration";
-            public const string CustomSpeed = "customSpeed";
-            public const string Tick = "tick";
-            public const string Time = "time";
-            public const string Bpm = "bpm";
+            switch (propertyName)
+            {
+                case "anchor":
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out var anchor, out _, out _, out _, out _);
+                    return new[] { anchor.X, anchor.Y };
+                case "position":
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out _, out var position, out _, out _, out _);
+                    return new[] { position.X, position.Y };
+                case "scale":
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out _, out _, out var scale, out _, out _);
+                    return new[] { scale.X, scale.Y };
+                case "rotation":
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out _, out _, out _, out var rotation, out _);
+                    return rotation;
+                case "opacity":
+                    EasingUtils.CalculateObjectTransform(context.Tick, chart.KeyFrameEasingDirection, note.AnimatableProperties, out _, out _, out _, out _, out var opacity);
+                    return opacity;
+                case "kind":
+                    return KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, (int)Math.Round(context.Tick, MidpointRounding.AwayFromZero), note.InitialKind).ToString();
+                case "hitTime":
+                    return note.HitTime;
+                case "holdDuration":
+                    return note.HoldDuration;
+                case "customSpeed":
+                    return note.CustomSpeed ?? JsValue.Null;
+                case "tick":
+                    return context.Tick;
+                case "time":
+                    return context.Time;
+                case "bpm":
+                    return context.Bpm;
+                default:
+                    return JsValue.Undefined;
+            }
         }
 
         private static int FindLastTopLevelStatementSeparator(string expression)
@@ -776,63 +633,54 @@ namespace Axphi.Utilities
             return $"{line.ID}:{propertyName}";
         }
 
-        private sealed record BoundEvaluationState(Chart Chart, ExpressionRuntimeContext Context, ChartBindingCache BindingCache);
-
-        private sealed record ChartBindingCache(
-            Dictionary<string, ExpressionLineProxy> LineLookup,
-            Dictionary<JudgementLine, ExpressionLineProxy> LineByReference,
-            int LineCount);
-
         private sealed class ExpressionLineProxy
         {
             private readonly JudgementLine _line;
-            private readonly IReadOnlyDictionary<string, Note> _noteLookup;
+            private readonly Func<string, object> _propertyResolver;
+            private readonly Func<string, object?> _noteResolver;
 
-            public ExpressionLineProxy(JudgementLine line, IReadOnlyDictionary<string, Note> noteLookup)
+            public ExpressionLineProxy(JudgementLine line, Func<string, object> propertyResolver, Func<string, object?> noteResolver)
             {
                 _line = line;
-                _noteLookup = noteLookup;
+                _propertyResolver = propertyResolver;
+                _noteResolver = noteResolver;
             }
 
             public string id => _line.ID;
             public string name => _line.Name;
             public string? parentId => _line.ParentLineId;
-            public object anchor => ResolveLineProperty(_line, ExpressionPropertyNames.Anchor, default, null!);
-            public object position => ResolveLineProperty(_line, ExpressionPropertyNames.Position, default, null!);
-            public object scale => ResolveLineProperty(_line, ExpressionPropertyNames.Scale, default, null!);
-            public object rotation => ResolveLineProperty(_line, ExpressionPropertyNames.Rotation, default, null!);
-            public object opacity => ResolveLineProperty(_line, ExpressionPropertyNames.Opacity, default, null!);
-            public object speed => ResolveLineProperty(_line, ExpressionPropertyNames.Speed, default, null!);
+            public object anchor => _propertyResolver("anchor");
+            public object position => _propertyResolver("position");
+            public object scale => _propertyResolver("scale");
+            public object rotation => _propertyResolver("rotation");
+            public object opacity => _propertyResolver("opacity");
+            public object speed => _propertyResolver("speed");
 
-            public object? notes(string noteKey) => ResolveLineNote(_line, _noteLookup, noteKey);
+            public object? notes(string noteKey) => _noteResolver(noteKey);
         }
 
         private sealed class ExpressionNoteProxy
         {
             private readonly Note _note;
             private readonly Func<string, object> _propertyResolver;
-            private readonly Func<object?> _lineResolver;
 
-            public ExpressionNoteProxy(Note note, Func<string, object> propertyResolver, Func<object?> lineResolver)
+            public ExpressionNoteProxy(Note note, Func<string, object> propertyResolver)
             {
                 _note = note;
                 _propertyResolver = propertyResolver;
-                _lineResolver = lineResolver;
             }
 
             public string id => _note.ID;
             public string name => _note.Name;
-            public object? line => _lineResolver();
-            public object? parent => _lineResolver();
-            public object anchor => _propertyResolver(ExpressionPropertyNames.Anchor);
-            public object position => _propertyResolver(ExpressionPropertyNames.Position);
-            public object scale => _propertyResolver(ExpressionPropertyNames.Scale);
-            public object rotation => _propertyResolver(ExpressionPropertyNames.Rotation);
-            public object opacity => _propertyResolver(ExpressionPropertyNames.Opacity);
-            public object kind => _propertyResolver(ExpressionPropertyNames.Kind);
-            public object hitTime => _propertyResolver(ExpressionPropertyNames.HitTime);
-            public object holdDuration => _propertyResolver(ExpressionPropertyNames.HoldDuration);
-            public object customSpeed => _propertyResolver(ExpressionPropertyNames.CustomSpeed);
+            public object anchor => _propertyResolver("anchor");
+            public object position => _propertyResolver("position");
+            public object scale => _propertyResolver("scale");
+            public object rotation => _propertyResolver("rotation");
+            public object opacity => _propertyResolver("opacity");
+            public object kind => _propertyResolver("kind");
+            public object hitTime => _propertyResolver("hitTime");
+            public object holdDuration => _propertyResolver("holdDuration");
+            public object customSpeed => _propertyResolver("customSpeed");
         }
 
         private static class ExpressionMathHelpers

@@ -15,8 +15,7 @@ namespace Axphi.Utilities
 
             double accumulatedSeconds = 0;
             double accumulatedTicks = 0;
-            // 幽灵关键帧语义：只要存在 BPM 关键帧，首帧前区间也使用首帧值。
-            // 因此这里从第一个关键帧的 Value 起步，而不是 defaultBpm。
+            // 只要有关键帧，起步速度就是第一个关键帧的值！彻底抛弃 defaultBpm
             double currentBpm = bpmKeyFrames[0].Value;
 
             for (int i = 0; i < bpmKeyFrames.Count; i++)
@@ -55,8 +54,7 @@ namespace Axphi.Utilities
 
             double accumulatedSeconds = 0;
             double accumulatedTicks = 0;
-            // 幽灵关键帧语义：Tick 早于首帧时，也按首帧 BPM 计算时间。
-            // 这保证 TickToTime 和 TimeToTick 在首帧前区间行为一致。
+            // 核心修改：起步速度锁定为第一个关键帧的值
             double currentBpm = bpmKeyFrames[0].Value;
 
             for (int i = 0; i < bpmKeyFrames.Count; i++)

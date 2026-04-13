@@ -1,7 +1,16 @@
-﻿using System.Windows;
+﻿using Axphi.Data;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Windows;
 
 namespace Axphi.ViewModels
 {
+
+    
+    internal class Messages
+    {
+    }
     public record AudioLoadedMessage(string FilePath);
     public record IllustrationLoadedMessage();
     public record JudgementLinesChangedMessage;
@@ -17,18 +26,11 @@ namespace Axphi.ViewModels
 
     // 告诉所有轨道：有人挪动了关键帧，请重新把底层 List 按时间排序！
     public record class KeyframesNeedSortMessage();
-
-    public enum SelectionGroup
-    {
-        Keyframes,
-        Layers,
-        Notes,
-    }
     
     // 告诉全网：请取消选中！
     // GroupName 用于区分当前是在操作谁（比如 "Keyframes" 还是 "JudgementLines"）
     // SenderToIgnore 用于保护自己（发信人自己不要被取消选中）
-    public record class ClearSelectionMessage(SelectionGroup Group, object? SenderToIgnore);
+    public record class ClearSelectionMessage(string GroupName, object? SenderToIgnore);
 
     // 开始拖拽的起手式
     public record class KeyframesDragStartedMessage(object SenderToIgnore);

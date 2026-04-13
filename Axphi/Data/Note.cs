@@ -1,6 +1,5 @@
 ﻿using Axphi.Data.AnimatableProperties;
 using Axphi.Data.KeyFrames;
-using System.Text.Json.Serialization;
 using System.Windows;
 
 namespace Axphi.Data
@@ -32,9 +31,6 @@ namespace Axphi.Data
             set => _holdDuration = Math.Max(1, value);
         }
         public double? CustomSpeed { get; set; }
-
-        [JsonIgnore]
-        public JudgementLine? ParentLine { get; internal set; }
 
         /// <summary>
         /// 动画属性

@@ -1,4 +1,4 @@
-﻿using Axphi.Data;
+using Axphi.Data;
 using Axphi.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,7 +14,6 @@ namespace Axphi.ViewModels
     public partial class JudgementLineEditorViewModel : ObservableObject
     {
         private readonly TimelineViewModel _timeline;
-        private readonly IMessenger _messenger;
 
         public string[] NoteKindOptions { get; } = Enum.GetNames<NoteKind>();
         public int[] DivisionOptions { get; } = [8, 12, 16, 24, 32];
@@ -82,10 +81,9 @@ namespace Axphi.ViewModels
 
         public TimelineViewModel Timeline => _timeline;
 
-        public JudgementLineEditorViewModel(TimelineViewModel timeline, IMessenger messenger)
+        public JudgementLineEditorViewModel(TimelineViewModel timeline)
         {
             _timeline = timeline;
-            _messenger = messenger;
         }
 
         public void Open(TrackViewModel track)
@@ -202,9 +200,9 @@ namespace Axphi.ViewModels
                 return false;
             }
 
-            _messenger.Send(new ForcePausePlaybackMessage());
+            WeakReferenceMessenger.Default.Send(new ForcePausePlaybackMessage());
             _timeline.CurrentPlayTimeSeconds = nextSeconds;
-            _messenger.Send(new ForceSeekMessage(nextSeconds));
+            WeakReferenceMessenger.Default.Send(new ForceSeekMessage(nextSeconds));
             return true;
         }
 
@@ -243,7 +241,7 @@ namespace Axphi.ViewModels
                 HoverHitTick = hitTick;
                 HasHoverPreview = true;
                 CancelPendingHoldPlacement();
-                _messenger.Send(new JudgementLinesChangedMessage());
+                WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
                 return true;
             }
 
@@ -251,7 +249,7 @@ namespace Axphi.ViewModels
             HoverChartX = snappedChartX;
             HoverHitTick = hitTick;
             HasHoverPreview = true;
-            _messenger.Send(new JudgementLinesChangedMessage());
+            WeakReferenceMessenger.Default.Send(new JudgementLinesChangedMessage());
             return true;
         }
 

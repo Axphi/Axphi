@@ -1,6 +1,5 @@
 ﻿using Axphi.Services;
 using Axphi.ViewModels;
-using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using System.Configuration;
 using System.Data;
@@ -26,14 +25,12 @@ public partial class App : Application
         serviceCollection.AddSingleton<BezierViewModel>();
 
         serviceCollection.AddSingleton<ProjectManager>();
-        serviceCollection.AddSingleton<IProjectSession>(serviceProvider => serviceProvider.GetRequiredService<ProjectManager>());
 
         serviceCollection.AddSingleton<IFileService, WindowsFileService>();
 
         serviceCollection.AddSingleton<FileActionsViewModel>();
 
-        serviceCollection.AddTimelineServices();
-        serviceCollection.AddSingleton<IMessenger>(_ => WeakReferenceMessenger.Default);
+        serviceCollection.AddSingleton<TimelineViewModel>();
 
         
 

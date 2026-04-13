@@ -43,14 +43,21 @@
                     Width="14"
                     Height="14"
                     Cursor="Hand"
-                    Fill="#E3CC0E" />
+                    Fill="#E3CC0E"
+                    MouseLeftButtonDown="Thumb_MouseDown"
+                    MouseLeftButtonUp="Thumb_MouseUp"
+                    MouseMove="Thumb_MouseMove" />
+                    <!-- 这三个事件不会被触发 -->
 
                     <Ellipse
                     x:Name="Thumb2"
                     Width="14"
                     Height="14"
                     Cursor="Hand"
-                    Fill="#E3CC0E" />
+                    Fill="#E3CC0E"
+                    MouseLeftButtonDown="Thumb_MouseDown"
+                    MouseLeftButtonUp="Thumb_MouseUp"
+                    MouseMove="Thumb_MouseMove" />
 
             </Canvas>
         </Border>

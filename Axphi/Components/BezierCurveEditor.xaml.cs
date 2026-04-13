@@ -140,6 +140,22 @@ public partial class BezierCurveEditor : UserControl
         e.Handled = true;
     }
 
+
+    // 这三个函数永远不会被触发
+    private void Thumb_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _draggingThumb = sender as FrameworkElement;
+        if (_draggingThumb != null)
+        {
+            GraphCanvas.CaptureMouse();
+            ApplyMouseToDraggingThumb(e.GetPosition(GraphCanvas));
+            e.Handled = true;
+        }
+    }
+
+    private void Thumb_MouseUp(object sender, MouseButtonEventArgs e) => GraphCanvas_PreviewMouseLeftButtonUp(sender, e);
+    private void Thumb_MouseMove(object sender, MouseEventArgs e) => GraphCanvas_PreviewMouseMove(sender, e);
+
     private FrameworkElement GetNearestThumb(Point mousePos)
     {
         double w = GraphCanvas.ActualWidth;

@@ -1,7 +1,6 @@
 ﻿using Axphi.Data.KeyFrames;
-using System;
-using System.Collections.Generic;
-using System.Text.Json.Serialization;
+using System.Collections.ObjectModel; // 别忘了引入这个命名空间
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Axphi.Data
 {
@@ -10,21 +9,10 @@ namespace Axphi.Data
     /// </summary>
     public class Chart
     {
-        [JsonIgnore]
-        private ChartLineGraphIndex? _lineGraphIndex;
-
         /// <summary>
         /// 谱面版本
         /// </summary>
-        [JsonPropertyName("formatVersion")]
-        public string FormatVersion { get; set; } = "1.0";
-
-        [JsonIgnore]
-        public string formatVersion
-        {
-            get => FormatVersion;
-            set => FormatVersion = value;
-        }
+        public string formatVersion = "1.0";
 
         // 关于时间的单位(int), 为 tick, 一个 tick 表示一个 128 分音符, 也就是 1.875 / bpm
 
@@ -36,15 +24,7 @@ namespace Axphi.Data
         /// <summary>
         /// 歌曲名称
         /// </summary>
-        [JsonPropertyName("SoneName")]
-        public string SongName { get; set; } = string.Empty;
-
-        [JsonIgnore]
-        public string SoneName
-        {
-            get => SongName;
-            set => SongName = value;
-        }
+        public string SoneName { get; set; } = string.Empty;
 
         /// <summary>
         /// 难度
@@ -95,28 +75,6 @@ namespace Axphi.Data
         /// 插值方向
         /// </summary>
         public KeyFrameEasingDirection KeyFrameEasingDirection { get; set; } = KeyFrameEasingDirection.ToNext;
-
-        public IReadOnlyDictionary<string, JudgementLine> GetLineByIdMap()
-        {
-            return GetOrBuildLineGraphIndex().LineById;
-        }
-
-        public void InvalidateLineGraphIndex()
-        {
-            _lineGraphIndex = null;
-        }
-
-        private ChartLineGraphIndex GetOrBuildLineGraphIndex()
-        {
-            return _lineGraphIndex ??= ChartLineGraphIndex.Build(this);
-        }
-
-        public void RebuildHierarchy()
-        {
-            var graphIndex = ChartLineGraphIndex.Build(this);
-            _lineGraphIndex = graphIndex;
-            graphIndex.ApplyHierarchy(this);
-        }
 
     }
 }

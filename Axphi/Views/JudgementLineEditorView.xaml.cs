@@ -203,7 +203,7 @@ namespace Axphi.Views
                 return;
             }
 
-            bool isPlainX = IsPlainXKeyPressed(e);
+            bool isPlainX = e.Key == Key.X || e.ImeProcessedKey == Key.X;
             if ((e.Key == Key.Delete || (isPlainX && Keyboard.Modifiers == ModifierKeys.None)) && vm.IsVisible)
             {
                 bool hasSelectedNotes = vm.ActiveTrack?.UINotes.Any(note => note.IsSelected) == true;

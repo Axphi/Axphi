@@ -22,15 +22,13 @@ namespace Axphi.ViewModels;
 public partial class FileActionsViewModel : ObservableObject
 {
     private readonly IFileService _fileService;
-    private readonly IMessenger _messenger;
     public ProjectManager ProjectManager { get; }
 
     // 这个类只关心它自己需要的服务：IFileService 和 ProjectManager
-    public FileActionsViewModel(IFileService fileService, ProjectManager projectManager, IMessenger messenger)
+    public FileActionsViewModel(IFileService fileService, ProjectManager projectManager)
     {
         _fileService = fileService;
         ProjectManager = projectManager;
-        _messenger = messenger;
     }
 
     [RelayCommand]
@@ -44,7 +42,7 @@ public partial class FileActionsViewModel : ObservableObject
             ProjectManager.EditingProject.EncodedAudio = File.ReadAllBytes(filePath);
 
             // 发送消息通知 UI
-            _messenger.Send(new AudioLoadedMessage(filePath));
+            WeakReferenceMessenger.Default.Send(new AudioLoadedMessage(filePath));
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -69,7 +67,7 @@ public partial class FileActionsViewModel : ObservableObject
         try
         {
             ProjectManager.EditingProject.EncodedIllustration = File.ReadAllBytes(filePath);
-            _messenger.Send(new IllustrationLoadedMessage());
+            WeakReferenceMessenger.Default.Send(new IllustrationLoadedMessage());
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -94,7 +92,7 @@ public partial class FileActionsViewModel : ObservableObject
         try
         {
             ProjectManager.LoadEditingProject(filePath);
-            _messenger.Send(new ProjectLoadedMessage());
+            WeakReferenceMessenger.Default.Send(new ProjectLoadedMessage());
         }
         catch (InvalidDataException ex)
         {

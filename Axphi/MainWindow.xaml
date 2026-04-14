@@ -105,85 +105,85 @@
     <Grid>
         <ws:WindowContentAdapter>
             <DockPanel>
-            <!--  标题栏  -->
-            <v:TitleBar DockPanel.Dock="Top" />
-            <!--  核心区域  -->
-            <Grid Margin="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="1.618*" MinHeight="180" />
-                    <RowDefinition Height="10" />
-                    <RowDefinition Height="1*" MinHeight="180" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1*" MinWidth="220" />
-                    <ColumnDefinition Width="6" />
-                    <ColumnDefinition Width="2.8*" MinWidth="360" />
-                    <ColumnDefinition Width="6" />
-                    <ColumnDefinition Width="1*" MinWidth="220" />
-                </Grid.ColumnDefinitions>
+                <!--  标题栏  -->
+                <v:TitleBar DockPanel.Dock="Top" />
+                <!--  核心区域  -->
+                <Grid Margin="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="1.618*" MinHeight="180" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="1*" MinHeight="180" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*" MinWidth="220" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="2.8*" MinWidth="360" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="1*" MinWidth="220" />
+                    </Grid.ColumnDefinitions>
 
-                <!--  贝塞尔工具  -->
-                <comp:TabPane
+                    <!--  贝塞尔工具  -->
+                    <comp:TabPane
                     Grid.Row="0"
                     Grid.Column="0"
                     Header="Flow">
-                    <Grid>
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <comp:BezierCurveEditor
+                        <Grid>
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <comp:BezierCurveEditor
                                 X1="{Binding BezierViewModel.X1, Mode=TwoWay}"
                                 X2="{Binding BezierViewModel.X2, Mode=TwoWay}"
                                 Y1="{Binding BezierViewModel.Y1, Mode=TwoWay}"
                                 Y2="{Binding BezierViewModel.Y2, Mode=TwoWay}" />
-                            <StackPanel
+                                <StackPanel
                                 Margin="0,10,0,0"
                                 HorizontalAlignment="Center"
                                 Orientation="Horizontal">
-                                <comp:DraggableValueBox
+                                    <comp:DraggableValueBox
                                     DragSpeed="0.01"
                                     Maximum="123"
                                     NumberFormat="0.00"
                                     Value="{Binding BezierViewModel.X1}" />
-                                <TextBlock Text=", " />
-                                <comp:DraggableValueBox
+                                    <TextBlock Text=", " />
+                                    <comp:DraggableValueBox
                                     DragSpeed="0.01"
                                     Maximum="123"
                                     NumberFormat="0.00"
                                     Value="{Binding BezierViewModel.Y1}" />
-                                <TextBlock Text=", " />
-                                <comp:DraggableValueBox
+                                    <TextBlock Text=", " />
+                                    <comp:DraggableValueBox
                                     DragSpeed="0.01"
                                     Maximum="123"
                                     NumberFormat="0.00"
                                     Value="{Binding BezierViewModel.X2}" />
-                                <TextBlock Text=", " />
-                                <comp:DraggableValueBox
+                                    <TextBlock Text=", " />
+                                    <comp:DraggableValueBox
                                     DragSpeed="0.01"
                                     Maximum="123"
                                     NumberFormat="0.00"
                                     Value="{Binding BezierViewModel.Y2}" />
-                            </StackPanel>
-                            <ws:Button
+                                </StackPanel>
+                                <ws:Button
                                     Margin="0,15,0,0"
                                     Padding="20,5"
                                     Content="Apply to Selected"
                                     Command="{Binding ApplyBezierToSelectedCommand}" />
-                        </StackPanel>
-                    </Grid>
-                </comp:TabPane>
+                            </StackPanel>
+                        </Grid>
+                    </comp:TabPane>
 
 
-                <!--  渲染设置  -->
-                <comp:TabPane
+                    <!--  渲染设置  -->
+                    <comp:TabPane
                     Grid.Row="0"
                     Grid.Column="4"
                     Header="Display Controls">
-                    <StackPanel Margin="10" Orientation="Vertical" VerticalAlignment="Top">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock
+                        <StackPanel Margin="10" Orientation="Vertical" VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock
                                 VerticalAlignment="Center"
                                 Foreground="#d6d6d6"
                                 Text="播放速度" />
-                            <comp:DraggableValueBox
+                                <comp:DraggableValueBox
                                 Margin="8,0,0,0"
                                 Width="72"
                                 DragSpeed="0.01"
@@ -191,46 +191,46 @@
                                 Maximum="4"
                                 NumberFormat="0.00'x'"
                                 Value="{Binding ElementName=MainChartDisplay, Path=PlaybackSpeed, Mode=TwoWay}" />
-                            <CheckBox
+                                <CheckBox
                                 Margin="10,0,0,0"
                                 VerticalAlignment="Center"
                                 IsChecked="{Binding ElementName=MainChartDisplay, Path=PreserveAudioPitch, Mode=TwoWay}" />
-                            <TextBlock
+                                <TextBlock
                                 Margin="6,0,0,0"
                                 VerticalAlignment="Center"
                                 Foreground="#d6d6d6"
                                 Text="保持音高" />
-                        </StackPanel>
+                            </StackPanel>
 
-                        <StackPanel Orientation="Horizontal">
-                            <CheckBox
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox
                                 VerticalAlignment="Center"
                                 IsChecked="{Binding ElementName=MainChartDisplay, Path=ShowAuxiliaryUi, Mode=TwoWay}" />
-                            <TextBlock
+                                <TextBlock
                                 Margin="6,0,0,0"
                                 VerticalAlignment="Center"
                                 Foreground="#d6d6d6"
                                 Text="显示辅助UI" />
-                        </StackPanel>
+                            </StackPanel>
 
-                        <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
-                            <CheckBox
+                            <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                                <CheckBox
                                 VerticalAlignment="Center"
                                 IsChecked="{Binding ElementName=MainChartDisplay, Path=ShowNoteCenters, Mode=TwoWay}"
                                 IsEnabled="{Binding ElementName=MainChartDisplay, Path=ShowAuxiliaryUi}" />
-                            <TextBlock
+                                <TextBlock
                                 Margin="6,0,0,0"
                                 VerticalAlignment="Center"
                                 Foreground="#d6d6d6"
                                 Text="显示note中心" />
-                        </StackPanel>
+                            </StackPanel>
 
-                        <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
-                            <TextBlock
+                            <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                                <TextBlock
                                 VerticalAlignment="Center"
                                 Foreground="#d6d6d6"
                                 Text="背景暗层" />
-                            <comp:DraggableValueBox
+                                <comp:DraggableValueBox
                                 Margin="8,0,0,0"
                                 Width="72"
                                 DragSpeed="0.01"
@@ -238,108 +238,108 @@
                                 Maximum="1"
                                 NumberFormat="0.00"
                                 Value="{Binding ElementName=MainChartDisplay, Path=BackgroundDimOpacity, Mode=TwoWay}" />
-                        </StackPanel>
-                    </StackPanel>
-                </comp:TabPane>
-
-
-                <!--  时间线区  -->
-                <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0"
-                      x:Name="TimelineMainGrid"
-                      PreviewMouseLeftButtonDown="TimelineMainGrid_PreviewMouseLeftButtonDown"
-                      PreviewMouseMove="TimelineMainGrid_PreviewMouseMove"
-                      PreviewMouseLeftButtonUp="TimelineMainGrid_PreviewMouseLeftButtonUp"
-                      PreviewMouseDown="TimelineMainGrid_PreviewMouseDown"
-                      PreviewMouseUp="TimelineMainGrid_PreviewMouseUp"
-                      LayoutUpdated="TimelineMainGrid_LayoutUpdated"
-                      SizeChanged="TimelineMainGrid_SizeChanged">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition x:Name="TimelineLeftColumnDefinition" Width="1*" MinWidth="180" />
-                        <ColumnDefinition Width="6" />
-                        <ColumnDefinition Width="2.8*" MinWidth="320" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="8" />
-                        <RowDefinition Height="25" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <Border Grid.Row="1" Grid.Column="2" Background="#252525" ClipToBounds="True">
-
-                        <Canvas x:Name="MinimapCanvas" SizeChanged="MinimapCanvas_SizeChanged"
-                                Margin="8,0,4,0">
-
-                            <Rectangle Canvas.Left="{Binding Timeline.MinimapWorkspaceX}"
-                                       Width="{Binding Timeline.MinimapWorkspaceWidth}"
-                                       Height="{Binding ActualHeight, ElementName=MinimapCanvas}"
-                                       Fill="#10FFFFFF"
-                                       IsHitTestVisible="False" />
-
-                            <Grid Canvas.Left="{Binding Timeline.MinimapViewportX}"
-                                  Width="{Binding Timeline.MinimapViewportWidth}"
-                                  Height="{Binding ActualHeight, ElementName=MinimapCanvas}">
-
-                                <Thumb Cursor="Hand"
-                                       DragStarted="MinimapViewportPan_DragStarted"
-                                       DragDelta="MinimapViewportPan_DragDelta">
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Rectangle Fill="#88FFFFFF" />
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
-
-                                <Thumb Width="4" HorizontalAlignment="Left" Cursor="SizeWE"
-                                       DragStarted="MinimapViewportLeft_DragStarted"
-                                       DragDelta="MinimapViewportLeft_DragDelta"
-                                       Margin="-4,0,0,0">
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Rectangle Fill="#5285F3" />
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
-
-                                <Thumb Width="4" HorizontalAlignment="Right" Cursor="SizeWE"
-                                       DragStarted="MinimapViewportRight_DragStarted"
-                                       DragDelta="MinimapViewportRight_DragDelta"
-                                       Margin="0,0,-4,0">
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Rectangle Fill="#5285F3" />
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
-                            </Grid>
-
-                        </Canvas>
-                    </Border>
-
-
-                    <!--  标题栏  -->
-                    <comp:TabPane Grid.Row="0" Grid.Column="0">
-                        <comp:TabPane.Header>
-                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                                <TextBlock VerticalAlignment="Center" Text="Line" />
-                                <ws:Button Margin="8,0,0,0" Padding="8,0" Command="{Binding Timeline.AddJudgementLineCommand}" Content="+" ToolTip="添加图层" />
                             </StackPanel>
-                        </comp:TabPane.Header>
+                        </StackPanel>
                     </comp:TabPane>
 
-                    <comp:TabPane Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Header="Timeline" />
+
+                    <!--  时间线区  -->
+                    <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0"
+                          x:Name="TimelineMainGrid"
+                          PreviewMouseLeftButtonDown="TimelineMainGrid_PreviewMouseLeftButtonDown"
+                          PreviewMouseMove="TimelineMainGrid_PreviewMouseMove"
+                          PreviewMouseLeftButtonUp="TimelineMainGrid_PreviewMouseLeftButtonUp"
+                          PreviewMouseDown="TimelineMainGrid_PreviewMouseDown"
+                          PreviewMouseUp="TimelineMainGrid_PreviewMouseUp"
+                          LayoutUpdated="TimelineMainGrid_LayoutUpdated"
+                          SizeChanged="TimelineMainGrid_SizeChanged">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="TimelineLeftColumnDefinition" Width="1*" MinWidth="180" />
+                            <ColumnDefinition Width="6" />
+                            <ColumnDefinition Width="2.8*" MinWidth="320" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="25" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="1" Grid.Column="2" Background="#252525" ClipToBounds="True">
+
+                            <Canvas x:Name="MinimapCanvas" SizeChanged="MinimapCanvas_SizeChanged"
+                                    Margin="8,0,4,0">
+
+                                <Rectangle Canvas.Left="{Binding Timeline.MinimapWorkspaceX}"
+                                           Width="{Binding Timeline.MinimapWorkspaceWidth}"
+                                           Height="{Binding ActualHeight, ElementName=MinimapCanvas}"
+                                           Fill="#10FFFFFF"
+                                           IsHitTestVisible="False" />
+
+                                <Grid Canvas.Left="{Binding Timeline.MinimapViewportX}"
+                                      Width="{Binding Timeline.MinimapViewportWidth}"
+                                      Height="{Binding ActualHeight, ElementName=MinimapCanvas}">
+
+                                    <Thumb Cursor="Hand"
+                                           DragStarted="MinimapViewportPan_DragStarted"
+                                           DragDelta="MinimapViewportPan_DragDelta">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Rectangle Fill="#88FFFFFF" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+
+                                    <Thumb Width="4" HorizontalAlignment="Left" Cursor="SizeWE"
+                                           DragStarted="MinimapViewportLeft_DragStarted"
+                                           DragDelta="MinimapViewportLeft_DragDelta"
+                                           Margin="-4,0,0,0">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Rectangle Fill="#5285F3" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+
+                                    <Thumb Width="4" HorizontalAlignment="Right" Cursor="SizeWE"
+                                           DragStarted="MinimapViewportRight_DragStarted"
+                                           DragDelta="MinimapViewportRight_DragDelta"
+                                           Margin="0,0,-4,0">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Rectangle Fill="#5285F3" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Grid>
+
+                            </Canvas>
+                        </Border>
+
+
+                        <!--  标题栏  -->
+                        <comp:TabPane Grid.Row="0" Grid.Column="0">
+                            <comp:TabPane.Header>
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" Text="Line" />
+                                    <ws:Button Margin="8,0,0,0" Padding="8,0" Command="{Binding Timeline.AddJudgementLineCommand}" Content="+" ToolTip="添加图层" />
+                                </StackPanel>
+                            </comp:TabPane.Header>
+                        </comp:TabPane>
+
+                        <comp:TabPane Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Header="Timeline" />
 
 
 
 
 
-                    <!--  时间标尺  -->
+                        <!--  时间标尺  -->
 
-                    <Border Grid.Row="2" Grid.Column="2" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True" Margin="8,0,0,0">
-                        <comp:TimelineRuler
+                        <Border Grid.Row="2" Grid.Column="2" BorderBrush="#333" BorderThickness="0,0,0,1" Background="#1e1e1e" ClipToBounds="True" Margin="8,0,0,0">
+                            <comp:TimelineRuler
                                     x:Name="MainTimelineRuler"
                                     VirtualTotalWidth="{Binding Timeline.TotalPixelWidth}"
                                     TotalTicks="{Binding Timeline.TotalDurationTicks}"
@@ -350,7 +350,7 @@
                                     PreviewMouseMove="TimelineRuler_PreviewMouseMove"
                                     PreviewMouseLeftButtonUp="TimelineRuler_PreviewMouseLeftButtonUp"
                                     Cursor="Hand" />
-                    </Border>
+                        </Border>
 
 
 
@@ -358,141 +358,214 @@
 
 
 
-                    <!--  图层区  -->
-                    <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
-                        <StackPanel>
-                            <v:BpmTrackControl DataContext="{Binding Timeline.BpmTrack}" Margin="0,0,0,5" />
-                            <v:AudioTrackControl DataContext="{Binding Timeline.AudioTrack}">
-                                <v:AudioTrackControl.Style>
-                                    <Style TargetType="UserControl">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding}" Value="{x:Null}">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </v:AudioTrackControl.Style>
-                            </v:AudioTrackControl>
+                        <!--  图层区  -->
+                        <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Loaded="VerticalTrackScrollViewer_Loaded" Unloaded="VerticalTrackScrollViewer_Unloaded">
+                            <StackPanel>
+                                <v:BpmTrackControl DataContext="{Binding Timeline.BpmTrack}" Margin="0,0,0,5" />
+                                <v:AudioTrackControl DataContext="{Binding Timeline.AudioTrack}">
+                                    <v:AudioTrackControl.Style>
+                                        <Style TargetType="UserControl">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </v:AudioTrackControl.Style>
+                                </v:AudioTrackControl>
 
-                            <ItemsControl ItemsSource="{Binding Timeline.Tracks}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <v:TrackControl />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </ScrollViewer>
+                                <ItemsControl ItemsSource="{Binding Timeline.Tracks}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <v:TrackControl />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
 
 
-                    <!--  游标  -->
-                    <Grid Grid.Row="2" Grid.RowSpan="2" Grid.Column="2" ClipToBounds="True">
+                        <!--  游标  -->
+                        <Grid Grid.Row="2" Grid.RowSpan="2" Grid.Column="2" ClipToBounds="True">
 
-                        <Canvas x:Name="OverlayCanvas" Margin="8,0,0,0">
-                            <Rectangle x:Name="MarqueeRect"
-                                       Fill="#335285F3"
-                                       Stroke="#5285F3"
-                                       StrokeThickness="1"
-                                       Visibility="Collapsed"
-                                       HorizontalAlignment="Left"
-                                       VerticalAlignment="Top" />
+                            <Canvas x:Name="OverlayCanvas" Margin="8,0,0,0">
+                                <Rectangle x:Name="MarqueeRect"
+                                           Fill="#335285F3"
+                                           Stroke="#5285F3"
+                                           StrokeThickness="1"
+                                           Visibility="Collapsed"
+                                           HorizontalAlignment="Left"
+                                           VerticalAlignment="Top" />
 
-                            <Canvas Panel.ZIndex="10">
-                                <Canvas.RenderTransform>
-                                    <TranslateTransform X="{Binding X, ElementName=PlayheadTransform}" />
-                                </Canvas.RenderTransform>
+                                <Canvas Panel.ZIndex="10">
+                                    <Canvas.RenderTransform>
+                                        <TranslateTransform X="{Binding X, ElementName=PlayheadTransform}" />
+                                    </Canvas.RenderTransform>
 
-                                <Rectangle Canvas.Left="{Binding Timeline.WorkspaceStartX}"
-                                           Width="{Binding Timeline.WorkspaceWidth}"
+                                    <Rectangle Canvas.Left="{Binding Timeline.WorkspaceStartX}"
+                                               Width="{Binding Timeline.WorkspaceWidth}"
+                                               Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
+                                               Fill="#09FFFFFF"
+                                               IsHitTestVisible="False" />
+
+                                    <Thumb Canvas.Left="{Binding Timeline.WorkspaceStartX}"
                                            Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
-                                           Fill="#09FFFFFF"
-                                           IsHitTestVisible="False" />
+                                           Cursor="SizeWE"
+                                           DragStarted="WorkspaceLeft_DragStarted"
+                                           DragDelta="WorkspaceLeft_DragDelta"
+                                           DragCompleted="WorkspaceLeft_DragCompleted">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Grid Width="24" Margin="-24,0,0,0">
+                                                    <Rectangle Height="24" VerticalAlignment="Top" Fill="Transparent" />
 
-                                <Thumb Canvas.Left="{Binding Timeline.WorkspaceStartX}"
-                                       Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
+                                                    <Polygon Points="12,0 12,12 0,0" Fill="#5285F3" HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" />
+                                                    <Rectangle Width="2" HorizontalAlignment="Right" Fill="#5285F3" IsHitTestVisible="False" />
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+
+                                    <Thumb Canvas.Left="{Binding Timeline.WorkspaceEndX}"
+                                           Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
+                                           Cursor="SizeWE"
+                                           DragStarted="WorkspaceRight_DragStarted"
+                                           DragDelta="WorkspaceRight_DragDelta"
+                                           DragCompleted="WorkspaceRight_DragCompleted">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Grid Width="24" Margin="0,0,-24,0">
+                                                    <Rectangle Height="24" VerticalAlignment="Top" Fill="Transparent" />
+
+                                                    <Polygon Points="0,0 0,12 12,0" Fill="#5285F3" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False" />
+                                                    <Rectangle Width="2" HorizontalAlignment="Left" Fill="#5285F3" IsHitTestVisible="False" />
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Canvas>
+
+
+                                <Thumb x:Name="PlayheadThumb"
+                                       Canvas.Left="{Binding Timeline.PlayheadPositionX}"
                                        Cursor="SizeWE"
-                                       DragStarted="WorkspaceLeft_DragStarted"
-                                       DragDelta="WorkspaceLeft_DragDelta"
-                                       DragCompleted="WorkspaceLeft_DragCompleted">
+                                       DragStarted="Playhead_DragStarted"
+                                       DragDelta="Playhead_DragDelta"
+                                       DragCompleted="Playhead_DragCompleted"
+                                       Panel.ZIndex="999">
+                                    <Thumb.RenderTransform>
+                                        <TranslateTransform x:Name="PlayheadTransform" X="0" />
+                                    </Thumb.RenderTransform>
+
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Grid Width="24" Margin="-24,0,0,0">
+                                            <Grid Width="32" Margin="-16,0,0,0">
                                                 <Rectangle Height="24" VerticalAlignment="Top" Fill="Transparent" />
 
-                                                <Polygon Points="12,0 12,12 0,0" Fill="#5285F3" HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" />
-                                                <Rectangle Width="2" HorizontalAlignment="Right" Fill="#5285F3" IsHitTestVisible="False" />
-                                            </Grid>
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
+                                                <Rectangle Width="1.5" Fill="#FF3333" HorizontalAlignment="Center"
+                                                           Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"
+                                                           IsHitTestVisible="False" />
 
-                                <Thumb Canvas.Left="{Binding Timeline.WorkspaceEndX}"
-                                       Height="{Binding ActualHeight, ElementName=OverlayCanvas}"
-                                       Cursor="SizeWE"
-                                       DragStarted="WorkspaceRight_DragStarted"
-                                       DragDelta="WorkspaceRight_DragDelta"
-                                       DragCompleted="WorkspaceRight_DragCompleted">
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Grid Width="24" Margin="0,0,-24,0">
-                                                <Rectangle Height="24" VerticalAlignment="Top" Fill="Transparent" />
-
-                                                <Polygon Points="0,0 0,12 12,0" Fill="#5285F3" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False" />
-                                                <Rectangle Width="2" HorizontalAlignment="Left" Fill="#5285F3" IsHitTestVisible="False" />
+                                                <Polygon Points="0,0 16,0 8,10" Fill="#FF3333" VerticalAlignment="Top" HorizontalAlignment="Center" IsHitTestVisible="False" />
                                             </Grid>
                                         </ControlTemplate>
                                     </Thumb.Template>
                                 </Thumb>
                             </Canvas>
 
+                        </Grid>
 
-                            <Thumb x:Name="PlayheadThumb"
-                                   Canvas.Left="{Binding Timeline.PlayheadPositionX}"
-                                   Cursor="SizeWE"
-                                   DragStarted="Playhead_DragStarted"
-                                   DragDelta="Playhead_DragDelta"
-                                   DragCompleted="Playhead_DragCompleted"
-                                   Panel.ZIndex="999">
-                                <Thumb.RenderTransform>
-                                    <TranslateTransform x:Name="PlayheadTransform" X="0" />
-                                </Thumb.RenderTransform>
+                        <!--  图层全局水平滚动条  -->
+                        <ScrollBar x:Name="GlobalHorizontalScroll"
+                                   Grid.Row="4" Grid.Column="2" Height="12" Margin="0,0,0,0"
+                                   Orientation="Horizontal" VerticalAlignment="Bottom"
+                                   Minimum="0" Maximum="{Binding Timeline.MaxScrollOffset}"
+                                   ViewportSize="{Binding Timeline.ViewportActualWidth}"
+                                   ValueChanged="GlobalHorizontalScrollBar_ValueChanged" />
 
-                                <Thumb.Template>
-                                    <ControlTemplate TargetType="Thumb">
-                                        <Grid Width="32" Margin="-16,0,0,0">
-                                            <Rectangle Height="24" VerticalAlignment="Top" Fill="Transparent" />
+                        <!--  图层全局垂直滚动条  -->
+                        <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"
+                                   Grid.Row="2" Grid.Column="3" Width="12" Margin="0,0,0,0"
+                                   Orientation="Vertical" HorizontalAlignment="Right"
+                                   Minimum="0"
+                                   ValueChanged="GlobalVerticalScrollBar_ValueChanged" />
 
-                                            <Rectangle Width="1.5" Fill="#FF3333" HorizontalAlignment="Center"
-                                                       Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"
-                                                       IsHitTestVisible="False" />
-
-                                            <Polygon Points="0,0 16,0 8,10" Fill="#FF3333" VerticalAlignment="Top" HorizontalAlignment="Center" IsHitTestVisible="False" />
-                                        </Grid>
-                                    </ControlTemplate>
-                                </Thumb.Template>
-                            </Thumb>
-                        </Canvas>
-
+                        <GridSplitter Grid.Row="0"
+                                      Grid.RowSpan="5"
+                                      Grid.Column="1"
+                                      HorizontalAlignment="Stretch"
+                                      Width="6"
+                                      ResizeDirection="Columns"
+                                      ResizeBehavior="PreviousAndNext"
+                                      ShowsPreview="False"
+                                      Style="{StaticResource ThinVerticalSplitterStyle}"
+                                      Cursor="SizeWE"
+                                      Panel.ZIndex="2000" />
                     </Grid>
 
-                    <!--  图层全局水平滚动条  -->
-                    <ScrollBar x:Name="GlobalHorizontalScroll"
-                               Grid.Row="4" Grid.Column="2" Height="12" Margin="0,0,0,0"
-                               Orientation="Horizontal" VerticalAlignment="Bottom"
-                               Minimum="0" Maximum="{Binding Timeline.MaxScrollOffset}"
-                               ViewportSize="{Binding Timeline.ViewportActualWidth}"
-                               ValueChanged="GlobalHorizontalScrollBar_ValueChanged" />
 
-                    <!--  图层全局垂直滚动条  -->
-                    <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"
-                               Grid.Row="2" Grid.Column="3" Width="12" Margin="0,0,0,0"
-                               Orientation="Vertical" HorizontalAlignment="Right"
-                               Minimum="0"
-                               ValueChanged="GlobalVerticalScrollBar_ValueChanged" />
+
+                    <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0"
+                          Background="#23232E">
+                        
+                        
+                    </Grid>
+
+
+                    <!--  右下角  -->
+                    <comp:TabPane
+                    Grid.Row="2"
+                    Grid.Column="4"
+                    Header="Project">
+                        <StackPanel Margin="10">
+                            <StackPanel Orientation="Horizontal">
+                                <StackPanel>
+                                    <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import Music" Padding="15,5" />
+                                    <ws:Button Command="{Binding FileActions.ImportIllustrationCommand}" Content="Import Illustration" Padding="15,5" Margin="0,8,0,0" />
+                                </StackPanel>
+
+                                <ToggleButton IsChecked="{Binding Timeline.IsMetronomeEnabled}"
+                                              Content="Metronome (节拍器)"
+                                              Margin="10,0,0,0" Padding="15,5"
+                                              Background="#333" Foreground="#d6d6d6" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                                <TextBlock Text="Total Ticks:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#d6d6d6" />
+
+                                <comp:DraggableValueBox DragSpeed="100"
+                                                        NumberFormat="0"
+                                                        Value="{Binding Timeline.TotalDurationTicks}"
+                                                        Width="80" />
+                            </StackPanel>
+                        </StackPanel>
+                    </comp:TabPane>
+
+                    <!--  渲染窗口  -->
+                    <Grid Grid.Row="0" Grid.Column="2">
+                        <v:ChartDisplay x:Name="MainChartDisplay" />
+
+                        <Grid IsHitTestVisible="True" ClipToBounds="True">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Timeline.JudgementLineEditor.IsVisible}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+
+                            <Border Background="#e0000000" />
+
+                            <v:JudgementLineEditorView DataContext="{Binding Timeline.JudgementLineEditor}" />
+                        </Grid>
+                    </Grid>
 
                     <GridSplitter Grid.Row="0"
-                                  Grid.RowSpan="5"
+                                  Grid.RowSpan="1"
                                   Grid.Column="1"
                                   HorizontalAlignment="Stretch"
                                   Width="6"
@@ -501,96 +574,32 @@
                                   ShowsPreview="False"
                                   Style="{StaticResource ThinVerticalSplitterStyle}"
                                   Cursor="SizeWE"
-                                  Panel.ZIndex="2000" />
+                                  Panel.ZIndex="3000" />
+
+                    <GridSplitter Grid.Row="0"
+                                  Grid.RowSpan="3"
+                                  Grid.Column="3"
+                                  HorizontalAlignment="Stretch"
+                                  Width="6"
+                                  ResizeDirection="Columns"
+                                  ResizeBehavior="PreviousAndNext"
+                                  ShowsPreview="False"
+                                  Style="{StaticResource ThinVerticalSplitterStyle}"
+                                  Cursor="SizeWE"
+                                  Panel.ZIndex="3000" />
+
+                    <GridSplitter Grid.Row="1"
+                                  Grid.Column="0"
+                                  Grid.ColumnSpan="5"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"
+                                  ResizeDirection="Rows"
+                                  ResizeBehavior="PreviousAndNext"
+                                  ShowsPreview="False"
+                                  Style="{StaticResource ThinHorizontalSplitterStyle}"
+                                  Cursor="SizeNS"
+                                  Panel.ZIndex="3000" />
                 </Grid>
-
-                <!--  右下角  -->
-                <comp:TabPane
-                    Grid.Row="2"
-                    Grid.Column="4"
-                    Header="Project">
-                    <StackPanel Margin="10">
-                        <StackPanel Orientation="Horizontal">
-                            <StackPanel>
-                                <ws:Button Command="{Binding FileActions.ImportMusicCommand}" Content="Import Music" Padding="15,5" />
-                                <ws:Button Command="{Binding FileActions.ImportIllustrationCommand}" Content="Import Illustration" Padding="15,5" Margin="0,8,0,0" />
-                            </StackPanel>
-
-                            <ToggleButton IsChecked="{Binding Timeline.IsMetronomeEnabled}"
-                                          Content="Metronome (节拍器)"
-                                          Margin="10,0,0,0" Padding="15,5"
-                                          Background="#333" Foreground="#d6d6d6" />
-                        </StackPanel>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
-                            <TextBlock Text="Total Ticks:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#d6d6d6" />
-
-                            <comp:DraggableValueBox DragSpeed="100"
-                                                    NumberFormat="0"
-                                                    Value="{Binding Timeline.TotalDurationTicks}"
-                                                    Width="80" />
-                        </StackPanel>
-                    </StackPanel>
-                </comp:TabPane>
-
-                <!--  渲染窗口  -->
-                <Grid Grid.Row="0" Grid.Column="2">
-                    <v:ChartDisplay x:Name="MainChartDisplay" />
-
-                    <Grid IsHitTestVisible="True" ClipToBounds="True">
-                        <Grid.Style>
-                            <Style TargetType="Grid">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Timeline.JudgementLineEditor.IsVisible}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Grid.Style>
-
-                        <Border Background="#e0000000" />
-
-                        <v:JudgementLineEditorView DataContext="{Binding Timeline.JudgementLineEditor}" />
-                    </Grid>
-                </Grid>
-
-                <GridSplitter Grid.Row="0"
-                              Grid.RowSpan="1"
-                              Grid.Column="1"
-                              HorizontalAlignment="Stretch"
-                              Width="6"
-                              ResizeDirection="Columns"
-                              ResizeBehavior="PreviousAndNext"
-                              ShowsPreview="False"
-                              Style="{StaticResource ThinVerticalSplitterStyle}"
-                              Cursor="SizeWE"
-                              Panel.ZIndex="3000" />
-
-                <GridSplitter Grid.Row="0"
-                              Grid.RowSpan="3"
-                              Grid.Column="3"
-                              HorizontalAlignment="Stretch"
-                              Width="6"
-                              ResizeDirection="Columns"
-                              ResizeBehavior="PreviousAndNext"
-                              ShowsPreview="False"
-                              Style="{StaticResource ThinVerticalSplitterStyle}"
-                              Cursor="SizeWE"
-                              Panel.ZIndex="3000" />
-
-                <GridSplitter Grid.Row="1"
-                              Grid.Column="0"
-                              Grid.ColumnSpan="5"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"
-                              ResizeDirection="Rows"
-                              ResizeBehavior="PreviousAndNext"
-                              ShowsPreview="False"
-                              Style="{StaticResource ThinHorizontalSplitterStyle}"
-                              Cursor="SizeNS"
-                              Panel.ZIndex="3000" />
-            </Grid>
             </DockPanel>
         </ws:WindowContentAdapter>
 

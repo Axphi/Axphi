@@ -2,12 +2,14 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:comp="clr-namespace:Axphi.Components"
-    xmlns:data="clr-namespace:Axphi.Data">
+    xmlns:data="clr-namespace:Axphi.Data"
+    xmlns:ws="https://schemas.elecho.dev/wpfsuite"
+    xmlns:nodify="https://miroiu.github.io/nodify">
 
 
     <Style TargetType="{x:Type comp:TabPane}">
-        <Setter Property="Background" Value="#1f1f1f"/>
-        <Setter Property="Padding" Value="4"/>
+        <Setter Property="Background" Value="#1f1f1f" />
+        <Setter Property="Padding" Value="4" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type comp:TabPane}">
@@ -16,21 +18,21 @@
                             BorderThickness="1">
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="24"/>
-                                <RowDefinition Height="1*"/>
+                                <RowDefinition Height="24" />
+                                <RowDefinition Height="1*" />
                             </Grid.RowDefinitions>
 
                             <ContentPresenter Grid.Row="0"
                                               Margin="2"
                                               ContentSource="Header"
                                               TextBlock.Foreground="#eeeeee"
-                                              VerticalAlignment="Center"/>
+                                              VerticalAlignment="Center" />
                             <Border Grid.Row="1"
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     Padding="{TemplateBinding Padding}">
-                                <ContentPresenter/>
+                                <ContentPresenter />
                             </Border>
                         </Grid>
                     </Border>
@@ -40,8 +42,8 @@
     </Style>
 
     <Style TargetType="{x:Type comp:ChartTimeline}">
-        <Setter Property="Background" Value="#1f1f1f"/>
-        <Setter Property="Padding" Value="4"/>
+        <Setter Property="Background" Value="#1f1f1f" />
+        <Setter Property="Padding" Value="4" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type comp:ChartTimeline}">
@@ -51,17 +53,15 @@
                         <DockPanel Grid.IsSharedSizeScope="True">
                             <Grid DockPanel.Dock="Top">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="3"/>
-                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="3" />
+                                    <ColumnDefinition />
                                 </Grid.ColumnDefinitions>
                             </Grid>
                             <ItemsControl>
                                 <ItemsControl.Resources>
                                     <DataTemplate DataType="{x:Type data:JudgementLine}">
-                                        <Grid>
-
-                                        </Grid>
+                                        <Grid></Grid>
                                     </DataTemplate>
                                 </ItemsControl.Resources>
                             </ItemsControl>
@@ -155,12 +155,129 @@
         </Style.Triggers>
     </Style>
 
+
+    <SolidColorBrush x:Key="SplitterLineBrush" Color="#5A6C82" />
+    <SolidColorBrush x:Key="SplitterLineHoverBrush" Color="#7F9FC2" />
+    <SolidColorBrush x:Key="SplitterLineDragBrush" Color="#A9D0FF" />
+
+    <Style x:Key="ThinVerticalSplitterStyle" TargetType="GridSplitter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GridSplitter">
+                    <Grid Background="Transparent">
+                        <Rectangle x:Name="Line"
+                                   Width="1"
+                                   HorizontalAlignment="Center"
+                                   Fill="{StaticResource SplitterLineBrush}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineDragBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="{x:Type comp:TimeLine}">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type comp:TimeLine}">
-                    <Border>
-                    </Border>
+                    <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0"
+                          Background="#23232E">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="TimelineLeftColumnDefinition" Width="1*" MinWidth="180" />
+                            <ColumnDefinition Width="6" />
+                            <ColumnDefinition Width="2.8*" MinWidth="320" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="25" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <comp:TabPane Grid.Row="0" Grid.Column="0">
+                            <comp:TabPane.Header>
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" Text="Line" />
+                                    <ws:Button Margin="8,0,0,0" Padding="8,0" Command="{Binding Timeline.AddJudgementLineCommand}" Content="+" ToolTip="添加图层" />
+                                </StackPanel>
+                            </comp:TabPane.Header>
+                        </comp:TabPane>
+
+                        <comp:TabPane Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Header="Timeline" />
+
+
+
+                        <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                              Background="#000000">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*" MinWidth="180" />
+                                <ColumnDefinition Width="6" />
+                                <ColumnDefinition Width="2.8*" MinWidth="320" />
+
+
+                            </Grid.ColumnDefinitions>
+
+                            <nodify:NodifyEditor
+                                Grid.Column="0"
+                                x:Name="headddddddd"
+                                ItemsSource="{Binding ItemsSource}"
+                                ViewportLocation="{Binding SharedViewportY, Mode=TwoWay}"></nodify:NodifyEditor>
+
+
+                            <nodify:NodifyEditor
+                                Grid.Column="2"
+                                x:Name="layerrrrrrr"
+                                ItemsSource="{Binding ItemsSource}"
+                                ViewportLocation="{Binding SharedViewportY, Mode=TwoWay}"></nodify:NodifyEditor>
+
+
+
+                        </Grid>
+
+                        <!--  图层全局水平滚动条  -->
+                        <ScrollBar x:Name="GlobalHorizontalScroll"
+                                   Grid.Row="4" Grid.Column="2" Height="12" Margin="0,0,0,0"
+                                   Orientation="Horizontal" VerticalAlignment="Bottom"
+                                   Minimum="0" Maximum="{Binding Timeline.MaxScrollOffset}"
+                                   ViewportSize="{Binding Timeline.ViewportActualWidth}"
+                                   ValueChanged="GlobalHorizontalScrollBar_ValueChanged" />
+
+                        <!--  图层全局垂直滚动条  -->
+                        <ScrollBar x:Name="GlobalVerticalScroll" Grid.RowSpan="2"
+                                   Grid.Row="2" Grid.Column="3" Width="12" Margin="0,0,0,0"
+                                   Orientation="Vertical" HorizontalAlignment="Right"
+                                   Minimum="0"
+                                   ValueChanged="GlobalVerticalScrollBar_ValueChanged" />
+
+                        <GridSplitter Grid.Row="0"
+                                      Grid.RowSpan="5"
+                                      Grid.Column="1"
+                                      HorizontalAlignment="Stretch"
+                                      Width="6"
+                                      ResizeDirection="Columns"
+                                      ResizeBehavior="PreviousAndNext"
+                                      ShowsPreview="False"
+                                      Style="{StaticResource ThinVerticalSplitterStyle}"
+                                      Cursor="SizeWE"
+                                      Panel.ZIndex="2000" />
+
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

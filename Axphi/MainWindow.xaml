@@ -28,37 +28,6 @@
                 <ResourceDictionary Source="Themes/Generic.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <GridLength x:Key="TimelineLeftPanelWidth">180</GridLength>
-            <SolidColorBrush x:Key="SplitterLineBrush" Color="#5A6C82" />
-            <SolidColorBrush x:Key="SplitterLineHoverBrush" Color="#7F9FC2" />
-            <SolidColorBrush x:Key="SplitterLineDragBrush" Color="#A9D0FF" />
-
-            <Style x:Key="ThinVerticalSplitterStyle" TargetType="GridSplitter">
-                <Setter Property="Background" Value="Transparent" />
-                <Setter Property="SnapsToDevicePixels" Value="True" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="GridSplitter">
-                            <Grid Background="Transparent">
-                                <Rectangle x:Name="Line"
-                                           Width="1"
-                                           HorizontalAlignment="Center"
-                                           Fill="{StaticResource SplitterLineBrush}" />
-                            </Grid>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineHoverBrush}" />
-                                </Trigger>
-                                <Trigger Property="IsKeyboardFocused" Value="True">
-                                    <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineHoverBrush}" />
-                                </Trigger>
-                                <Trigger Property="IsDragging" Value="True">
-                                    <Setter TargetName="Line" Property="Fill" Value="{StaticResource SplitterLineDragBrush}" />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
 
             <Style x:Key="ThinHorizontalSplitterStyle" TargetType="GridSplitter">
                 <Setter Property="Background" Value="Transparent" />
@@ -261,7 +230,7 @@
                         </Grid.ColumnDefinitions>
 
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="34" />
                             <RowDefinition Height="8" />
                             <RowDefinition Height="25" />
                             <RowDefinition Height="*" />
@@ -505,12 +474,8 @@
                     </Grid>
 
 
+                    <comp:TimeLine Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"/>
 
-                    <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0"
-                          Background="#23232E">
-                        
-                        
-                    </Grid>
 
 
                     <!--  右下角  -->

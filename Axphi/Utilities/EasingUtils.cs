@@ -177,11 +177,7 @@ namespace Axphi.Utilities
                 return;
             }
 
-            var context = PropertyExpressionEvaluator.CreateContext(time, chart);
-            if (PropertyExpressionEvaluator.TryEvaluateDouble(expressionText, finalValue, context, chart, currentLine, "speed", null, out var evaluatedValue, out _))
-            {
-                finalValue = evaluatedValue;
-            }
+            
         }
 
         public static void CalculateObjectSingleTransform(
@@ -269,7 +265,7 @@ namespace Axphi.Utilities
             finalScale = properties.Scale.InitialValue;
             finalRotationAngle = properties.Rotation.InitialValue;
             finalOpacity = properties.Opacity.InitialValue;
-            var context = PropertyExpressionEvaluator.CreateContext(time, chart);
+            
 
             if (properties.Anchor.KeyFrames is { } anchorKeyFrames)
             {
@@ -277,10 +273,9 @@ namespace Axphi.Utilities
             }
 
             if (properties.Anchor.ExpressionEnabled
-                && properties.Anchor.ExpressionIsValid
-                && PropertyExpressionEvaluator.TryEvaluateVector(properties.Anchor.ExpressionText, finalAnchor, context, chart, currentLine, "anchor", null, out var anchorExpressionValue, out _))
+                && properties.Anchor.ExpressionIsValid)
             {
-                finalAnchor = anchorExpressionValue;
+                
             }
 
             if (properties.Offset.KeyFrames is { } offsetKeyFrames)
@@ -290,9 +285,9 @@ namespace Axphi.Utilities
 
             if (properties.Offset.ExpressionEnabled
                 && properties.Offset.ExpressionIsValid
-                && PropertyExpressionEvaluator.TryEvaluateVector(properties.Offset.ExpressionText, finalOffset, context, chart, currentLine, "position", null, out var offsetExpressionValue, out _))
+                )
             {
-                finalOffset = offsetExpressionValue;
+                
             }
 
             if (properties.Scale.KeyFrames is { } scaleKeyFrames)
@@ -302,9 +297,9 @@ namespace Axphi.Utilities
 
             if (properties.Scale.ExpressionEnabled
                 && properties.Scale.ExpressionIsValid
-                && PropertyExpressionEvaluator.TryEvaluateVector(properties.Scale.ExpressionText, finalScale, context, chart, currentLine, "scale", null, out var scaleExpressionValue, out _))
+                )
             {
-                finalScale = scaleExpressionValue;
+                
             }
 
             if (properties.Rotation.KeyFrames is { } rotationKeyFrames)
@@ -314,9 +309,9 @@ namespace Axphi.Utilities
 
             if (properties.Rotation.ExpressionEnabled
                 && properties.Rotation.ExpressionIsValid
-                && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Rotation.ExpressionText, finalRotationAngle, context, chart, currentLine, "rotation", null, out var rotationExpressionValue, out _))
+               )
             {
-                finalRotationAngle = rotationExpressionValue;
+                
             }
 
             if (properties.Opacity.KeyFrames is { } opacityKeyFrames)
@@ -326,9 +321,9 @@ namespace Axphi.Utilities
 
             if (properties.Opacity.ExpressionEnabled
                 && properties.Opacity.ExpressionIsValid
-                && PropertyExpressionEvaluator.TryEvaluateDouble(properties.Opacity.ExpressionText, finalOpacity, context, chart, currentLine, "opacity", null, out var opacityExpressionValue, out _))
+                )
             {
-                finalOpacity = opacityExpressionValue;
+                
             }
         }
 

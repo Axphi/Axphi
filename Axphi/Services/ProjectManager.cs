@@ -1,4 +1,4 @@
-using Axphi.Data;
+﻿using Axphi.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.IO;
 using System.IO.Compression;
@@ -20,7 +20,7 @@ public partial class ProjectManager : ObservableObject
     {
         IncludeFields = true,
         PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate,
-        Converters = { new VectorJsonConverter() }
+        
     };
 
     [ObservableProperty]

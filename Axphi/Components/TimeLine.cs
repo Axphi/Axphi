@@ -62,12 +62,12 @@ namespace Axphi.Components
         }
 
 
-        // 已经被注册过了, 等后期把那个删了再加回来
-        //public Chart Chart
-        //{
-        //    get { return (Chart)GetValue(ChartProperty); }
-        //    set { SetValue(ChartProperty, value); }
-        //}
+
+        public Chart Chart
+        {
+            get { return (Chart)GetValue(ChartProperty); }
+            set { SetValue(ChartProperty, value); }
+        }
 
         // 暂时还不写回调
         public static readonly DependencyProperty ViewportStartTickProperty =
@@ -109,12 +109,12 @@ namespace Axphi.Components
                 typeof(TimeLine),
                 new FrameworkPropertyMetadata(default(double), FrameworkPropertyMetadataOptions.AffectsRender));
 
-        //public static readonly DependencyProperty ChartProperty =
-        //    DependencyProperty.Register(
-        //        nameof(Chart),
-        //        typeof(Chart),
-        //        typeof(ChartTimeline),
-        //        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+        public static readonly DependencyProperty ChartProperty =
+            DependencyProperty.Register(
+                nameof(Chart),
+                typeof(Chart),
+                typeof(TimeLine),
+                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
 
     }
 }

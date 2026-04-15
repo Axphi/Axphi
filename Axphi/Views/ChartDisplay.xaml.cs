@@ -3,10 +3,7 @@ using Axphi.Services;
 using Axphi.Utilities;
 using Axphi.ViewModels;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
-using NAudio.Utils;
 using NAudio.Wave; // 需要引用 NAudio
-using NAudio.Wave.SampleProviders;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -130,7 +127,7 @@ namespace Axphi.Views
         // 私有变量搬过来
         // 把 private MediaFoundationReader? _musicReader; 替换为：
         private AudioFileReader? _musicReader;
-        private SoundTouchPlaybackSampleProvider? _soundTouchProvider;
+        
         private WasapiOut? _wasapiOut;
         private DispatcherTimer? _dispatcherTimer;
         private Stopwatch? _renderStopwatch;
@@ -146,72 +143,6 @@ namespace Axphi.Views
             InitializeComponent();
             // 可以在 Unloaded 事件中清理资源，防止内存泄漏
             this.Unloaded += (s, e) => CleanUpResources();
-            // 🌟 初始化全局音效引擎，它会在后台待命
-            HitSoundManager.Init();
-
-            // ================= 🌟 优雅订阅：当设备改变时重启 BGM =================
-            SystemAudioMonitor.OnDefaultDeviceChanged += ReloadBgmDevice;
-            // ======================================================================
-
-            WeakReferenceMessenger.Default.Register<ChartDisplay, UpdateRendererMessage>(this, (recipient, message) =>
-            {
-                // 性能优化：如果当前正在播放，那么 DispatcherTimer 每毫秒都在疯狂刷新
-                // 此时就不需要我们手动触发了。只有在暂停状态下才需要强行重绘！
-                if (!recipient.IsPlaying)
-                {
-                    // 核心魔法：命令底层的渲染器“标记为过期，准备重绘”
-                    recipient.InternalChartRenderer.InvalidateVisual(); // 联系底层的 OnRender
-                }
-            });
-
-            // 告诉邮局：我要监听 JudgementLinesChangedMessage
-            WeakReferenceMessenger.Default.Register<ChartDisplay, JudgementLinesChangedMessage>(this, (recipient, message) =>
-            {
-                // 性能优化：如果当前正在播放，那么 DispatcherTimer 每毫秒都在疯狂刷新
-                // 此时就不需要我们手动触发了。只有在暂停状态下才需要强行重绘！
-                if (!recipient.IsPlaying)
-                {
-                    // 核心魔法：命令底层的渲染器“标记为过期，准备重绘”
-                    recipient.InternalChartRenderer.InvalidateVisual(); // 联系底层的 OnRender
-                }
-            });
-            // ================= 【监听刹车指令】 =================
-            WeakReferenceMessenger.Default.Register<ChartDisplay, ForcePausePlaybackMessage>(this, (recipient, message) =>
-            {
-                // 直接调用你写好的强制暂停方法！
-                // 因为你的 ForcePause 里面已经写了 if (IsPlaying) 的判断，
-                // 所以就算一秒钟收到 100 封信，也绝对安全，不会来回切换！
-                recipient.ForcePause();
-            });
-            
-
-            // ================= 【监听强制空降指令】 =================
-            WeakReferenceMessenger.Default.Register<ChartDisplay, ForceSeekMessage>(this, (recipient, message) =>
-            {
-                // 直接白嫖你已经写好的极其完善的 SeekTo 方法！
-                // 它不仅会把渲染器的 Time 改对，还会重置秒表、把音频也切过去，完美闭环！
-                recipient.SeekTo(TimeSpan.FromSeconds(message.TargetSeconds));
-            });
-
-            
-        }
-
-        // ================= 🌟 现在的复活方法变得极其简洁 =================
-        private void ReloadBgmDevice()
-        {
-            Dispatcher.Invoke(() =>
-            {
-                if (_musicReader == null) return;
-
-                bool wasPlaying = IsPlaying;
-
-                RecreateAudioOutput();
-
-                if (wasPlaying)
-                {
-                    _wasapiOut?.Play();
-                }
-            });
         }
 
 
@@ -320,12 +251,6 @@ namespace Axphi.Views
             // 归零
             if (_musicReader != null) _musicReader.Position = 0;
             InternalChartRenderer.Time = default;
-
-            // ============ 强行让时间轴大管家也归零 ============
-            if (this.DataContext is MainViewModel vm)
-            {
-                vm.Timeline.CurrentPlayTimeSeconds = 0;
-            }
         }
 
         private void RenderTimerCallback(object? sender, EventArgs e)
@@ -342,130 +267,31 @@ namespace Axphi.Views
 
             InternalChartRenderer.Time = currentTime;
 
-            if (this.DataContext is MainViewModel vm)
+            double targetAudioSeconds = currentTime.TotalSeconds;
+            if (_wasapiOut != null && _musicReader != null)
             {
-                var chart = vm.ProjectManager.EditingProject.Chart; // 全局共享的 chart
-                // ================= 🌟 1. 提取“上一帧”的时间 =================
-                // 这个值在上面还没被覆盖，所以它完美代表了之前的时间！
-                // （如果你刚刚拖拽了游标，它就会等于你拖拽到的那个绝对准确的时间）
-                double prevSeconds = vm.Timeline.CurrentPlayTimeSeconds;
+                _musicReader.Volume = 1.0f;
 
-
-                double currSeconds = currentTime.TotalSeconds;
-
-                // ================= 🌟 音效判定引擎 =================
-                // 只有正常正向播放时才触发音效 (如果是拖拽游标导致的时间跳跃，或者倒退，则屏蔽声音)
-                if (currSeconds > prevSeconds && (currSeconds - prevSeconds) < 0.2)
+                bool isInsideAudio = targetAudioSeconds >= 0 && targetAudioSeconds < _musicReader.TotalTime.TotalSeconds;
+                if (isInsideAudio)
                 {
-                    // var chart = vm.ProjectManager.EditingProject.Chart;
-
-                    // 算出上一帧和这一帧对应的绝对 Tick
-                    int prevTick = (int)Math.Round(TimeTickConverter.TimeToTick(prevSeconds, chart.BpmKeyFrames, chart.InitialBpm), MidpointRounding.AwayFromZero);
-                    int currTick = (int)Math.Round(TimeTickConverter.TimeToTick(currSeconds, chart.BpmKeyFrames, chart.InitialBpm), MidpointRounding.AwayFromZero);
-
-                    foreach (var line in chart.JudgementLines)
+                    if (_wasapiOut.PlaybackState != PlaybackState.Playing)
                     {
-                        if (line.Notes == null) continue;
-
-                        foreach (var note in line.Notes)
-                        {
-                            // 🌟 核心拦截：音符的 HitTime 刚好落在了这极短的两帧之间！
-                            if (note.HitTime > prevTick && note.HitTime <= currTick)
-                            {
-                                // 取出音符类型
-                                var kind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currTick, note.InitialKind);
-                                // 呼叫音效播放器
-                                PlayHitSound(kind);
-                            }
-                        }
-                    }
-
-
-                    // ================= 🌟 新增：节拍器判定引擎 =================
-                    // 只有处于播放状态，且开关开启时才判定
-                    if (vm.Timeline.IsMetronomeEnabled && currSeconds > prevSeconds)
-                    {
-                        // 假设你的引擎里 1 拍 (Quarter Note) 是 32 Tick。
-                        
-                        double ticksPerBeat = 32.0;
-
-                        // 计算上一帧和当前帧，分别身处全局的第几个“拍子”区间里
-                        int prevBeat = (int)Math.Floor(prevTick / ticksPerBeat);
-                        int currBeat = (int)Math.Floor(currTick / ticksPerBeat);
-
-                        // 只要当前帧跨越了节拍线，且时间大于等于 0
-                        if (currBeat > prevBeat && currBeat >= 0)
-                        {
-                            // 默认为 4/4 拍，每逢 4 的倍数就是重拍 (Downbeat)
-                            bool isDownbeat = (currBeat % 4 == 0);
-
-                            // 呼叫后台发声！（记得替换成你实际包含该方法的类名，比如 HitSoundManager）
-                            HitSoundManager.PlayMetronome(isDownbeat);
-                        }
+                        StartAudioAtTimelineTime(currentTime);
                     }
                 }
-                // ===================================================
-                // ================= 🌟 新增：智能音频启停控制器 =================
-                // 算出音频图层放在了宇宙的哪个位置（Offset的物理秒数）
-                double offsetSeconds = TimeTickConverter.TickToTime(vm.Timeline.AudioOffsetTicks, chart.BpmKeyFrames, chart.InitialBpm);
-                // 算出当前宇宙时间减去音频位置，得到“音频文件自己该播哪一秒”
-                double targetAudioSeconds = currSeconds - offsetSeconds;
-
-                if (_wasapiOut != null && _musicReader != null)
+                else
                 {
-
-
-                    // ================= 🌟 实时同步真实音量！ =================
-                    // AudioFileReader 的 Volume 是个 0~1 的浮点数，我们把百分比除以 100 喂给它
-                    _musicReader.Volume = (float)Math.Max(0, vm.Timeline.AudioVolume / 100.0);
-
-
-
-                    // 🌟 核心修复：划定严格的“音频存活区间”
-                    // 必须大于 0，且必须小于音频的总时长！
-                    bool isInsideAudio = targetAudioSeconds >= 0 && targetAudioSeconds < _musicReader.TotalTime.TotalSeconds;
-
-                    if (isInsideAudio)
+                    if (_wasapiOut.PlaybackState == PlaybackState.Playing)
                     {
-                        if (_wasapiOut.PlaybackState != NAudio.Wave.PlaybackState.Playing)
-                        {
-                            StartAudioAtTimelineTime(currentTime);
-                        }
-                    }
-                    else
-                    {
-                        // 游标还没跑到图层上，【或者已经越过了图层的尾巴】！
-                        if (_wasapiOut.PlaybackState == NAudio.Wave.PlaybackState.Playing)
-                        {
-                            // 强制按住它的头让它休眠，防止它在尾巴处疯狂起死回生导致崩溃！
-                            _wasapiOut.Pause();
-                        }
+                        _wasapiOut.Pause();
                     }
                 }
-                // ==========================================================
-
-                vm.Timeline.CurrentPlayTimeSeconds = currentTime.TotalSeconds;
-
-                // ================= 🌟 2. 加上这一句！召唤拦截探测器！ =================
-                vm.Timeline.CheckWorkspaceLoop(prevSeconds, currentTime.TotalSeconds);
-                // ===================================================================
-
-
-
             }
 
 
 
         }
-
-        private void PlayHitSound(Axphi.Data.NoteKind kind)
-        {
-            // 直接呼叫神级引擎！
-            HitSoundManager.Play(kind);
-        }
-
-
-
 
         private void CleanUpResources()
         {
@@ -476,14 +302,6 @@ namespace Axphi.Views
             _musicReader = null;
             DeleteTemporaryAudioFile();
             DeleteTemporaryDecodedAudioFile();
-
-            // ================= 【注销逻辑】 =================
-            // 控件被销毁时，告诉邮局：“别给我发信了”，释放内存！
-            WeakReferenceMessenger.Default.UnregisterAll(this);
-
-
-            // 🌟 退订全局事件
-            SystemAudioMonitor.OnDefaultDeviceChanged -= ReloadBgmDevice;
         }
 
         private void ResetLoadedAudio()
@@ -491,7 +309,6 @@ namespace Axphi.Views
             _wasapiOut?.Stop();
             _wasapiOut?.Dispose();
             _wasapiOut = null;
-            _soundTouchProvider = null;
 
             _musicReader?.Dispose();
             _musicReader = null;
@@ -506,16 +323,13 @@ namespace Axphi.Views
             {
                 _wasapiOut?.Dispose();
                 _wasapiOut = null;
-                _soundTouchProvider = null;
                 return;
             }
 
             _wasapiOut?.Stop();
             _wasapiOut?.Dispose();
-            _soundTouchProvider = new SoundTouchPlaybackSampleProvider(_musicReader);
-            ApplyAudioSpeedSettings();
             _wasapiOut = new WasapiOut(NAudio.CoreAudioApi.AudioClientShareMode.Shared, WasapiLatencyMilliseconds);
-            _wasapiOut.Init(_soundTouchProvider.ToWaveProvider());
+            _wasapiOut.Init(_musicReader);
         }
 
         private void StartAudioAtTimelineTime(TimeSpan chartTime)
@@ -533,28 +347,14 @@ namespace Axphi.Views
 
             _wasapiOut?.Stop();
             _musicReader.CurrentTime = audioTime;
-            _soundTouchProvider?.Reset();
             ApplyAudioSpeedSettings();
             _wasapiOut?.Play();
         }
 
         private void ApplyAudioSpeedSettings()
         {
-            if (_soundTouchProvider == null)
-            {
-                return;
-            }
-
-            double speed = Math.Clamp(PlaybackSpeed, 0.1, 4.0);
-            if (PreserveAudioPitch)
-            {
-                _soundTouchProvider.PreservePitch = true;
-                _soundTouchProvider.Speed = (float)speed;
-                return;
-            }
-
-            _soundTouchProvider.PreservePitch = false;
-            _soundTouchProvider.Speed = (float)speed;
+            // 简化路径：当前音频链路不再接入可变速 provider。
+            // 保留接口，避免外部依赖被破坏。
         }
 
         private string PreparePlaybackFile(string sourceFilePath)
@@ -580,14 +380,12 @@ namespace Axphi.Views
         {
             audioTime = TimeSpan.Zero;
 
-            if (_musicReader == null || this.DataContext is not MainViewModel vm || vm.ProjectManager.EditingProject?.Chart == null)
+            if (_musicReader == null)
             {
                 return false;
             }
 
-            var chart = vm.ProjectManager.EditingProject.Chart;
-            double offsetSeconds = TimeTickConverter.TickToTime(vm.Timeline.AudioOffsetTicks, chart.BpmKeyFrames, chart.InitialBpm);
-            double targetAudioSeconds = chartTime.TotalSeconds - offsetSeconds;
+            double targetAudioSeconds = chartTime.TotalSeconds;
 
             if (targetAudioSeconds < 0 || targetAudioSeconds >= _musicReader.TotalTime.TotalSeconds)
             {
@@ -662,20 +460,15 @@ namespace Axphi.Views
         /// </summary>
         public void SeekTo(TimeSpan time)
         {
-            if (this.DataContext is MainViewModel vm && vm.ProjectManager.EditingProject?.Chart != null)
+            if (_musicReader != null)
             {
-                if (_musicReader != null)
+                if (TryGetTargetAudioTime(time, out TimeSpan audioTime))
                 {
-                    if (TryGetTargetAudioTime(time, out TimeSpan audioTime))
-                    {
-                        _musicReader.CurrentTime = audioTime;
-                        _soundTouchProvider?.Reset();
-                    }
-                    else
-                    {
-                        _musicReader.CurrentTime = TimeSpan.Zero;
-                        _soundTouchProvider?.Reset();
-                    }
+                    _musicReader.CurrentTime = audioTime;
+                }
+                else
+                {
+                    _musicReader.CurrentTime = TimeSpan.Zero;
                 }
             }
 
@@ -695,13 +488,6 @@ namespace Axphi.Views
             InternalChartRenderer.Time = time;
 
 
-            // 空降完成后，立刻把最新的秒数同步给时间轴大管家！
-            // 这样红线就会瞬间跳到对应的位置！
-            if (this.DataContext is MainViewModel vm2)
-            {
-                vm2.Timeline.CurrentPlayTimeSeconds = time.TotalSeconds;
-            }
-            // ===================================================
         }
         
 
@@ -729,13 +515,8 @@ namespace Axphi.Views
             {
                 var chart = vm.ProjectManager.EditingProject.Chart;
 
-                // 1. 拿到当前精确的小数 Tick
-                double exactTick = vm.Timeline.GetExactTick();
-
-
-                // 直接调用大管家统一的整数 Tick 获取方法！
-                // 2. 四舍五入，吸附到最近的整数 Tick
-                int snappedTick = vm.Timeline.GetCurrentTick();
+                double exactTick = TimeTickConverter.TimeToTick(_manualTimeOffset.TotalSeconds, chart.BpmKeyFrames, chart.InitialBpm);
+                int snappedTick = (int)Math.Round(exactTick, MidpointRounding.AwayFromZero);
                 
 
                 // 🌟 3. 删除旧的减去 Offset 的逻辑！全局时间就是绝对时间！
@@ -747,7 +528,6 @@ namespace Axphi.Views
 
                 // 5. 空降过去！
                 SeekTo(TimeSpan.FromSeconds(seconds));
-                vm.Timeline.CurrentPlayTimeSeconds = seconds;
             }
         }
 

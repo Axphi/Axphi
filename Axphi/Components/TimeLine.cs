@@ -1,120 +1,107 @@
-﻿using Axphi.Data;
+﻿using Nodify;
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
+
 
 namespace Axphi.Components
 {
-    public class TimeLine : Control
+    public class TimeLine: NodifyEditor
     {
 
-        // 先用 tick 凑合吧, 后期必须加上 "拍号" 关键帧, 比如 "4/4", "3/4", "6/8", "7/4", "2/7" 等, 当然, 它们的关键帧插值只能是 "Constant"
-        static TimeLine()
+
+        public IEnumerable JudgmentLines
         {
-            DefaultStyleKeyProperty.OverrideMetadata(typeof(TimeLine), new FrameworkPropertyMetadata(typeof(TimeLine)));
+            get { return (IEnumerable)GetValue(JudgmentLinesProperty); }
+            set { SetValue(JudgmentLinesProperty, value); }
+        }
+ 
+        public static readonly DependencyProperty JudgmentLinesProperty =
+            DependencyProperty.Register(
+                nameof(JudgmentLines),
+                typeof(IEnumerable),
+                typeof(TimeLine),
+                new PropertyMetadata(null, OnJudgmentLinesChanged));
+
+        
+        private static void OnJudgmentLinesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TimeLine timeLine)
+            {
+                
+            }
         }
 
 
 
 
 
-        // 此值代表右侧编辑区的起始 tick, 使用 double 是因为我们可以让视图起始点在两个 tick 之间
-        public double ViewportStartTick
+        public double PixelPerTick
         {
-            get { return (double)GetValue(ViewportStartTickProperty); }
-            set { SetValue(ViewportStartTickProperty, value); }
+            get { return (double)GetValue(PixelPerTickProperty); }
+            set { SetValue(PixelPerTickProperty, value); }
         }
 
-        public double PixelsPerTick
+        public static readonly DependencyProperty PixelPerTickProperty =
+            DependencyProperty.Register(nameof(PixelPerTick), typeof(double), typeof(TimeLine), new PropertyMetadata(100.0));
+
+
+
+
+        public double Zoom
         {
-            get { return (double)GetValue(PixelsPerTickProperty); }
-            set { SetValue(PixelsPerTickProperty, value); }
+            get { return (double)GetValue(ZoomProperty); }
+            set { SetValue(ZoomProperty, value); }
         }
 
+        // Using a DependencyProperty as the backing store for Zoom.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty ZoomProperty =
+            DependencyProperty.Register(nameof(Zoom), typeof(double), typeof(TimeLine), new PropertyMetadata(1.0));
 
-        public double Scale
+
+
+        public int StartTick
         {
-            get { return (double)GetValue(ScaleProperty); }
-            set { SetValue(ScaleProperty, value); }
+            get { return (int)GetValue(StartTickProperty); }
+            set { SetValue(StartTickProperty, value); }
         }
 
-        public double PlayHeadTick
+        // Using a DependencyProperty as the backing store for StartTick.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty StartTickProperty =
+            DependencyProperty.Register(nameof(StartTick), typeof(int), typeof(TimeLine), new PropertyMetadata(0));
+
+
+
+        public int PlayHeadTick
         {
-            get { return (double)GetValue(PlayHeadTickProperty); }
+            get { return (int)GetValue(PlayHeadTickProperty); }
             set { SetValue(PlayHeadTickProperty, value); }
         }
 
-        public double SharedViewportY
-        {
-            get { return (double)GetValue(SharedViewportYProperty); }
-            set { SetValue(SharedViewportYProperty, value); }
-        }
-
-
-
-        public Chart Chart
-        {
-            get { return (Chart)GetValue(ChartProperty); }
-            set { SetValue(ChartProperty, value); }
-        }
-
-        // 暂时还不写回调
-        public static readonly DependencyProperty ViewportStartTickProperty =
-            DependencyProperty.Register(
-                nameof(ViewportStartTick),
-                typeof(double),
-                typeof(TimeLine),
-                new FrameworkPropertyMetadata(default(double), FrameworkPropertyMetadataOptions.AffectsRender));
-
-        public static readonly DependencyProperty ScaleProperty =
-            DependencyProperty.Register(
-                nameof(Scale),
-                typeof(double),
-                typeof(TimeLine),
-                new FrameworkPropertyMetadata(default(double), FrameworkPropertyMetadataOptions.AffectsRender));
-
-        public static readonly DependencyProperty PixelsPerTickProperty =
-            DependencyProperty.Register(
-                nameof(PixelsPerTick),
-                typeof(double),
-                typeof(TimeLine),
-                new FrameworkPropertyMetadata(default(double), FrameworkPropertyMetadataOptions.AffectsRender));
-
-
-
-
-
+        // Using a DependencyProperty as the backing store for PlayHeadTick.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty PlayHeadTickProperty =
-            DependencyProperty.Register(
-                nameof(PlayHeadTick),
-                typeof(double),
-                typeof(TimeLine),
-                new FrameworkPropertyMetadata(default(double), FrameworkPropertyMetadataOptions.AffectsRender));
+            DependencyProperty.Register(nameof(PlayHeadTick), typeof(int), typeof(TimeLine), new PropertyMetadata(0));
 
-        public static readonly DependencyProperty SharedViewportYProperty =
-            DependencyProperty.Register(
-                nameof(SharedViewportY),
-                typeof(double),
-                typeof(TimeLine),
-                new FrameworkPropertyMetadata(default(double), FrameworkPropertyMetadataOptions.AffectsRender));
 
-        public static readonly DependencyProperty ChartProperty =
-            DependencyProperty.Register(
-                nameof(Chart),
-                typeof(Chart),
-                typeof(TimeLine),
-                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
+
+
+        public double CameraY
+        {
+            get { return (double)GetValue(CameraYProperty); }
+            set { SetValue(CameraYProperty, value); }
+        }
+
+        // Using a DependencyProperty as the backing store for CameraY.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty CameraYProperty =
+            DependencyProperty.Register(nameof(CameraY), typeof(double), typeof(TimeLine), new PropertyMetadata(0.0));
+
+
+
+
+
 
     }
 }

@@ -125,6 +125,12 @@
                                     NumberFormat="0.00"
                                     Value="{Binding BezierViewModel.Y2}" />
                                 </StackPanel>
+                                <ws:Button
+                                    Margin="0,15,0,0"
+                                    Padding="20,5"
+                                    Content="Apply to Selected"
+                                    IsEnabled="False"
+                                    ToolTip="该功能待重构后接回" />
                             </StackPanel>
                         </Grid>
                     </comp:TabPane>
@@ -202,10 +208,69 @@
 
 
                     <!--  时间线区  -->
-                    
+
+                    <!--  时间线区  -->
+                    <Grid
+                        Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0"
+                        x:Name="TimelineMainGrid">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" MinWidth="180" />
+                            <!--  轨道头  -->
+                            <ColumnDefinition Width="6" />
+                            <!--  分割线  -->
+                            <ColumnDefinition Width="2.8*" MinWidth="320" />
+                            <!--  时间线  -->
+                            <ColumnDefinition Width="Auto" />
+                            <!--  滚轮条  -->
+                        </Grid.ColumnDefinitions>
 
 
-                    <comp:TimeLine Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"/>
+
+                        <comp:TabPane
+                             Grid.Column="0"
+                             Header="Line">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="8" />
+                                    <!--  全局预览  -->
+                                    <RowDefinition Height="25" />
+                                    <!--  时间标尺  -->
+                                    <RowDefinition Height="*" />
+                                    <!--  轨道头区  -->
+                                    <RowDefinition Height="Auto" />
+                                    <!--  滚轮条  -->
+                                </Grid.RowDefinitions>
+
+                                <comp:TrackHeader Grid.Row="2"/>
+
+
+
+                            </Grid>
+                        </comp:TabPane>
+
+                        <comp:TabPane
+                            Grid.Column="2"
+                            Header="Layer">
+
+
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="8" />
+                                    <RowDefinition Height="25" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <comp:TimeLine Grid.Row="2"/>
+
+
+                            </Grid>
+                        </comp:TabPane>
+
+
+                    </Grid>
+
+
 
 
 
@@ -221,7 +286,11 @@
                                     <ws:Button Command="{Binding FileActions.ImportIllustrationCommand}" Content="Import Illustration" Padding="15,5" Margin="0,8,0,0" />
                                 </StackPanel>
 
-                                
+                                <ToggleButton IsEnabled="False"
+                                              Content="Metronome (节拍器)"
+                                              Margin="10,0,0,0" Padding="15,5"
+                                              Background="#333" Foreground="#d6d6d6"
+                                              ToolTip="该功能待重构后接回" />
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
@@ -250,7 +319,7 @@
 
                             <Border Background="#e0000000" />
 
-                            
+
                         </Grid>
                     </Grid>
 

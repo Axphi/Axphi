@@ -15,14 +15,14 @@ namespace Axphi.ViewModels
         public ProjectManager ProjectManager { get; }
 
         // 文件处理
-        public FileActionsViewModel FileActions { get; }
+        public IFileService FileActions { get; }
         
 
         // 通过依赖注入，把它们接进来
         public MainViewModel(
             BezierViewModel bezierVM,
             ProjectManager projectManager,
-            FileActionsViewModel fileActions)
+            IFileService fileActions)
         {
             BezierViewModel = bezierVM;
             ProjectManager = projectManager;

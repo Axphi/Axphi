@@ -268,7 +268,9 @@ namespace Axphi.Utilities
                             new Note(NoteKind.Tap, SecToTick(7)),
 
                         }
-                    }
+                    },
+                    new JudgementLine(),
+                    new JudgementLine()
                 }
             };
         }

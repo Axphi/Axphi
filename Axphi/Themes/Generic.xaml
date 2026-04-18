@@ -161,8 +161,9 @@
 
     <Style TargetType="{x:Type comp:TrackHeaderJudgementLine}">
         <Setter Property="Background" Value="Blue" />
-        <Setter Property="Height" Value="30" />
+        <Setter Property="Height" Value="24" />
         <Setter Property="Width" Value="30" />
+
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type comp:TrackHeaderJudgementLine}">
@@ -204,11 +205,12 @@
                     <Setter Property="Margin" Value="0" />
 
                     <Setter Property="IsDraggable" Value="False" />
+                    <Setter Property="Location" Value="{Binding Location}" />
                 </Style>
             </Setter.Value>
         </Setter>
 
-        
+
     </Style>
 
 </ResourceDictionary>

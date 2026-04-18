@@ -246,7 +246,7 @@
                                 <comp:TrackHeader
                                     Grid.Row="2"
                                     DataContext="{di:DI {x:Type vms:TrackHeaderViewModel}}"
-                                    ItemsSource="{Binding Lines}" 
+                                    ItemsSource="{Binding LineViewModels}"
                                     ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}"/>
 
 

@@ -247,7 +247,18 @@
                                     Grid.Row="2"
                                     DataContext="{di:DI {x:Type vms:TrackHeaderViewModel}}"
                                     ItemsSource="{Binding LineViewModels}"
-                                    ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}"/>
+                                    ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}">
+
+                                    <d:TrackHeader.ItemsSource>
+                                        <x:Array Type="{x:Type vms:TrackHeaderJudgmentLineViewModel}">
+                                            <vms:TrackHeaderJudgmentLineViewModel />
+                                            <vms:TrackHeaderJudgmentLineViewModel />
+                                            <vms:TrackHeaderJudgmentLineViewModel />
+                                        </x:Array>
+                                    </d:TrackHeader.ItemsSource>
+
+                                </comp:TrackHeader>
+
 
 
 

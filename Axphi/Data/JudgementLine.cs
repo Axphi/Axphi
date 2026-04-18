@@ -12,7 +12,7 @@ namespace Axphi.Data
     {
         public string ID { get; set; } = Guid.NewGuid().ToString();
         public string? ParentLineId { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; } = null;
         public double InitialSpeed { get; set; } = 1;
 
        public List<KeyFrame<double>> SpeedKeyFrames { get; set; } = new();

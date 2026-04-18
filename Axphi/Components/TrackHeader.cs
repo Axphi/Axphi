@@ -39,7 +39,7 @@ namespace Axphi.Components
             e.Handled = true;
 
             
-            double scrollSpeed = 0.1; // 滚动速度倍率
+            double scrollSpeed = 0.1; // 滚动速度倍率, 后期丢到设置里
             double deltaY = e.Delta * scrollSpeed;
 
             

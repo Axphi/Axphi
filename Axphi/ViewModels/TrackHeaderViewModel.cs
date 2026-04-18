@@ -50,17 +50,15 @@ namespace Axphi.ViewModels
             var chart = _projectManager.EditingProject?.Chart;
             if (chart == null || chart.JudgementLines == null) return;
 
-            // 与 Generic.xaml 中 TrackHeaderJudgementLine 的 Height="30" 保持一致
-            double itemHeight = 30.0;
+            
+            double itemHeight = 23.0; // 每个条目的高
             int index = 0;
 
             foreach (var line in chart.JudgementLines)
             {
-                var lineVM = new TrackHeaderJudgmentLineViewModel
+                var lineVM = new TrackHeaderJudgmentLineViewModel(line, index)
                 {
-                    Line = line,
-                    IsExpanded = false, // 默认收起状态
-                    // 自动计算坐标：第 0 个是 (0, 0)，第 1 个是 (0, 30)...
+                    IsExpanded = false,
                     Location = new Point(0, index * itemHeight)
                 };
 

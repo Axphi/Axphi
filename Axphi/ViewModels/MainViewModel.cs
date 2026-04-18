@@ -16,17 +16,22 @@ namespace Axphi.ViewModels
 
         // 文件处理
         public IFileService FileActions { get; }
+
+
         
+
 
         // 通过依赖注入，把它们接进来
         public MainViewModel(
             BezierViewModel bezierVM,
             ProjectManager projectManager,
-            IFileService fileActions)
+            IFileService fileActions
+            )
         {
             BezierViewModel = bezierVM;
             ProjectManager = projectManager;
             FileActions = fileActions;
+            
         }
 
         [RelayCommand]

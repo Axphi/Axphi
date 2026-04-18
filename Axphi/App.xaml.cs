@@ -30,9 +30,9 @@ public partial class App : Application
 
         serviceCollection.AddSingleton<FileActionsViewModel>();
 
-        
+        serviceCollection.AddSingleton<TrackHeaderViewModel>();
 
-        
+
 
 
 

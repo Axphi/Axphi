@@ -13,6 +13,8 @@
     Height="650"
     d:DataContext="{d:DesignInstance Type=local:MainWindow, IsDesignTimeCreatable=False}"
     ws:WindowOption.IsCaptionMenuVisible="False"
+    xmlns:di="clr-namespace:Axphi.Utilities"
+    xmlns:vms="clr-namespace:Axphi.ViewModels"
     Background="#1f1f1f"
     Foreground="#d6d6d6"
     mc:Ignorable="d">
@@ -209,7 +211,7 @@
 
                     <!--  时间线区  -->
 
-                    <!--  时间线区  -->
+                    <!--  轨道头和时间线区  -->
                     <Grid
                         Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,0"
                         x:Name="TimelineMainGrid">
@@ -241,7 +243,11 @@
                                     <!--  滚轮条  -->
                                 </Grid.RowDefinitions>
 
-                                <comp:TrackHeader Grid.Row="2"/>
+                                <comp:TrackHeader
+                                    Grid.Row="2"
+                                    DataContext="{di:DI {x:Type vms:TrackHeaderViewModel}}"
+                                    ItemsSource="{Binding Lines}" 
+                                    ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}"/>
 
 
 
@@ -261,12 +267,23 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <comp:TimeLine Grid.Row="2"/>
+                                <comp:TimeLine Grid.Row="2" />
 
 
                             </Grid>
                         </comp:TabPane>
 
+
+                        <GridSplitter
+                            Grid.Column="1"
+                            HorizontalAlignment="Stretch"
+                            Width="6"
+                            ResizeDirection="Columns"
+                            ResizeBehavior="PreviousAndNext"
+                            ShowsPreview="False"
+                            Style="{StaticResource ThinVerticalSplitterStyle}"
+                            Cursor="SizeWE"
+                            Panel.ZIndex="3000" />
 
                     </Grid>
 
@@ -319,7 +336,6 @@
 
                             <Border Background="#e0000000" />
 
-
                         </Grid>
                     </Grid>
 
@@ -361,16 +377,5 @@
                 </Grid>
             </DockPanel>
         </ws:WindowContentAdapter>
-
-        <Canvas x:Name="GlobalOverlayCanvas"
-                IsHitTestVisible="False"
-                Panel.ZIndex="99999">
-            <Line x:Name="ParentBindingGlobalPreviewLine"
-                  Visibility="Collapsed"
-                  Stroke="#8AB4F8"
-                  StrokeThickness="1.5"
-                  StrokeDashArray="2,2"
-                  SnapsToDevicePixels="True" />
-        </Canvas>
     </Grid>
 </Window>

@@ -31,10 +31,16 @@ namespace Axphi.Components
         private static SolidColorBrush _progressWhite = new SolidColorBrush(Color.FromRgb(145, 145, 145));
         private static SolidColorBrush _progressHeadWhite = new SolidColorBrush(Color.FromRgb(255, 255, 255));
 
+
+
+        // 已弃用
         private static SolidColorBrush _noteFlick = new SolidColorBrush(Color.FromRgb(255, 95, 95));
         private static SolidColorBrush _noteTap = new SolidColorBrush(Color.FromRgb(82, 133, 243));
         private static SolidColorBrush _noteDrag = new SolidColorBrush(Color.FromRgb(255, 222, 145));
         private static SolidColorBrush _noteHold = new SolidColorBrush(Color.FromRgb(81, 180, 255));
+
+
+
         private readonly SolidColorBrush _backgroundDimBrush = new SolidColorBrush(Color.FromArgb(77, 0, 0, 0));
 
         private const double BaseVerticalFlowPixelsPerSecondAt1080 = 648.0;

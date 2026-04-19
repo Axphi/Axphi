@@ -8,6 +8,8 @@ using System.Text;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using System.Windows;
+using CommunityToolkit.Mvvm.Messaging;
+using Axphi.Utilities;
 
 namespace Axphi.ViewModels
 {
@@ -67,6 +69,7 @@ namespace Axphi.ViewModels
                     val.X = value;
                     _model.InitialValue = val;
                     OnPropertyChanged(nameof(X));
+                    WeakReferenceMessenger.Default.Send(new UpdateRendererMessage());
                 }
             }
         }
@@ -82,6 +85,34 @@ namespace Axphi.ViewModels
                     val.Y = value;
                     _model.InitialValue = val;
                     OnPropertyChanged(nameof(Y));
+                    WeakReferenceMessenger.Default.Send(new UpdateRendererMessage());
+                }
+            }
+        }
+    }
+
+    public partial class DoublePropertyViewModel : TrackPropertyViewModelBase
+    {
+        private readonly Property<double> _model;
+
+        public DoublePropertyViewModel(string name, Property<double> model)
+            : base(name)
+        {
+            _model = model;
+        }
+
+        // 针对 double，Getter/Setter 可以极其清爽
+        public double Value
+        {
+            get => _model.InitialValue;
+            set
+            {
+                // 直接比较，如果不等就赋值并触发 UI 更新
+                if (_model.InitialValue != value)
+                {
+                    _model.InitialValue = value;
+                    OnPropertyChanged(nameof(Value));
+                    WeakReferenceMessenger.Default.Send(new UpdateRendererMessage());
                 }
             }
         }

@@ -30,7 +30,11 @@ public partial class App : Application
 
         serviceCollection.AddSingleton<FileActionsViewModel>();
 
+
         serviceCollection.AddSingleton<TrackHeaderViewModel>();
+        serviceCollection.AddSingleton<TimeLineViewModel>();
+        serviceCollection.AddSingleton<TrackLayoutService>();
+        
 
 
 

@@ -34,23 +34,23 @@
             <ws:Button
                 ws:WindowOption.IsMinimumButton="True"
                 Click="MinimizeSelf_Click"
-                Style="{StaticResource CaptionButton}" >
-                <Path Data="M 0,5 L 10,5" 
-                      Width="10" Height="10" Stretch="None" 
+                Style="{StaticResource CaptionButton}">
+                <Path Data="M 0,5 L 10,5"
+                      Width="10" Height="10" Stretch="None"
                       RenderOptions.EdgeMode="Aliased"
-                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ws:Button}}" 
-                      StrokeThickness="1"/>
+                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ws:Button}}"
+                      StrokeThickness="1" />
             </ws:Button>
 
             <ws:Button
                 ws:WindowOption.IsMaximumButton="True"
                 Click="MaximizeRestoreSelf_Click"
-                Style="{StaticResource CaptionButton}" >
+                Style="{StaticResource CaptionButton}">
                 <Path Data="M 1,1 L 9,1 L 9,9 L 1,9 Z"
                       RenderOptions.EdgeMode="Aliased"
-                      Width="10" Height="10" Stretch="None" 
-                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ws:Button}}" 
-                      StrokeThickness="1"/>
+                      Width="10" Height="10" Stretch="None"
+                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ws:Button}}"
+                      StrokeThickness="1" />
             </ws:Button>
 
             <ws:Button
@@ -59,12 +59,12 @@
                 HoverBackground="#e81123"
                 HoverBorderBrush="#e81123"
                 HoverForeground="#ffffff"
-                Style="{StaticResource CaptionButton}" >
-                <Path Data="M 0,0 L 10,10 M 0,10 L 10,0" 
+                Style="{StaticResource CaptionButton}">
+                <Path Data="M 0,0 L 10,10 M 0,10 L 10,0"
                       RenderOptions.EdgeMode="Aliased"
-                      Width="10" Height="10" Stretch="None" 
-                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ws:Button}}" 
-                      StrokeThickness="1"/>
+                      Width="10" Height="10" Stretch="None"
+                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ws:Button}}"
+                      StrokeThickness="1" />
             </ws:Button>
         </StackPanel>
     </Grid>

@@ -105,25 +105,29 @@
                                 Orientation="Horizontal">
                                     <comp:DraggableValueBox
                                     DragSpeed="0.01"
-                                    Maximum="123"
+                                    Minimum="-1"
+                                    Maximum="1"
                                     NumberFormat="0.00"
                                     Value="{Binding BezierViewModel.X1}" />
                                     <TextBlock Text=", " />
                                     <comp:DraggableValueBox
                                     DragSpeed="0.01"
-                                    Maximum="123"
+                                    Minimum="-100"
+                                    Maximum="100"
                                     NumberFormat="0.00"
                                     Value="{Binding BezierViewModel.Y1}" />
                                     <TextBlock Text=", " />
                                     <comp:DraggableValueBox
                                     DragSpeed="0.01"
-                                    Maximum="123"
+                                    Minimum="-1"
+                                    Maximum="1"
                                     NumberFormat="0.00"
                                     Value="{Binding BezierViewModel.X2}" />
                                     <TextBlock Text=", " />
                                     <comp:DraggableValueBox
                                     DragSpeed="0.01"
-                                    Maximum="123"
+                                    Minimum="-100"
+                                    Maximum="100"
                                     NumberFormat="0.00"
                                     Value="{Binding BezierViewModel.Y2}" />
                                 </StackPanel>
@@ -249,13 +253,7 @@
                                     ItemsSource="{Binding LineViewModels}"
                                     ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}">
 
-                                    <d:TrackHeader.ItemsSource>
-                                        <x:Array Type="{x:Type vms:TrackHeaderJudgmentLineViewModel}">
-                                            <vms:TrackHeaderJudgmentLineViewModel />
-                                            <vms:TrackHeaderJudgmentLineViewModel />
-                                            <vms:TrackHeaderJudgmentLineViewModel />
-                                        </x:Array>
-                                    </d:TrackHeader.ItemsSource>
+                                    
 
                                 </comp:TrackHeader>
 
@@ -278,7 +276,10 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <comp:TimeLine Grid.Row="2" />
+                                <comp:TimeLine Grid.Row="2"
+                                               DataContext="{di:DI {x:Type vms:TimeLineViewModel}}"
+                                               ItemsSource="{Binding LineBlocks}"
+                                               ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}"/>
 
 
                             </Grid>

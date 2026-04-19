@@ -4,8 +4,13 @@
     xmlns:comp="clr-namespace:Axphi.Components"
     xmlns:data="clr-namespace:Axphi.Data"
     xmlns:ws="https://schemas.elecho.dev/wpfsuite"
-    xmlns:nodify="https://miroiu.github.io/nodify">
+    xmlns:nodify="https://miroiu.github.io/nodify"
+    xmlns:services="clr-namespace:Axphi.Services"
+    xmlns:vms="clr-namespace:Axphi.ViewModels">
 
+
+
+    <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
     <!--  右箭头模板  -->
     <DataTemplate x:Key="ArrowRightTemplate">
@@ -195,7 +200,7 @@
                           FocusVisualStyle="{x:Null}">
 
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="20" />
+                            <RowDefinition Height="{x:Static services:TrackLayoutService.BaseTrackGridHeight}" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
@@ -289,13 +294,58 @@
                                 </Style>
                             </StackPanel.Style>
 
-                            <!--  下拉菜单内容，可根据需要自行替换  -->
                             <comp:TrackHeaderProperty Header="Position"
+                                                      Visibility="{Binding IsPositionVisible, Converter={StaticResource BoolToVis}}"
                                                       AddKeyframeCommand="{Binding DataContext.AddKeyframeCommand, RelativeSource={RelativeSource AncestorType=comp:TrackHeader}}"
                                                       CommandParameter="Position">
-                                <comp:DraggableValueBox Width="45" DragSpeed="0.1" NumberFormat="0.00"
-                                                        Value="{Binding Line.AnimatableProperties.Offset, Mode=TwoWay}" />
+                                <StackPanel Orientation="Horizontal">
+                                    <comp:DraggableValueBox DragSpeed="0.1" NumberFormat="0.00"
+                                                            Value="{Binding PositionVM.X, Mode=TwoWay}" />
+                                    <TextBlock Text=", " Foreground="#888" VerticalAlignment="Center" />
+                                    <comp:DraggableValueBox DragSpeed="0.1" NumberFormat="0.00"
+                                                            Value="{Binding PositionVM.Y, Mode=TwoWay}" />
+                                </StackPanel>
                             </comp:TrackHeaderProperty>
+
+                            <comp:TrackHeaderProperty Header="Scale"
+                                                      Visibility="{Binding IsScaleVisible, Converter={StaticResource BoolToVis}}"
+                                                      AddKeyframeCommand="{Binding DataContext.AddKeyframeCommand, RelativeSource={RelativeSource AncestorType=comp:TrackHeader}}"
+                                                      CommandParameter="Scale">
+                                <StackPanel Orientation="Horizontal">
+                                    <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00"
+                                                            Value="{Binding ScaleVM.X, Mode=TwoWay}" />
+                                    <TextBlock Text=", " Foreground="#888" VerticalAlignment="Center" />
+                                    <comp:DraggableValueBox DragSpeed="0.01" NumberFormat="0.00"
+                                                            Value="{Binding ScaleVM.Y, Mode=TwoWay}" />
+                                </StackPanel>
+                            </comp:TrackHeaderProperty>
+
+                            <comp:TrackHeaderProperty Header="Rotation"
+                                                      Visibility="{Binding IsRotationVisible, Converter={StaticResource BoolToVis}}"
+                                                      AddKeyframeCommand="{Binding DataContext.AddKeyframeCommand, RelativeSource={RelativeSource AncestorType=comp:TrackHeader}}"
+                                                      CommandParameter="Rotation">
+                                <comp:DraggableValueBox DragSpeed="1" NumberFormat="0.0"
+                                                        Value="{Binding RotationVM.Value, Mode=TwoWay}" />
+                            </comp:TrackHeaderProperty>
+
+                            <comp:TrackHeaderProperty Header="Opacity"
+                                                      Visibility="{Binding IsOpacityVisible, Converter={StaticResource BoolToVis}}"
+                                                      AddKeyframeCommand="{Binding DataContext.AddKeyframeCommand, RelativeSource={RelativeSource AncestorType=comp:TrackHeader}}"
+                                                      CommandParameter="Opacity">
+                                <comp:DraggableValueBox DragSpeed="1" NumberFormat="0"
+                                                        Minimum="0"
+                                                        Maximum="100"
+                                                        Value="{Binding OpacityVM.Value, Mode=TwoWay}" />
+                            </comp:TrackHeaderProperty>
+
+                            <comp:TrackHeaderProperty Header="Speed"
+                                                      Visibility="{Binding IsSpeedVisible, Converter={StaticResource BoolToVis}}"
+                                                      AddKeyframeCommand="{Binding DataContext.AddKeyframeCommand, RelativeSource={RelativeSource AncestorType=comp:TrackHeader}}"
+                                                      CommandParameter="Speed">
+                                <comp:DraggableValueBox DragSpeed="0.1" NumberFormat="0.00"
+                                                        Value="{Binding SpeedVM.Value, Mode=TwoWay}" />
+                            </comp:TrackHeaderProperty>
+
                         </StackPanel>
 
 
@@ -334,7 +384,7 @@
                     <Setter Property="Margin" Value="0" />
 
                     <Setter Property="IsDraggable" Value="False" />
-                    <Setter Property="Location" Value="{Binding Location}" />
+                    <Setter Property="Location" Value="{Binding Location, Mode=OneWay}" />
 
                     <Setter Property="Width" Value="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type comp:TrackHeader}}}" />
                 </Style>
@@ -347,7 +397,8 @@
 
 
     <Style TargetType="{x:Type comp:TrackHeaderProperty}">
-        <Setter Property="Margin" Value="25,2,5,2" />
+        <Setter Property="Margin" Value="25,0,5,0" />
+        <Setter Property="Height" Value="{x:Static services:TrackLayoutService.PropertyRowHeightValue}" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
@@ -398,5 +449,45 @@
         </Setter>
     </Style>
 
+
+
+    <Style TargetType="{x:Type comp:TimeLine}" BasedOn="{StaticResource {x:Type nodify:NodifyEditor}}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="GridCellSize" Value="50" />
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="{x:Type nodify:ItemContainer}">
+                    <Setter Property="Location" Value="{Binding Location, Mode=OneWay}" />
+                    <Setter Property="IsDraggable" Value="False" />
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderThickness" Value="0" />
+                    <Setter Property="Padding" Value="0" />
+
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="SelectedBrush" Value="Transparent" />
+                    <Setter Property="HighlightBrush" Value="Transparent" />
+                </Style>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ItemTemplate">
+            <Setter.Value>
+                <DataTemplate DataType="{x:Type vms:TimeLineJudgmentLineViewModel}">
+                    <Border Background="#2B579A"
+                            BorderBrush="#4B86D9"
+                            BorderThickness="1"
+                            CornerRadius="2"
+                            Height="{Binding Height, Mode=OneWay}"
+                            Width="{Binding Width, Mode=OneWay}">
+                        <TextBlock Text="{Binding Line.Name}"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"
+                                   Margin="5,0,0,0"
+                                   FontSize="10"
+                                   Opacity="0.7" />
+                    </Border>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
 </ResourceDictionary>

@@ -22,22 +22,22 @@
                    Stretch="Uniform"
                    RenderOptions.BitmapScalingMode="Fant"
                    SnapsToDevicePixels="True"
-                   Source="/Resources/UI/AxphiLogo.png"/>
+                   Source="/Resources/UI/AxphiLogo.png" />
             <ws:Menu Margin="4"
-                    VerticalAlignment="Center">
+                     VerticalAlignment="Center">
                 <ws:MenuItem Header="File">
                     <ws:MenuItem Command="{Binding FileActions.OpenProjectCommand}"
-                            Header="Open"/>
+                                 Header="Open" />
                     <ws:MenuItem Command="{Binding FileActions.SaveChartCommand}"
-                            Header="Save"/>
+                                 Header="Save" />
                     <ws:MenuItem Command="{Binding FileActions.ExportOfficialChartCommand}"
-                        Header="Export Official Chart"/>
+                                 Header="Export Official Chart" />
                 </ws:MenuItem>
                 <ws:MenuItem Header="Debugging">
                     <ws:MenuItem Command="{Binding LoadDemoChartCommand}"
-                            Header="Load demo chart"/>
+                                 Header="Load demo chart" />
                     <ws:MenuItem Command="{Binding LoadDemoChart2Command}"
-                            Header="Load demo chart 2"/>
+                                 Header="Load demo chart 2" />
                 </ws:MenuItem>
             </ws:Menu>
         </StackPanel>
@@ -45,7 +45,7 @@
             Margin="0"
             HorizontalAlignment="Right"
             Orientation="Horizontal">
-            <comp:WindowControl/>
+            <comp:WindowControl />
         </StackPanel>
     </Grid>
 </UserControl>

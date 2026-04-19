@@ -10,6 +10,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace Axphi.Views
 {
@@ -141,6 +142,17 @@ namespace Axphi.Views
         public ChartDisplay()
         {
             InitializeComponent();
+
+            
+            WeakReferenceMessenger.Default.Register<UpdateRendererMessage>(this, (recipient, message) =>
+            {
+                // 注意：如果不在 UI 线程发出的消息，需要 Dispatcher.Invoke，但我们这里拖拽 UI 肯定在 UI 线程，直接调就行
+                InternalChartRenderer.InvalidateVisual();
+            });
+
+
+
+
             // 可以在 Unloaded 事件中清理资源，防止内存泄漏
             this.Unloaded += (s, e) => CleanUpResources();
         }
@@ -295,6 +307,10 @@ namespace Axphi.Views
 
         private void CleanUpResources()
         {
+
+            WeakReferenceMessenger.Default.UnregisterAll(this);
+
+
             StopChartRendering(); // 先停止
             _wasapiOut?.Dispose();
             _wasapiOut = null;

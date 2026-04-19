@@ -769,11 +769,11 @@ namespace Axphi.Components
                 EasingUtils.CalculateObjectSingleTransform(
                     midTick,
                     chart.KeyFrameEasingDirection,
-                    line.InitialSpeed,
-                    line.SpeedKeyFrames,
+                    line.Properties.Speed.InitialValue,
+                    line.Properties.Speed.KeyFrames,
                     Axphi.Utilities.MathUtils.Lerp,
-                    line.SpeedExpressionEnabled,
-                    line.SpeedExpressionText,
+                    line.Properties.Speed.ExpressionEnabled,
+                    line.Properties.Speed.ExpressionText,
                     chart,
                     out var midSpeed);
 
@@ -793,7 +793,7 @@ namespace Axphi.Components
 
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
-                line.AnimatableProperties,
+                line.Properties,
                 chart,
                 line,
                 out var anchor, out _, out _, out _, out var opacity);
@@ -834,7 +834,7 @@ namespace Axphi.Components
                 int currentDiscreteTick = (int)Math.Round(currentTick, MidpointRounding.AwayFromZero);
                 var sortedNotes = notes.OrderBy(note =>
                 {
-                    var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentDiscreteTick, note.InitialKind);
+                    var currentKind = KeyFrameUtils.GetStepValueAtTick(note.Properties.Kind.KeyFrames, currentDiscreteTick, note.Properties.Kind.InitialValue);
                     return currentKind switch
                     {
                         NoteKind.Hold => 0,
@@ -889,7 +889,7 @@ namespace Axphi.Components
         {
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
-                line.AnimatableProperties,
+                line.Properties,
                 chart,
                 line,
                 out var anchor, out var offset, out var scale, out var rotationAngle, out _);
@@ -925,7 +925,7 @@ namespace Axphi.Components
             if (Math.Abs(ticksFromNow) > 1000) return;
 
             // ================= 1. 提前提取音符类型 =================
-            var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, currentDiscreteTick, note.InitialKind);
+            var currentKind = KeyFrameUtils.GetStepValueAtTick(note.Properties.Kind.KeyFrames, currentDiscreteTick, note.Properties.Kind.InitialValue);
 
             // ================= 2. 视觉消失引擎 =================
             // Tap, Drag, Flick：只要越过判定线，直接消失！
@@ -937,18 +937,22 @@ namespace Axphi.Components
             // ================= 3. 计算物理下落距离 (保持真实下落，绝不定住！) =================
             double currentSeconds = TimeTickConverter.TickToTime(currentTick, chart.BpmKeyFrames, chart.InitialBpm);
             double hitTimeSeconds = TimeTickConverter.TickToTime(note.HitTime, chart.BpmKeyFrames, chart.InitialBpm);
-            double noteSpeedMultiplier = note.CustomSpeed ?? 1.0;
+
+            // 这里有问题, noteSpeed 应该是一个关键帧集合而非定值
+            double noteSpeedMultiplier =  note.Properties.Speed.InitialValue;
+
             double baseVerticalFlowPixelsPerSecond = GetBaseVerticalFlowPixelsPerSecond(renderInfo);
 
-            double currentRealtimeSpeed = line.InitialSpeed;
+            double currentRealtimeSpeed = line.Properties.Speed.InitialValue;
             if (line.SpeedMode == "Realtime")
             {
                 EasingUtils.CalculateObjectSingleTransform(
                     currentTick, chart.KeyFrameEasingDirection,
-                    line.InitialSpeed, line.SpeedKeyFrames,
+                    line.Properties.Speed.InitialValue,     
+                    line.Properties.Speed.KeyFrames,         
                     Axphi.Utilities.MathUtils.Lerp,
-                    line.SpeedExpressionEnabled,
-                    line.SpeedExpressionText,
+                    line.Properties.Speed.ExpressionEnabled, 
+                    line.Properties.Speed.ExpressionText,
                     chart,
                     line,
                     out currentRealtimeSpeed);
@@ -971,7 +975,7 @@ namespace Axphi.Components
             // 计算音符本体的变换和透明度
             EasingUtils.CalculateObjectTransform(
                 currentTick, chart.KeyFrameEasingDirection,
-                note.AnimatableProperties,
+                note.Properties,
                 out var anchor, out var offset, out var scale, out var rotationAngle, out var opacity);
 
             var pixelOffset = new Vector(renderInfo.ChartUnitToPixel(offset.X), renderInfo.ChartUnitToPixel(offset.Y));
@@ -1152,7 +1156,7 @@ namespace Axphi.Components
                 foreach (var note in line.Notes)
                 {
                     // 提取音符类型和基础时间
-                    var currentKind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, note.HitTime, note.InitialKind);
+                    var currentKind = KeyFrameUtils.GetStepValueAtTick(note.Properties.Kind.KeyFrames, note.HitTime, note.Properties.Kind.InitialValue);
                     double hitTimeSeconds = TimeTickConverter.TickToTime(note.HitTime, chart.BpmKeyFrames, chart.InitialBpm);
                     double fxDurationSeconds = 0.5; // 特效持续 500ms
 
@@ -1166,7 +1170,7 @@ namespace Axphi.Components
 
                         // 套用文档里的公式计算间隔： 30000ms / (BPM * speed) -> 换算成秒就是 30.0 / (BPM * speed)
                         double bpm = chart.InitialBpm <= 0 ? 120.0 : chart.InitialBpm;
-                        double speed = Math.Abs(line.InitialSpeed);
+                        double speed = Math.Abs(line.Properties.Speed.InitialValue);
                         if (speed < 0.1) speed = 0.1; // 防止除以 0
 
                         double intervalSeconds = 30.0 / (bpm * speed);
@@ -1205,7 +1209,7 @@ namespace Axphi.Components
                         // 使用与音符渲染一致的音符完整变换链，确保 offset/anchor/rotation 对命中特效生效。
                         EasingUtils.CalculateObjectTransform(
                             vTick, chart.KeyFrameEasingDirection,
-                            note.AnimatableProperties,
+                            note.Properties,
                             out var noteAnchor, out var noteOffset, out var noteScale, out var noteRotationAngle, out _);
 
                         var notePixelOffset = new Vector(

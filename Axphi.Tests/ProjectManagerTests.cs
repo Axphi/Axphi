@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using Axphi.Data;
 using Axphi.Data.KeyFrames;
 using Axphi.Services;
@@ -198,7 +198,7 @@ public class ProjectManagerTests
                     new JudgementLine
                     {
                         Name = "Line A",
-                        AnimatableProperties =
+                        Properties =
                         {
                             Offset =
                             {
@@ -265,15 +265,15 @@ public class ProjectManagerTests
             JudgementLine loadedLine = loadedProject.Chart.JudgementLines.Single();
             Note loadedNote = loadedLine.Notes.Single();
 
-            Assert.AreEqual(new Vector(1.5, -2.5), loadedLine.AnimatableProperties.Offset.InitialValue);
-            Assert.IsTrue(loadedLine.AnimatableProperties.Offset.ExpressionEnabled);
-            Assert.AreEqual("[tick, time]", loadedLine.AnimatableProperties.Offset.ExpressionText);
-            Assert.AreEqual(1, loadedLine.AnimatableProperties.Offset.KeyFrames.Count);
-            Assert.AreEqual(new Vector(-3.25, 4.5), loadedLine.AnimatableProperties.Offset.KeyFrames[0].Value);
-            Assert.IsTrue(loadedLine.AnimatableProperties.Offset.KeyFrames[0].IsFreezeKeyframe);
-            Assert.AreEqual(12.5, loadedLine.AnimatableProperties.Rotation.InitialValue);
-            Assert.IsTrue(loadedLine.AnimatableProperties.Rotation.ExpressionEnabled);
-            Assert.AreEqual("value + time", loadedLine.AnimatableProperties.Rotation.ExpressionText);
+            Assert.AreEqual(new Vector(1.5, -2.5), loadedLine.Properties.Offset.InitialValue);
+            Assert.IsTrue(loadedLine.Properties.Offset.ExpressionEnabled);
+            Assert.AreEqual("[tick, time]", loadedLine.Properties.Offset.ExpressionText);
+            Assert.AreEqual(1, loadedLine.Properties.Offset.KeyFrames.Count);
+            Assert.AreEqual(new Vector(-3.25, 4.5), loadedLine.Properties.Offset.KeyFrames[0].Value);
+            Assert.IsTrue(loadedLine.Properties.Offset.KeyFrames[0].IsFreezeKeyframe);
+            Assert.AreEqual(12.5, loadedLine.Properties.Rotation.InitialValue);
+            Assert.IsTrue(loadedLine.Properties.Rotation.ExpressionEnabled);
+            Assert.AreEqual("value + time", loadedLine.Properties.Rotation.ExpressionText);
             Assert.IsTrue(loadedLine.SpeedExpressionEnabled);
             Assert.AreEqual("Math.max(0.1, value + tick / 100)", loadedLine.SpeedExpressionText);
 
@@ -301,7 +301,7 @@ public class ProjectManagerTests
                 [
                     new JudgementLine
                     {
-                        AnimatableProperties =
+                        Properties =
                         {
                             Offset =
                             {

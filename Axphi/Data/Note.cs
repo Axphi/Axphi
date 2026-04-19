@@ -9,20 +9,15 @@ namespace Axphi.Data
     /// </summary>
     public class Note
     {
-        public Note()
-        {
-        }
 
         public Note(NoteKind kind, int hitTime)
         {
-            InitialKind = kind;
             HitTime = hitTime;
+            Properties.Kind.InitialValue = kind;
         }
         public string ID { get; set; } = Guid.NewGuid().ToString();
 
         public string Name { get; set; } = string.Empty;
-        public NoteKind InitialKind { get; set; } = NoteKind.Tap;
-        public List<NoteKindKeyFrame> KindKeyFrames { get; set; } = new();
         public int HitTime { get; set; }
         private int _holdDuration = 128;
         public int HoldDuration
@@ -30,11 +25,7 @@ namespace Axphi.Data
             get => _holdDuration;
             set => _holdDuration = Math.Max(1, value);
         }
-        public double? CustomSpeed { get; set; }
-
-        /// <summary>
-        /// 动画属性
-        /// </summary>
-        public StandardAnimatableProperties AnimatableProperties { get; } = new StandardAnimatableProperties();
+        
+        public NoteProperties Properties { get; } = new NoteProperties();
     }
 }

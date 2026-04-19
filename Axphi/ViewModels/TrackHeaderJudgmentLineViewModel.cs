@@ -33,18 +33,18 @@ namespace Axphi.ViewModels
         {
             get
             {
-                if (_line.Name == null)
+                if (Line.Name == null)
                 {
                     return $"Line {_index}";
                 }
-                return _line.Name;
+                return Line.Name;
             }
             set
             {
                 // 当用户在前端修改名字时，保存回底层模型
-                if (_line.Name != value)
+                if (Line.Name != value)
                 {
-                    _line.Name = value;
+                    Line.Name = value;
                     OnPropertyChanged(nameof(DisplayName));
                 }
             }

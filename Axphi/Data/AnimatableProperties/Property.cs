@@ -22,9 +22,9 @@ namespace Axphi.Data.AnimatableProperties
     //那么此默认关键帧的值就等于tick最小且不等于0的关键帧,
     //插值为常值(值都一样了 插值是什么也无所谓了)
 
-    public partial class AnimatableProperty<T, TKeyFrame> : ObservableObject
-        where T : struct
-        where TKeyFrame : KeyFrame<T>
+    // 哈哈, 得有初始值
+
+    public partial class Property<T> where T : struct
     {
         public T InitialValue { get; set; }
 
@@ -32,10 +32,7 @@ namespace Axphi.Data.AnimatableProperties
 
         public string ExpressionText { get; set; } = string.Empty;
 
-        [JsonIgnore]
-        public bool ExpressionIsValid { get; set; } = true;
-
-        public List<TKeyFrame> KeyFrames { get; } = new();
+        public List<KeyFrame<T>> KeyFrames { get; } = new();
 
 
     }

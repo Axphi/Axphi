@@ -1,4 +1,4 @@
-using Axphi.Data;
+﻿using Axphi.Data;
 using Axphi.Data.KeyFrames;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
@@ -89,7 +89,7 @@ public class OfficialChartExporterTests
         {
             Name = "source"
         };
-        sourceLine.AnimatableProperties.Rotation.KeyFrames.AddRange(
+        sourceLine.Properties.Rotation.KeyFrames.AddRange(
         [
             new RotationKeyFrame { Time = 0, Value = 0 },
             new RotationKeyFrame { Time = 2, Value = 20 },
@@ -100,8 +100,8 @@ public class OfficialChartExporterTests
         {
             Name = "follower"
         };
-        followerLine.AnimatableProperties.Offset.ExpressionEnabled = true;
-        followerLine.AnimatableProperties.Offset.ExpressionText = "[line(\"source\").rotation, 0]";
+        followerLine.Properties.Offset.ExpressionEnabled = true;
+        followerLine.Properties.Offset.ExpressionText = "[line(\"source\").rotation, 0]";
 
         var project = new Project
         {
@@ -130,8 +130,8 @@ public class OfficialChartExporterTests
     public void Export_BakesBpmDrivenExpressionsAtBpmBoundaries()
     {
         var line = new JudgementLine();
-        line.AnimatableProperties.Opacity.ExpressionEnabled = true;
-        line.AnimatableProperties.Opacity.ExpressionText = "bpm >= 180 ? 100 : 0";
+        line.Properties.Opacity.ExpressionEnabled = true;
+        line.Properties.Opacity.ExpressionText = "bpm >= 180 ? 100 : 0";
 
         var project = new Project
         {
@@ -170,10 +170,10 @@ public class OfficialChartExporterTests
         {
             Name = "parent"
         };
-        parentLine.AnimatableProperties.Offset.ExpressionEnabled = true;
-        parentLine.AnimatableProperties.Offset.ExpressionText = "[tick, 0]";
-        parentLine.AnimatableProperties.Rotation.ExpressionEnabled = true;
-        parentLine.AnimatableProperties.Rotation.ExpressionText = "tick * 10";
+        parentLine.Properties.Offset.ExpressionEnabled = true;
+        parentLine.Properties.Offset.ExpressionText = "[tick, 0]";
+        parentLine.Properties.Rotation.ExpressionEnabled = true;
+        parentLine.Properties.Rotation.ExpressionText = "tick * 10";
 
         var childLine = new JudgementLine
         {

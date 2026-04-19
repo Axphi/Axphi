@@ -32,81 +32,34 @@ namespace Axphi.Utilities
                 //Duration = TimeSpan.FromSeconds(60),
                 Duration = SecToTick(60),
 
-                // 【修改 2】：在这里填写 BPM！这里支持变速，所以是关键帧数组。测试谱面我们先写一个固定的 120 BPM。
-                BpmKeyFrames = new List<KeyFrame<double>>()
-                {
-                    
-                },
+
+                BpmKeyFrames = new List<KeyFrame<double>>(),
 
                 JudgementLines = new List<JudgementLine>()
                 {
                     new JudgementLine()
                     {
-                        AnimatableProperties =
+                        Properties =
                         {
-                            Offset=
+                            // Offset 已更新为 Position
+                            Position =
                             {
                                 KeyFrames =
                                 {
-                                    new Data.KeyFrames.OffsetKeyFrame()
-                                    {
-
-                                        Time = SecToTick(0),
-                                        Value = new Vector(0, 0),
-                                        Easing = BezierPresets.Ease
-                                    },
-
-                                    new Data.KeyFrames.OffsetKeyFrame()
-                                    {
-                                        //Time = TimeSpan.FromSeconds(5),
-                                        Time = SecToTick(5),
-                                        Value = new Vector(0, 1.5),
-
-                                        Easing = BezierPresets.Ease
-                                        
-                                    },
-
-                                    new Data.KeyFrames.OffsetKeyFrame()
-                                    {
-                                        Time = SecToTick(8),
-                                        Value = new Vector(0, -1.5),
-                                        Easing = BezierPresets.Ease
-                                    },
-                                    new Data.KeyFrames.OffsetKeyFrame()
-                                    {
-                                        Time = SecToTick(10),
-                                        Value = new Vector(0, -1.5),
-                                        Easing = BezierPresets.Ease
-                                    },
-                                    new Data.KeyFrames.OffsetKeyFrame()
-                                    {
-                                        Time = SecToTick(12),
-                                        Value = new Vector(-1.5, -1.5),
-                                        Easing = BezierPresets.Ease
-                                    },
+                                    new KeyFrame<Vector>() { Time = SecToTick(0), Value = new Vector(0, 0), Easing = BezierPresets.Ease },
+                                    new KeyFrame<Vector>() { Time = SecToTick(5), Value = new Vector(0, 1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<Vector>() { Time = SecToTick(8), Value = new Vector(0, -1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<Vector>() { Time = SecToTick(10), Value = new Vector(0, -1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<Vector>() { Time = SecToTick(12), Value = new Vector(-1.5, -1.5), Easing = BezierPresets.Ease },
                                 }
                             },
-                            Rotation=
+                            Rotation =
                             {
-                                KeyFrames=
+                                KeyFrames =
                                 {
-                                    new Data.KeyFrames.RotationKeyFrame()
-                                    {
-                                        Time = SecToTick(0),
-                                        Value = 0,
-                                        Easing = BezierPresets.Ease
-                                    },
-                                    new Data.KeyFrames.RotationKeyFrame()
-                                    {
-                                        Time = SecToTick(8),
-                                        Value = 0,
-                                        Easing = BezierPresets.Ease
-                                    },
-                                    new Data.KeyFrames.RotationKeyFrame()
-                                    {
-                                        Time = SecToTick(10),
-                                        Value = 90,
-                                    }
+                                    new KeyFrame<double>() { Time = SecToTick(0), Value = 0, Easing = BezierPresets.Ease },
+                                    new KeyFrame<double>() { Time = SecToTick(8), Value = 0, Easing = BezierPresets.Ease },
+                                    new KeyFrame<double>() { Time = SecToTick(10), Value = 90 },
                                 }
                             },
 
@@ -117,91 +70,49 @@ namespace Axphi.Utilities
                             new Note(NoteKind.Tap, SecToTick(1)),
                             new Note(NoteKind.Tap, SecToTick(2))
                             {
-                                AnimatableProperties =
+                                Properties =
                                 {
-                                    Offset =
+                                    // Note 的 Offset 也更新为 Position
+                                    Position =
                                     {
                                         KeyFrames =
                                         {
-                                            new Data.KeyFrames.OffsetKeyFrame()
-                                            {
-                                                Time = SecToTick(0),
-                                            },
-                                            new Data.KeyFrames.OffsetKeyFrame()
-                                            {
-                                                Time = SecToTick(1),
-                                            },
-                                            new Data.KeyFrames.OffsetKeyFrame()
-                                            {
-                                                Time = SecToTick(1.5),
-                                                Value = new Vector(-2, 0),
-                                            },
-                                            new Data.KeyFrames.OffsetKeyFrame()
-                                            {
-                                                Time = SecToTick(1.75),
-                                                Value = new Vector(2, 0),
-                                            },
-                                            new Data.KeyFrames.OffsetKeyFrame()
-                                            {
-                                                Time = SecToTick(2),
-                                            }
+                                            new KeyFrame<Vector>() { Time = SecToTick(0) },
+                                            new KeyFrame<Vector>() { Time = SecToTick(1) },
+                                            new KeyFrame<Vector>() { Time = SecToTick(1.5), Value = new Vector(-2, 0) },
+                                            new KeyFrame<Vector>() { Time = SecToTick(1.75), Value = new Vector(2, 0) },
+                                            new KeyFrame<Vector>() { Time = SecToTick(2) }
                                         }
                                     }
                                 },
                             },
                             new Note(NoteKind.Tap, SecToTick(3))
                             {
-                                AnimatableProperties =
+                                Properties =
                                 {
                                     Scale =
                                     {
                                         KeyFrames =
                                         {
-                                            new Data.KeyFrames.ScaleKeyFrame()
-                                            {
-                                                Time = SecToTick(0),
-                                            },
-                                            new Data.KeyFrames.ScaleKeyFrame()
-                                            {
-                                                Time = SecToTick(2),
-                                            },
-                                            new Data.KeyFrames.ScaleKeyFrame()
-                                            {
-                                                Time = SecToTick(2.5),
-                                                Value = new Vector(2, 2)
-                                            },
-                                            new Data.KeyFrames.ScaleKeyFrame()
-                                            {
-                                                Time = SecToTick(3),
-                                                Value = new Vector(1, 1)
-                                            }
+                                            new KeyFrame<Vector>() { Time = SecToTick(0) },
+                                            new KeyFrame<Vector>() { Time = SecToTick(2) },
+                                            new KeyFrame<Vector>() { Time = SecToTick(2.5), Value = new Vector(2, 2) },
+                                            new KeyFrame<Vector>() { Time = SecToTick(3), Value = new Vector(1, 1) }
                                         }
                                     }
                                 },
                             },
                             new Note(NoteKind.Tap, SecToTick(4))
                             {
-                                AnimatableProperties =
+                                Properties =
                                 {
                                     Rotation =
                                     {
                                         KeyFrames =
                                         {
-                                            new Data.KeyFrames.RotationKeyFrame()
-                                            {
-                                                Time = SecToTick(0),
-                                                Value = 0
-                                            },
-                                            new Data.KeyFrames.RotationKeyFrame()
-                                            {
-                                                Time = SecToTick(3.5),
-                                                Value = 0
-                                            },
-                                            new Data.KeyFrames.RotationKeyFrame()
-                                            {
-                                                Time = SecToTick(4),
-                                                Value = 180
-                                            }
+                                            new KeyFrame<double>() { Time = SecToTick(0), Value = 0 },
+                                            new KeyFrame<double>() { Time = SecToTick(3.5), Value = 0 },
+                                            new KeyFrame<double>() { Time = SecToTick(4), Value = 180 }
                                         }
                                     }
                                 }
@@ -230,18 +141,15 @@ namespace Axphi.Utilities
                 {
                     new JudgementLine()
                     {
-                        AnimatableProperties =
+                        Properties =
                         {
-                            Offset=
+                            Position =
                             {
                                 InitialValue = new Vector(0, -4)
                             },
-                            Rotation=
+                            Rotation =
                             {
-                                KeyFrames=
-                                {
-
-                                }
+                                KeyFrames = { }
                             },
 
 
@@ -253,7 +161,7 @@ namespace Axphi.Utilities
                             new Note(NoteKind.Drag, SecToTick(2)),
                             new Note(NoteKind.Tap, SecToTick(3))
                             {
-                                AnimatableProperties =
+                                Properties =
                                 {
                                     Rotation =
                                     {

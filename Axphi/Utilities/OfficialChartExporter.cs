@@ -1,4 +1,4 @@
-using Axphi.Data;
+﻿using Axphi.Data;
 using Axphi.Data.AnimatableProperties;
 using Axphi.Data.KeyFrames;
 using System;
@@ -267,7 +267,7 @@ internal static class OfficialChartExporter
                 .SelectMany(line => line.Notes)
                 .Select(note =>
                 {
-                    NoteKind kind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, note.HitTime, note.InitialKind);
+                    NoteKind kind = KeyFrameUtils.GetStepValueAtTick(note.Properties.Kind.KeyFrames, note.HitTime, note.Properties.Kind.InitialValue);
                     return note.HitTime + (kind == NoteKind.Hold ? Math.Max(0, note.HoldDuration) : 0);
                 })
                 .DefaultIfEmpty(0)
@@ -298,7 +298,7 @@ internal static class OfficialChartExporter
                 {
                     if (shouldBindRealtime)
                     {
-                        double speedMultiplier = Sanitize(note.CustomSpeed ?? 1.0);
+                        double speedMultiplier = Sanitize(note.Properties.Speed.InitialValue);
                         var groupKey = (note.HitTime, speedMultiplier);
                         if (!realtimeInlineGroups.TryGetValue(groupKey, out var group))
                         {
@@ -442,11 +442,11 @@ internal static class OfficialChartExporter
         EasingUtils.CalculateObjectSingleTransform(
             tick,
             chart.KeyFrameEasingDirection,
-            line.InitialSpeed,
-            line.SpeedKeyFrames,
+            line.Properties.Speed.InitialValue,
+            line.Properties.Speed.KeyFrames,
             MathUtils.Lerp,
-            line.SpeedExpressionEnabled,
-            line.SpeedExpressionText,
+            line.Properties.Speed.ExpressionEnabled,
+            line.Properties.Speed.ExpressionText,
             chart,
             line,
             out double speed);
@@ -484,8 +484,8 @@ internal static class OfficialChartExporter
         return new OfficialJudgeLineDto
         {
             Bpm = defaultBpm,
-            NotesAbove = notesAbove,
-            NotesBelow = notesBelow,
+            NotesAbove = notesBelow,
+            NotesBelow = notesAbove,
             SpeedEvents = BuildRealtimeCarrierSpeedEvents(chart, sourceLine, group, endTick, tracker),
             JudgeLineMoveEvents = BuildRealtimeCarrierMoveEvents(chart, sourceLine, group, endTick, lineById, tracker),
             JudgeLineRotateEvents = BuildRealtimeCarrierRotateEvents(chart, sourceLine, group, endTick, lineById, tracker),
@@ -514,15 +514,15 @@ internal static class OfficialChartExporter
 
     private static NoteExportStrategy DetermineNoteExportStrategy(Note note)
     {
-        var properties = note.AnimatableProperties;
+        var properties = note.Properties;
         bool hasRotationChange = HasScalarPropertyChange(properties.Rotation, 0.0);
         bool hasAnchorChange = HasVectorPropertyChange(properties.Anchor, default);
         bool hasScaleChange = HasVectorPropertyChange(properties.Scale, new Vector(1, 1));
         bool hasOpacityChange = HasScalarPropertyChange(properties.Opacity, 100.0);
-        bool hasOffsetExpression = properties.Offset.ExpressionEnabled && !string.IsNullOrWhiteSpace(properties.Offset.ExpressionText);
+        bool hasOffsetExpression = properties.Position.ExpressionEnabled && !string.IsNullOrWhiteSpace(properties.Position.ExpressionText);
         bool hasOffsetMotionKeyframes = HasOffsetXMotion(note);
-        bool hasOffsetYChange = !AreClose(properties.Offset.InitialValue.Y, 0.0)
-            || properties.Offset.KeyFrames.Any(frame => !AreClose(frame.Value.Y, 0.0));
+        bool hasOffsetYChange = !AreClose(properties.Position.InitialValue.Y, 0.0)
+            || properties.Position.KeyFrames.Any(frame => !AreClose(frame.Value.Y, 0.0));
 
         if (hasRotationChange || hasAnchorChange || hasScaleChange || hasOpacityChange || hasOffsetExpression || hasOffsetYChange)
         {
@@ -537,16 +537,14 @@ internal static class OfficialChartExporter
         return NoteExportStrategy.Inline;
     }
 
-    private static bool HasScalarPropertyChange<TKeyFrame>(AnimatableProperty<double, TKeyFrame> property, double defaultValue)
-        where TKeyFrame : KeyFrame<double>
+    private static bool HasScalarPropertyChange(Property<double> property, double defaultValue)
     {
         return !AreClose(property.InitialValue, defaultValue)
             || (property.ExpressionEnabled && !string.IsNullOrWhiteSpace(property.ExpressionText))
             || property.KeyFrames.Any(frame => !AreClose(frame.Value, defaultValue));
     }
 
-    private static bool HasVectorPropertyChange<TKeyFrame>(AnimatableProperty<Vector, TKeyFrame> property, Vector defaultValue)
-        where TKeyFrame : KeyFrame<Vector>
+    private static bool HasVectorPropertyChange(Property<Vector> property, Vector defaultValue)
     {
         return !AreClose(property.InitialValue, defaultValue)
             || (property.ExpressionEnabled && !string.IsNullOrWhiteSpace(property.ExpressionText))
@@ -555,14 +553,14 @@ internal static class OfficialChartExporter
 
     private static bool HasOffsetXMotion(Note note)
     {
-        var offset = note.AnimatableProperties.Offset;
+        var offset = note.Properties.Position;
         if (offset.KeyFrames.Count <= 1)
         {
             return false;
         }
 
         double previousX = offset.InitialValue.X;
-        foreach (OffsetKeyFrame frame in offset.KeyFrames.OrderBy(frame => frame.Time))
+        foreach (KeyFrame<Vector> frame in offset.KeyFrames.OrderBy(frame => frame.Time))
         {
             if (!AreClose(frame.Value.X, previousX))
             {
@@ -592,7 +590,7 @@ internal static class OfficialChartExporter
         EasingUtils.CalculateObjectTransform(
             note.HitTime,
             chart.KeyFrameEasingDirection,
-            note.AnimatableProperties,
+            note.Properties,
             chart,
             out _,
             out Vector notePosition,
@@ -600,7 +598,7 @@ internal static class OfficialChartExporter
             out _,
             out _);
 
-        var kind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, note.HitTime, note.InitialKind);
+        var kind = KeyFrameUtils.GetStepValueAtTick(note.Properties.Kind.KeyFrames, note.HitTime, note.Properties.Kind.InitialValue);
         return new NotePlacement(
             new OfficialNoteDto
             {
@@ -648,7 +646,7 @@ internal static class OfficialChartExporter
 
     private static double EvaluateExportedNoteSpeed(Chart chart, JudgementLine line, Note note, NoteKind kind)
     {
-        double speedMultiplier = Sanitize(note.CustomSpeed ?? 1.0);
+        double speedMultiplier = Sanitize(note.Properties.Speed.InitialValue);
         if (kind != NoteKind.Hold)
         {
             return speedMultiplier;
@@ -671,18 +669,18 @@ internal static class OfficialChartExporter
 
     private static List<OfficialSpeedEventDto> BuildSpeedEvents(Chart chart, JudgementLine line, int endTick, ExportProgressTracker tracker)
     {
-        var speedKeyframes = line.SpeedKeyFrames.OrderBy(k => k.Time).ToList();
+        var speedKeyframes = line.Properties.Speed.KeyFrames.OrderBy(k => k.Time).ToList();
         tracker.SetMessage("烘焙速度事件...", forceReport: false);
         return BakeConstantEvents(endTick, tick =>
         {
             EasingUtils.CalculateObjectSingleTransform(
                 tick,
                 chart.KeyFrameEasingDirection,
-                line.InitialSpeed,
+                line.Properties.Speed.InitialValue,
                 speedKeyframes,
                 MathUtils.Lerp,
-                line.SpeedExpressionEnabled,
-                line.SpeedExpressionText,
+                line.Properties.Speed.ExpressionEnabled,
+                line.Properties.Speed.ExpressionText,
                 chart,
                 line,
                 out double speed);
@@ -841,7 +839,7 @@ internal static class OfficialChartExporter
 
     private static bool IsHoldAtHit(Note note)
     {
-        NoteKind kind = KeyFrameUtils.GetStepValueAtTick(note.KindKeyFrames, note.HitTime, note.InitialKind);
+        NoteKind kind = KeyFrameUtils.GetStepValueAtTick(note.Properties.Kind.KeyFrames, note.HitTime, note.Properties.Kind.InitialValue);
         return kind == NoteKind.Hold;
     }
 
@@ -1085,7 +1083,7 @@ internal static class OfficialChartExporter
         EasingUtils.CalculateObjectTransform(
             currentTick,
             chart.KeyFrameEasingDirection,
-            note.AnimatableProperties,
+            note.Properties,
             out var anchor,
             out var offset,
             out var scale,
@@ -1113,7 +1111,7 @@ internal static class OfficialChartExporter
 
     private static double CalculateNoteTravelDistanceChartUnits(Chart chart, JudgementLine line, double currentTick, Note note)
     {
-        return CalculateTravelDistanceChartUnits(chart, line, currentTick, note.HitTime, note.CustomSpeed ?? 1.0);
+        return CalculateTravelDistanceChartUnits(chart, line, currentTick, note.HitTime, note.Properties.Speed.InitialValue);
     }
 
     private static double CalculateTravelDistanceChartUnits(Chart chart, JudgementLine line, double currentTick, int hitTime, double noteSpeedMultiplier)
@@ -1130,11 +1128,11 @@ internal static class OfficialChartExporter
             EasingUtils.CalculateObjectSingleTransform(
                 currentTick,
                 chart.KeyFrameEasingDirection,
-                line.InitialSpeed,
-                line.SpeedKeyFrames,
+                line.Properties.Speed.InitialValue,
+                line.Properties.Speed.KeyFrames,
                 MathUtils.Lerp,
-                line.SpeedExpressionEnabled,
-                line.SpeedExpressionText,
+                line.Properties.Speed.ExpressionEnabled,
+                line.Properties.Speed.ExpressionText,
                 chart,
                 line,
                 out double currentRealtimeSpeed);
@@ -1169,11 +1167,11 @@ internal static class OfficialChartExporter
             EasingUtils.CalculateObjectSingleTransform(
                 midTick,
                 chart.KeyFrameEasingDirection,
-                line.InitialSpeed,
-                line.SpeedKeyFrames,
+                line.Properties.Speed.InitialValue,
+                line.Properties.Speed.KeyFrames,
                 MathUtils.Lerp,
-                line.SpeedExpressionEnabled,
-                line.SpeedExpressionText,
+                line.Properties.Speed.ExpressionEnabled,
+                line.Properties.Speed.ExpressionText,
                 chart,
                 line,
                 out double midSpeed);
@@ -1210,7 +1208,7 @@ internal static class OfficialChartExporter
         EasingUtils.CalculateObjectTransform(
             tick,
             chart.KeyFrameEasingDirection,
-            line.AnimatableProperties,
+            line.Properties,
             chart,
             line,
             out _,
@@ -1261,7 +1259,7 @@ internal static class OfficialChartExporter
         EasingUtils.CalculateObjectTransform(
             currentTick,
             chart.KeyFrameEasingDirection,
-            line.AnimatableProperties,
+            line.Properties,
             chart,
             line,
             out var anchor,

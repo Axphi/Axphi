@@ -5,8 +5,5 @@
         EZ, HD, IN, AT
     }
 
-    public enum NoteKind
-    {
-        Tap, Hold, Drag, Flick
-    }
+    
 }

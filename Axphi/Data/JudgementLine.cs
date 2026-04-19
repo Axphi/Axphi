@@ -13,29 +13,16 @@ namespace Axphi.Data
         public string ID { get; set; } = Guid.NewGuid().ToString();
         public string? ParentLineId { get; set; }
         public string? Name { get; set; } = null;
-        public double InitialSpeed { get; set; } = 1;
-
-       public List<KeyFrame<double>> SpeedKeyFrames { get; set; } = new();
-
-        public bool SpeedExpressionEnabled { get; set; }
-
-        public string SpeedExpressionText { get; set; } = string.Empty;
-
-        [JsonIgnore]
-        public bool SpeedExpressionIsValid { get; set; } = true;
-
-        // 默认使用实时(Realtime)模式，也可选积分(Integral)模式
-        public string SpeedMode { get; set; } = "Realtime";
-
-
-        
         public int StartTick { get; set; } = 0;
         public int DurationTicks { get; set; } = 7680; // 默认给个长度
 
         /// <summary>
         /// 动画属性
         /// </summary>
-        public StandardAnimatableProperties AnimatableProperties { get; } = new();
+        public LineProperties Properties { get; } = new();
+
+        // 默认使用实时(Realtime)模式，也可选积分(Integral)模式
+        public string SpeedMode { get; set; } = "Realtime";
 
         /// <summary>
         /// 音符

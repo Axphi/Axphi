@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Input;
 
 namespace Axphi.Components
@@ -16,12 +17,17 @@ namespace Axphi.Components
             ViewportLocationProperty.OverrideMetadata(
                 typeof(TimeLine),
                 new FrameworkPropertyMetadata(
-                    new Point(minX, 0), // 默认值
+                    new Point(0, 0), // 默认值
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                     null, // PropertyChangedCallback
                     CoerceViewportLocation // 在这里拦截并修改坐标
                 )
             );
+        }
+
+        public TimeLine()
+        {
+            ViewportLocation = new Point(-5, 0);
         }
 
         private static object CoerceViewportLocation(DependencyObject d, object baseValue)

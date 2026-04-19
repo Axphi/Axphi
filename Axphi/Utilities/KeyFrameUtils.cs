@@ -29,14 +29,14 @@ namespace Axphi.Utilities
 
             // ================= 幽灵帧逻辑 2：当前时间早于第一个关键帧 =================
             var firstFrame = keyFrames[0];
-            if (currentTick <= firstFrame.Time)
+            if (currentTick <= firstFrame.Tick)
             {
                 return firstFrame.Value;
             }
 
             // ================= 幽灵帧逻辑 3：当前时间晚于最后一个关键帧 =================
             var lastFrame = keyFrames[keyFrames.Count - 1];
-            if (currentTick >= lastFrame.Time)
+            if (currentTick >= lastFrame.Tick)
             {
                 return lastFrame.Value;
             }
@@ -48,7 +48,7 @@ namespace Axphi.Utilities
                 var frameA = keyFrames[i];
                 var frameB = keyFrames[i + 1];
 
-                if (currentTick >= frameA.Time && currentTick < frameB.Time)
+                if (currentTick >= frameA.Tick && currentTick < frameB.Tick)
                 {
                     // 因为是 Step 模式，所以不到下一个帧的时间，就永远保持当前帧的值！
                     return frameA.Value;

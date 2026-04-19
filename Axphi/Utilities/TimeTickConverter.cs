@@ -21,9 +21,9 @@ namespace Axphi.Utilities
             for (int i = 0; i < bpmKeyFrames.Count; i++)
             {
                 var frame = bpmKeyFrames[i];
-                if (frame.Time <= 0) continue; // Tick=0 已经被当做初始值了
+                if (frame.Tick <= 0) continue; // Tick=0 已经被当做初始值了
 
-                double ticksInSegment = frame.Time - accumulatedTicks;
+                double ticksInSegment = frame.Tick - accumulatedTicks;
                 double secondsInSegment = ticksInSegment * (1.875 / currentBpm);
 
                 // 如果目标时间在这个区间内，结束累加
@@ -33,7 +33,7 @@ namespace Axphi.Utilities
                 }
 
                 accumulatedSeconds += secondsInSegment;
-                accumulatedTicks = frame.Time;
+                accumulatedTicks = frame.Tick;
                 currentBpm = frame.Value;
             }
 
@@ -60,14 +60,14 @@ namespace Axphi.Utilities
             for (int i = 0; i < bpmKeyFrames.Count; i++)
             {
                 var frame = bpmKeyFrames[i];
-                if (frame.Time <= 0) continue;
+                if (frame.Tick <= 0) continue;
 
-                if (frame.Time >= targetTick)
+                if (frame.Tick >= targetTick)
                     break;
 
-                double ticksInSegment = frame.Time - accumulatedTicks;
+                double ticksInSegment = frame.Tick - accumulatedTicks;
                 accumulatedSeconds += ticksInSegment * (1.875 / currentBpm);
-                accumulatedTicks = frame.Time;
+                accumulatedTicks = frame.Tick;
                 currentBpm = frame.Value;
             }
 

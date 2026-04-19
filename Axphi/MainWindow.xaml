@@ -279,7 +279,10 @@
                                 <comp:TimeLine Grid.Row="2"
                                                DataContext="{di:DI {x:Type vms:TimeLineViewModel}}"
                                                ItemsSource="{Binding LineBlocks}"
-                                               ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}"/>
+                                               ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}"
+                                               Zoom="{Binding Zoom, Mode=TwoWay}" 
+                                               
+                                               PixelPerTick="{Binding PixelPerTick, Mode=TwoWay}"/>
 
 
                             </Grid>

@@ -155,7 +155,7 @@ internal static class OfficialChartExporter
 
         double offsetSeconds = TimeTickConverter.TickToTime(
             project.Metadata.AudioOffsetTicks,
-            chart.BpmKeyFrames.OrderBy(k => k.Time).ToList(),
+            chart.BpmKeyFrames.OrderBy(k => k.Tick).ToList(),
             defaultBpm);
 
         return new OfficialChartDto
@@ -192,7 +192,7 @@ internal static class OfficialChartExporter
         }
 
         return chart.BpmKeyFrames
-            .OrderBy(k => k.Time)
+            .OrderBy(k => k.Tick)
             .First()
             .Value;
     }
@@ -560,7 +560,7 @@ internal static class OfficialChartExporter
         }
 
         double previousX = offset.InitialValue.X;
-        foreach (KeyFrame<Vector> frame in offset.KeyFrames.OrderBy(frame => frame.Time))
+        foreach (KeyFrame<Vector> frame in offset.KeyFrames.OrderBy(frame => frame.Tick))
         {
             if (!AreClose(frame.Value.X, previousX))
             {
@@ -669,7 +669,7 @@ internal static class OfficialChartExporter
 
     private static List<OfficialSpeedEventDto> BuildSpeedEvents(Chart chart, JudgementLine line, int endTick, ExportProgressTracker tracker)
     {
-        var speedKeyframes = line.Properties.Speed.KeyFrames.OrderBy(k => k.Time).ToList();
+        var speedKeyframes = line.Properties.Speed.KeyFrames.OrderBy(k => k.Tick).ToList();
         tracker.SetMessage("烘焙速度事件...", forceReport: false);
         return BakeConstantEvents(endTick, tick =>
         {

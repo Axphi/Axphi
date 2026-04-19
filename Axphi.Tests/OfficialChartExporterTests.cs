@@ -141,8 +141,8 @@ public class OfficialChartExporterTests
                 InitialBpm = 120,
                 BpmKeyFrames =
                 [
-                    new KeyFrame<double> { Time = 0, Value = 120 },
-                    new KeyFrame<double> { Time = 2, Value = 180 }
+                    new KeyFrame<double> { Tick = 0, Value = 120 },
+                    new KeyFrame<double> { Tick = 2, Value = 180 }
                 ],
                 JudgementLines = [line]
             },
@@ -471,9 +471,9 @@ public class OfficialChartExporterTests
         };
         line.SpeedKeyFrames.AddRange(
         [
-            new KeyFrame<double> { Time = 0, Value = 1.0 },
-            new KeyFrame<double> { Time = 48, Value = 2.0 },
-            new KeyFrame<double> { Time = 64, Value = 2.0 }
+            new KeyFrame<double> { Tick = 0, Value = 1.0 },
+            new KeyFrame<double> { Tick = 48, Value = 2.0 },
+            new KeyFrame<double> { Tick = 64, Value = 2.0 }
         ]);
 
         var project = new Project
@@ -542,11 +542,11 @@ public class OfficialChartExporterTests
         };
         line.SpeedKeyFrames.AddRange(
         [
-            new KeyFrame<double> { Time = 0, Value = 1.0 },
-            new KeyFrame<double> { Time = 48, Value = 2.0 },
-            new KeyFrame<double> { Time = 80, Value = 2.0 },
-            new KeyFrame<double> { Time = 81, Value = 3.0 },
-            new KeyFrame<double> { Time = 96, Value = 3.0 }
+            new KeyFrame<double> { Tick = 0, Value = 1.0 },
+            new KeyFrame<double> { Tick = 48, Value = 2.0 },
+            new KeyFrame<double> { Tick = 80, Value = 2.0 },
+            new KeyFrame<double> { Tick = 81, Value = 3.0 },
+            new KeyFrame<double> { Tick = 96, Value = 3.0 }
         ]);
 
         var project = new Project
@@ -610,11 +610,11 @@ public class OfficialChartExporterTests
         };
         line.SpeedKeyFrames.AddRange(
         [
-            new KeyFrame<double> { Time = 0, Value = 1.0 },
-            new KeyFrame<double> { Time = 48, Value = 2.0 },
-            new KeyFrame<double> { Time = 80, Value = 2.0 },
-            new KeyFrame<double> { Time = 81, Value = 3.0 },
-            new KeyFrame<double> { Time = 96, Value = 3.0 }
+            new KeyFrame<double> { Tick = 0, Value = 1.0 },
+            new KeyFrame<double> { Tick = 48, Value = 2.0 },
+            new KeyFrame<double> { Tick = 80, Value = 2.0 },
+            new KeyFrame<double> { Tick = 81, Value = 3.0 },
+            new KeyFrame<double> { Tick = 96, Value = 3.0 }
         ]);
 
         var project = new Project
@@ -674,11 +674,11 @@ public class OfficialChartExporterTests
         };
         line.SpeedKeyFrames.AddRange(
         [
-            new KeyFrame<double> { Time = 0, Value = 1.0 },
-            new KeyFrame<double> { Time = 48, Value = 2.0 },
-            new KeyFrame<double> { Time = 80, Value = 2.0 },
-            new KeyFrame<double> { Time = 81, Value = 3.0 },
-            new KeyFrame<double> { Time = 96, Value = 3.0 }
+            new KeyFrame<double> { Tick = 0, Value = 1.0 },
+            new KeyFrame<double> { Tick = 48, Value = 2.0 },
+            new KeyFrame<double> { Tick = 80, Value = 2.0 },
+            new KeyFrame<double> { Tick = 81, Value = 3.0 },
+            new KeyFrame<double> { Tick = 96, Value = 3.0 }
         ]);
 
         var project = new Project
@@ -736,10 +736,10 @@ public class OfficialChartExporterTests
         };
         line.SpeedKeyFrames.AddRange(
         [
-            new KeyFrame<double> { Time = 0, Value = 1.5 },
-            new KeyFrame<double> { Time = 80, Value = 1.5 },
-            new KeyFrame<double> { Time = 81, Value = 2.5 },
-            new KeyFrame<double> { Time = 96, Value = 2.5 }
+            new KeyFrame<double> { Tick = 0, Value = 1.5 },
+            new KeyFrame<double> { Tick = 80, Value = 1.5 },
+            new KeyFrame<double> { Tick = 81, Value = 2.5 },
+            new KeyFrame<double> { Tick = 96, Value = 2.5 }
         ]);
 
         var project = new Project
@@ -789,10 +789,10 @@ public class OfficialChartExporterTests
         };
         line.SpeedKeyFrames.AddRange(
         [
-            new KeyFrame<double> { Time = 0, Value = 1.0 },
-            new KeyFrame<double> { Time = 48, Value = 2.0 },
-            new KeyFrame<double> { Time = 64, Value = 2.0 },
-            new KeyFrame<double> { Time = 96, Value = 2.0 }
+            new KeyFrame<double> { Tick = 0, Value = 1.0 },
+            new KeyFrame<double> { Tick = 48, Value = 2.0 },
+            new KeyFrame<double> { Tick = 64, Value = 2.0 },
+            new KeyFrame<double> { Tick = 96, Value = 2.0 }
         ]);
 
         var project = new Project
@@ -838,8 +838,8 @@ public class OfficialChartExporterTests
         };
         line.SpeedKeyFrames.AddRange(
         [
-            new KeyFrame<double> { Time = 0, Value = 2.0 },
-            new KeyFrame<double> { Time = 16, Value = 2.0 }
+            new KeyFrame<double> { Tick = 0, Value = 2.0 },
+            new KeyFrame<double> { Tick = 16, Value = 2.0 }
         ]);
 
         var project = new Project
@@ -879,9 +879,9 @@ public class OfficialChartExporterTests
         };
         line.SpeedKeyFrames.AddRange(
         [
-            new KeyFrame<double> { Time = 0, Value = 1.0 },
-            new KeyFrame<double> { Time = 63, Value = 2.0 },
-            new KeyFrame<double> { Time = 64, Value = 2.0 }
+            new KeyFrame<double> { Tick = 0, Value = 1.0 },
+            new KeyFrame<double> { Tick = 63, Value = 2.0 },
+            new KeyFrame<double> { Tick = 64, Value = 2.0 }
         ]);
 
         var project = new Project

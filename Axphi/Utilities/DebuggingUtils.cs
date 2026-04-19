@@ -46,20 +46,20 @@ namespace Axphi.Utilities
                             {
                                 KeyFrames =
                                 {
-                                    new KeyFrame<Vector>() { Time = SecToTick(0), Value = new Vector(0, 0), Easing = BezierPresets.Ease },
-                                    new KeyFrame<Vector>() { Time = SecToTick(5), Value = new Vector(0, 1.5), Easing = BezierPresets.Ease },
-                                    new KeyFrame<Vector>() { Time = SecToTick(8), Value = new Vector(0, -1.5), Easing = BezierPresets.Ease },
-                                    new KeyFrame<Vector>() { Time = SecToTick(10), Value = new Vector(0, -1.5), Easing = BezierPresets.Ease },
-                                    new KeyFrame<Vector>() { Time = SecToTick(12), Value = new Vector(-1.5, -1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<Vector>() { Tick = SecToTick(0), Value = new Vector(0, 0), Easing = BezierPresets.Ease },
+                                    new KeyFrame<Vector>() { Tick = SecToTick(5), Value = new Vector(0, 1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<Vector>() { Tick = SecToTick(8), Value = new Vector(0, -1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<Vector>() { Tick = SecToTick(10), Value = new Vector(0, -1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<Vector>() { Tick = SecToTick(12), Value = new Vector(-1.5, -1.5), Easing = BezierPresets.Ease },
                                 }
                             },
                             Rotation =
                             {
                                 KeyFrames =
                                 {
-                                    new KeyFrame<double>() { Time = SecToTick(0), Value = 0, Easing = BezierPresets.Ease },
-                                    new KeyFrame<double>() { Time = SecToTick(8), Value = 0, Easing = BezierPresets.Ease },
-                                    new KeyFrame<double>() { Time = SecToTick(10), Value = 90 },
+                                    new KeyFrame<double>() { Tick = SecToTick(0), Value = 0, Easing = BezierPresets.Ease },
+                                    new KeyFrame<double>() { Tick = SecToTick(8), Value = 0, Easing = BezierPresets.Ease },
+                                    new KeyFrame<double>() { Tick = SecToTick(10), Value = 90 },
                                 }
                             },
 
@@ -77,11 +77,11 @@ namespace Axphi.Utilities
                                     {
                                         KeyFrames =
                                         {
-                                            new KeyFrame<Vector>() { Time = SecToTick(0) },
-                                            new KeyFrame<Vector>() { Time = SecToTick(1) },
-                                            new KeyFrame<Vector>() { Time = SecToTick(1.5), Value = new Vector(-2, 0) },
-                                            new KeyFrame<Vector>() { Time = SecToTick(1.75), Value = new Vector(2, 0) },
-                                            new KeyFrame<Vector>() { Time = SecToTick(2) }
+                                            new KeyFrame<Vector>() { Tick = SecToTick(0) },
+                                            new KeyFrame<Vector>() { Tick = SecToTick(1) },
+                                            new KeyFrame<Vector>() { Tick = SecToTick(1.5), Value = new Vector(-2, 0) },
+                                            new KeyFrame<Vector>() { Tick = SecToTick(1.75), Value = new Vector(2, 0) },
+                                            new KeyFrame<Vector>() { Tick = SecToTick(2) }
                                         }
                                     }
                                 },
@@ -94,10 +94,10 @@ namespace Axphi.Utilities
                                     {
                                         KeyFrames =
                                         {
-                                            new KeyFrame<Vector>() { Time = SecToTick(0) },
-                                            new KeyFrame<Vector>() { Time = SecToTick(2) },
-                                            new KeyFrame<Vector>() { Time = SecToTick(2.5), Value = new Vector(2, 2) },
-                                            new KeyFrame<Vector>() { Time = SecToTick(3), Value = new Vector(1, 1) }
+                                            new KeyFrame<Vector>() { Tick = SecToTick(0) },
+                                            new KeyFrame<Vector>() { Tick = SecToTick(2) },
+                                            new KeyFrame<Vector>() { Tick = SecToTick(2.5), Value = new Vector(2, 2) },
+                                            new KeyFrame<Vector>() { Tick = SecToTick(3), Value = new Vector(1, 1) }
                                         }
                                     }
                                 },
@@ -110,9 +110,9 @@ namespace Axphi.Utilities
                                     {
                                         KeyFrames =
                                         {
-                                            new KeyFrame<double>() { Time = SecToTick(0), Value = 0 },
-                                            new KeyFrame<double>() { Time = SecToTick(3.5), Value = 0 },
-                                            new KeyFrame<double>() { Time = SecToTick(4), Value = 180 }
+                                            new KeyFrame<double>() { Tick = SecToTick(0), Value = 0 },
+                                            new KeyFrame<double>() { Tick = SecToTick(3.5), Value = 0 },
+                                            new KeyFrame<double>() { Tick = SecToTick(4), Value = 180 }
                                         }
                                     }
                                 }

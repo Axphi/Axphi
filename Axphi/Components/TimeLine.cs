@@ -8,13 +8,15 @@ namespace Axphi.Components
 {
     public class TimeLine : NodifyEditor
     {
+
+        static double minX = -5;
         static TimeLine()
         {
             // 覆盖 ViewportLocation 的元数据，添加强制转换回调
             ViewportLocationProperty.OverrideMetadata(
                 typeof(TimeLine),
                 new FrameworkPropertyMetadata(
-                    new Point(0, 0), // 默认值
+                    new Point(minX, 0), // 默认值
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                     null, // PropertyChangedCallback
                     CoerceViewportLocation // 在这里拦截并修改坐标
@@ -27,9 +29,9 @@ namespace Axphi.Components
             if (baseValue is Point point)
             {
                 // 🌟 2. 相机限制：强制 X 和 Y 永远大于等于 0
-                return new Point(Math.Max(0, point.X), Math.Max(0, point.Y));
+                return new Point(Math.Max(minX, point.X), Math.Max(0, point.Y));
             }
-            return new Point(0, 0);
+            return new Point(minX, 0);
         }
 
         protected override void OnMouseWheel(MouseWheelEventArgs e)
@@ -48,11 +50,11 @@ namespace Axphi.Components
             else if (Keyboard.Modifiers == ModifierKeys.Shift)
             {
                 // 🌟 4. Shift + 滚轮：横向滚动 (X轴)
-                double scrollSpeed = 0.5; // X轴滚动灵敏度
+                double scrollSpeed = 0.1; // X轴滚动灵敏度, 丢到设置
                 double deltaX = e.Delta * scrollSpeed;
                 double newX = ViewportLocation.X - deltaX;
 
-                ViewportLocation = new Point(Math.Max(0, newX), ViewportLocation.Y);
+                ViewportLocation = new Point(Math.Max(minX, newX), ViewportLocation.Y);
             }
             else
             {

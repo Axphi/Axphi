@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
+using Axphi.Data.KeyFrames; // 确保引用了你的 IKeyFrame
 
 namespace Axphi.ViewModels
 {
@@ -40,7 +41,7 @@ namespace Axphi.ViewModels
         private readonly TrackLayoutService _layoutService;
 
         // === 3. 提供给 UI 的轨道块列表 ===
-        public ObservableCollection<TimeLineJudgmentLineViewModel> LineBlocks { get; } = new();
+        public ObservableCollection<TimeLineItemViewModelBase> LineBlocks { get; } = new();
 
         public TimeLineViewModel(ProjectManager projectManager, TrackLayoutService layoutService)
         {
@@ -68,6 +69,8 @@ namespace Axphi.ViewModels
             _layoutService.LayoutUpdated += OnLayoutUpdated;
 
             RefreshLineBlocks();
+
+            ViewportLocation = new Point(-5, 0);
         }
 
         private void OnProjectManagerPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -96,15 +99,65 @@ namespace Axphi.ViewModels
             var chart = _projectManager.EditingProject?.Chart;
             if (chart?.JudgementLines == null) return;
 
-            // 基于底层的 JudgementLine 创建对应的 Timeline Block
+            // 2. 遍历底层的每一根判定线
             foreach (var line in chart.JudgementLines)
             {
-                var blockVM = new TimeLineJudgmentLineViewModel(line, this, _layoutService);
-                LineBlocks.Add(blockVM);
+                // 先把判定线本身的蓝色图层塞进去
+                var lineBlockVM = new TimeLineJudgmentLineViewModel(line, this, _layoutService);
+                LineBlocks.Add(lineBlockVM);
+
+                // 🌟 核心逻辑：扫描这根判定线所有的属性，把里面的关键帧提取出来变成菱形！
+                if (line.Properties != null)
+                {
+                    // 提取 Position 关键帧
+                    if (line.Properties.Position?.KeyFrames != null)
+                    {
+                        foreach (var kf in line.Properties.Position.KeyFrames)
+                        {
+                            LineBlocks.Add(new TimeLineKeyFrameViewModel(line, "Position", kf, this, _layoutService));
+                        }
+                    }
+
+                    // 提取 Scale 关键帧
+                    if (line.Properties.Scale?.KeyFrames != null)
+                    {
+                        foreach (var kf in line.Properties.Scale.KeyFrames)
+                        {
+                            LineBlocks.Add(new TimeLineKeyFrameViewModel(line, "Scale", kf, this, _layoutService));
+                        }
+                    }
+
+                    // 提取 Rotation 关键帧
+                    if (line.Properties.Rotation?.KeyFrames != null)
+                    {
+                        foreach (var kf in line.Properties.Rotation.KeyFrames)
+                        {
+                            LineBlocks.Add(new TimeLineKeyFrameViewModel(line, "Rotation", kf, this, _layoutService));
+                        }
+                    }
+
+                    // 提取 Opacity 关键帧
+                    if (line.Properties.Opacity?.KeyFrames != null)
+                    {
+                        foreach (var kf in line.Properties.Opacity.KeyFrames)
+                        {
+                            LineBlocks.Add(new TimeLineKeyFrameViewModel(line, "Opacity", kf, this, _layoutService));
+                        }
+                    }
+
+                    // 提取 Speed 关键帧
+                    if (line.Properties.Speed?.KeyFrames != null)
+                    {
+                        foreach (var kf in line.Properties.Speed.KeyFrames)
+                        {
+                            LineBlocks.Add(new TimeLineKeyFrameViewModel(line, "Speed", kf, this, _layoutService));
+                        }
+                    }
+                }
             }
 
-            // 注意：这里**不需要**调用 _layoutService.InitializeLines()
-            // 因为这是左侧 Header 的专利。Timeline 只负责读。
+
+            
         }
 
         // === 当用户使用快捷键/鼠标滚轮改变缩放时 ===

@@ -81,6 +81,30 @@ namespace Axphi.Services
             return _lineYCoordinates.TryGetValue(line, out double y) ? y : 0;
         }
 
+
+        // 🌟 新增：获取某个图层下，特定属性关键帧的精确 Y 坐标
+        public double GetPropertyYCoordinate(JudgementLine line, string propertyName)
+        {
+            // 1. 先拿到这个图层最顶端的基准 Y 坐标
+            double baseY = GetYCoordinate(line);
+
+            // 2. 看看这个图层当前展开了哪些属性
+            if (_lineActiveProperties.TryGetValue(line, out var props))
+            {
+                // 3. 找找看我们请求的这个属性排在第几行
+                int index = props.IndexOf(propertyName);
+                if (index != -1)
+                {
+                    // 核心推导公式：
+                    // 关键帧 Y = 图层基准 Y + 基础标题高度 + (排在它前面的属性行数 * 属性行高)
+                    return baseY + BaseTrackHeight + (index * PropertyRowHeight);
+                }
+            }
+
+            // 如果返回 -1，代表这个属性当前被折叠了（隐藏了）
+            return -1;
+        }
+
         // 🌟 预留给右侧时间轴调用的接口：查询这个轨道当前展开了哪些属性？
         public IReadOnlyList<string> GetActiveProperties(JudgementLine line)
         {

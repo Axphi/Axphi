@@ -9,6 +9,41 @@
     xmlns:vms="clr-namespace:Axphi.ViewModels">
 
 
+    <DataTemplate DataType="{x:Type vms:TimeLineJudgmentLineViewModel}">
+        <Border Background="#2B579A"
+                BorderBrush="#4B86D9"
+                BorderThickness="1"
+                CornerRadius="2"
+                Height="{Binding Height, Mode=OneWay}"
+                Width="{Binding Width, Mode=OneWay}">
+            <TextBlock Text="{Binding Line.Name}" 
+                       Foreground="White" 
+                       VerticalAlignment="Center" 
+                       Margin="5,0,0,0" 
+                       FontSize="10" 
+                       Opacity="0.7"/>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vms:TimeLineKeyFrameViewModel}">
+        <Grid Width="10" Height="10" Background="Transparent" Cursor="Hand">
+            <Path x:Name="DiamondPath" 
+                  Data="M 5 0 L 10 5 L 5 10 L 0 5 Z"
+                  Fill="#A0A0A0" 
+                  Stroke="#D1D1D1" 
+                  StrokeThickness="1" 
+                  Stretch="Uniform" />
+        </Grid>
+
+        <DataTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="DiamondPath" Property="Fill" Value="#FFFFFF" />
+                <Setter TargetName="DiamondPath" Property="Stroke" Value="#007ACC" />
+            </Trigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    
+    
 
     <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
@@ -365,9 +400,7 @@
         <Setter Property="ItemTemplate">
             <Setter.Value>
                 <DataTemplate>
-                    <comp:TrackHeaderJudgementLine
-                        Line="{Binding Line}"
-                        IsExpanded="{Binding IsExpanded}" />
+                    <comp:TrackHeaderJudgementLine/>
                 </DataTemplate>
             </Setter.Value>
         </Setter>
@@ -451,13 +484,16 @@
 
 
 
-    <Style TargetType="{x:Type comp:TimeLine}" BasedOn="{StaticResource {x:Type nodify:NodifyEditor}}">
+    <Style TargetType="{x:Type comp:TimeLine}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="GridCellSize" Value="50" />
         <Setter Property="ItemContainerStyle">
             <Setter.Value>
                 <Style TargetType="{x:Type nodify:ItemContainer}">
                     <Setter Property="Location" Value="{Binding Location, Mode=OneWay}" />
+
+                    <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BoolToVis}}" />
+                    
                     <Setter Property="IsDraggable" Value="False" />
                     <Setter Property="Background" Value="Transparent" />
                     <Setter Property="BorderThickness" Value="0" />
@@ -469,25 +505,7 @@
                 </Style>
             </Setter.Value>
         </Setter>
-        <Setter Property="ItemTemplate">
-            <Setter.Value>
-                <DataTemplate DataType="{x:Type vms:TimeLineJudgmentLineViewModel}">
-                    <Border Background="#2B579A"
-                            BorderBrush="#4B86D9"
-                            BorderThickness="1"
-                            CornerRadius="2"
-                            Height="{Binding Height, Mode=OneWay}"
-                            Width="{Binding Width, Mode=OneWay}">
-                        <TextBlock Text="{Binding Line.Name}"
-                                   Foreground="White"
-                                   VerticalAlignment="Center"
-                                   Margin="5,0,0,0"
-                                   FontSize="10"
-                                   Opacity="0.7" />
-                    </Border>
-                </DataTemplate>
-            </Setter.Value>
-        </Setter>
+        
     </Style>
 
 </ResourceDictionary>

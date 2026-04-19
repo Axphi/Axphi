@@ -23,27 +23,7 @@ namespace Axphi.Components
 
 
 
-        public JudgementLine Line
-        {
-            get { return (JudgementLine)GetValue(LineProperty); }
-            set { SetValue(LineProperty, value); }
-        }
-
-        // Using a DependencyProperty as the backing store for Line.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty LineProperty =
-            DependencyProperty.Register(nameof(Line), typeof(JudgementLine), typeof(TrackHeaderJudgementLine), new PropertyMetadata(null)); // 这 null 为啥不报错 ??
-
-
-
-        public bool IsExpanded
-        {
-            get { return (bool)GetValue(IsExpandedProperty); }
-            set { SetValue(IsExpandedProperty, value); }
-        }
-
-        // Using a DependencyProperty as the backing store for IsExpanded.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty IsExpandedProperty =
-            DependencyProperty.Register(nameof(IsExpanded), typeof(bool), typeof(TrackHeaderJudgementLine), new PropertyMetadata(false));
+        
 
 
 

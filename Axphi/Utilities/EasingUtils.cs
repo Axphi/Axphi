@@ -25,7 +25,7 @@ namespace Axphi.Utilities
             {
                 int mid = left + (right - left) / 2;
 
-                if (keyFrames[mid].Time <= time)
+                if (keyFrames[mid].Tick <= time)
                 {
                     left = mid + 1;
                 }
@@ -44,10 +44,10 @@ namespace Axphi.Utilities
             {
                 secondKeyFrame = keyFrames[left];
 
-                double lastTime = left > 0 ? keyFrames[left - 1].Time : 0;
+                double lastTime = left > 0 ? keyFrames[left - 1].Tick : 0;
 
                 double elapsed = time - lastTime;
-                double total = keyFrames[left].Time - lastTime;
+                double total = keyFrames[left].Tick - lastTime;
 
                 normalizedTime = total > 0 ? (double)elapsed / total : 1.0;
             }
@@ -99,14 +99,14 @@ namespace Axphi.Utilities
             }
 
             var firstFrame = keyFrames[0];
-            if (time <= firstFrame.Time)
+            if (time <= firstFrame.Tick)
             {
                 finalValue = firstFrame.Value;
                 return;
             }
 
             var lastFrame = keyFrames[keyFrames.Count - 1];
-            if (time >= lastFrame.Time)
+            if (time >= lastFrame.Tick)
             {
                 finalValue = lastFrame.Value;
                 return;

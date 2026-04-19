@@ -13,7 +13,7 @@ namespace Axphi.ViewModels
 {
     public class TrackHeaderViewModel : ObservableObject
     {
-        // 私有字段，留着自己用
+        
         private readonly ProjectManager _projectManager;
 
 
@@ -29,7 +29,7 @@ namespace Axphi.ViewModels
             _projectManager.PropertyChanged += OnProjectManagerPropertyChanged;
 
 
-            // 🌟 监听服务的相机同步广播
+            // 监听服务的相机同步广播
             _layoutService.ViewportYChanged += (sender, newY) =>
             {
                 // 核心防抖：如果广播是我自己发出的，我就不处理，防止死循环
@@ -66,7 +66,7 @@ namespace Axphi.ViewModels
                 }
             }
         }
-        private void RefreshLineViewModels()
+        private void RefreshLineViewModels() 
         {
             LineViewModels.Clear();
 

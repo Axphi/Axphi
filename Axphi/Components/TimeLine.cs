@@ -17,7 +17,7 @@ namespace Axphi.Components
             ViewportLocationProperty.OverrideMetadata(
                 typeof(TimeLine),
                 new FrameworkPropertyMetadata(
-                    new Point(0, 0), // 默认值
+                    new Point(0, 0), // 默认值, 哦吼, 这里的叼坐标不能改成 (minX, 0), 否则属性不通知, 初次加载会 bug
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                     null, // PropertyChangedCallback
                     CoerceViewportLocation // 在这里拦截并修改坐标
@@ -27,14 +27,14 @@ namespace Axphi.Components
 
         public TimeLine()
         {
-            ViewportLocation = new Point(-5, 0);
+            ViewportLocation = new Point(minX, 0);
         }
 
         private static object CoerceViewportLocation(DependencyObject d, object baseValue)
         {
             if (baseValue is Point point)
             {
-                // 🌟 2. 相机限制：强制 X 和 Y 永远大于等于 0
+                // 🌟 2. 相机限制：强制 X 永远大于 minX (留有一些空隙) 和 Y 永远大于等于 0
                 return new Point(Math.Max(minX, point.X), Math.Max(0, point.Y));
             }
             return new Point(minX, 0);

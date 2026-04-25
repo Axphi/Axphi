@@ -73,5 +73,33 @@ namespace Axphi.ViewModels
         {
             _layoutService.LayoutUpdated -= OnLayoutUpdated;
         }
+
+
+
+        
+
+        
+
+        // 🌟 删除原来的 _accumulatedDeltaX 和旧方法，只保留这个：
+        public void MoveTickByAbsoluteDelta(double totalDeltaX, int startTick)
+        {
+            double pixelsPerTick = _timelineVM.PixelPerTick * _timelineVM.Zoom;
+
+            // 核心推导：物理总位移 / 每 Tick 的像素 = 跨越了多少个 Tick
+            double tickDeltaDouble = totalDeltaX / pixelsPerTick;
+
+            // 完美的四舍五入：正好跨过 ±0.5 像素门槛时才发生吸附！
+            int tickDelta = (int)Math.Round(tickDeltaDouble, MidpointRounding.AwayFromZero);
+
+            // 算出现在应该处于哪个 Tick（严禁越界到负数）
+            int newTick = Math.Max(0, startTick + tickDelta);
+
+            // 只有当 Tick 真的发生改变时，才去更新数据和触发 UI 瞬移
+            if (KeyFrameData.Tick != newTick)
+            {
+                KeyFrameData.Tick = newTick;
+                UpdateVisuals();
+            }
+        }
     }
 }

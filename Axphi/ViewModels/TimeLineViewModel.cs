@@ -20,11 +20,22 @@ namespace Axphi.ViewModels
             get => _viewportLocation;
             set
             {
-                if (SetProperty(ref _viewportLocation, value))
+                // 防止 timeLineRuler 抖动
+                // 在 VM 层直接钳制，绝对不允许非法值污染全局状态！
+                Point clampedValue = new Point(Math.Max(-5, value.X), Math.Max(0, value.Y));
+
+                if (SetProperty(ref _viewportLocation, clampedValue))
                 {
-                    // 把自己当前的 Y 同步给全局服务
-                    _layoutService.UpdateViewportY(value.Y, this);
+                    _layoutService.UpdateViewportY(clampedValue.Y, this);
                 }
+                else if (value != clampedValue)
+                {
+                    // 如果 UI 传来的非法值被我们无视了，
+                    // 必须立刻反抽 UI 一巴掌（触发通知），强制 UI 滚回合法位置！
+                    OnPropertyChanged(nameof(ViewportLocation));
+                }
+
+                UpdatePlayheadX();
             }
         }
 
@@ -161,8 +172,18 @@ namespace Axphi.ViewModels
         }
 
         // === 当用户使用快捷键/鼠标滚轮改变缩放时 ===
-        partial void OnZoomChanged(double value) => RefreshAllBlocksVisuals();
-        partial void OnPixelPerTickChanged(double value) => RefreshAllBlocksVisuals();
+        // === 当用户使用快捷键/鼠标滚轮改变缩放时 ===
+        partial void OnZoomChanged(double value)
+        {
+            RefreshAllBlocksVisuals();
+            UpdatePlayheadX(); // 🌟 缩放变了，游标位置也得重新算！
+        }
+
+        partial void OnPixelPerTickChanged(double value)
+        {
+            RefreshAllBlocksVisuals();
+            UpdatePlayheadX(); // 🌟 基础比例变了，游标位置也得重算！
+        }
 
         private void RefreshAllBlocksVisuals()
         {
@@ -176,6 +197,47 @@ namespace Axphi.ViewModels
         {
             _projectManager.PropertyChanged -= OnProjectManagerPropertyChanged;
             _layoutService.LayoutUpdated -= OnLayoutUpdated;
+        }
+
+
+        // === 游标状态 ===
+        private int _currentTick = 0;
+        public int CurrentTick
+        {
+            get => _currentTick;
+            set
+            {
+                if (SetProperty(ref _currentTick, value))
+                {
+                    UpdatePlayheadX();
+                }
+            }
+        }
+
+        private double _playheadX;
+        public double PlayheadX
+        {
+            get => _playheadX;
+            private set => SetProperty(ref _playheadX, value);
+        }
+
+        // 🌟 只要时间、缩放、相机位置一变，游标立刻自动对齐！
+        private void UpdatePlayheadX()
+        {
+            PlayheadX = (CurrentTick * PixelPerTick * Zoom) - ViewportLocation.X;
+        }
+
+        
+
+        // 🌟 供游标拖拽时调用的绝对位移算法 (和关键帧一模一样！)
+        public void MovePlayheadByAbsoluteDelta(double totalDeltaX, int startTick)
+        {
+            double pixelsPerTick = PixelPerTick * Zoom;
+            double tickDeltaDouble = totalDeltaX / pixelsPerTick;
+
+            // 四舍五入，保证完美吸附手感
+            int tickDelta = (int)Math.Round(tickDeltaDouble, MidpointRounding.AwayFromZero);
+            CurrentTick = Math.Max(0, startTick + tickDelta);
         }
     }
 }

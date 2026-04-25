@@ -47,11 +47,26 @@ namespace Axphi.Components
 
             if (Keyboard.Modifiers == ModifierKeys.Alt)
             {
-                // 🌟 3. Alt + 滚轮：缩放 (修改 Zoom 依赖属性)
-                double zoomSpeed = 0.05; // 缩放灵敏度
-                double newZoom = Zoom + (e.Delta > 0 ? zoomSpeed : -zoomSpeed);
-                // 钳制缩放比例，防止缩得太小或放得太大导致渲染崩溃
-                Zoom = Math.Clamp(newZoom, 0.1, 5.0);
+                // 获取鼠标当前在时间轴控件上的屏幕坐标 (X)
+                double mouseX = e.GetPosition(this).X;
+
+                // 计算新的缩放值
+                double zoomSpeed = 0.1;
+                double oldZoom = Zoom;
+                double newZoom = Zoom * (e.Delta > 0 ? (1 + zoomSpeed) : 1 / (1 + zoomSpeed));
+                newZoom = Math.Clamp(newZoom, 0.1, 40.0);
+
+                // 如果缩放已经到达极限（比如已经缩到最小 0.1），就直接退出，防止画面乱抖
+                if (Math.Abs(newZoom - oldZoom) < 0.001) return;
+
+                // 计算偏移比例，推算新相机位置
+                double zoomRatio = newZoom / oldZoom;
+                double newViewportX = (ViewportLocation.X + mouseX) * zoomRatio - mouseX;
+
+                // 同时更新 Zoom 和 相机位置
+                Zoom = newZoom;
+                // 同样要保留之前设计的越界到 -5 的权力
+                ViewportLocation = new Point(Math.Max(-5, newViewportX), ViewportLocation.Y);
             }
             else if (Keyboard.Modifiers == ModifierKeys.Shift)
             {

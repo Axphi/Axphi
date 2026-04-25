@@ -1,6 +1,7 @@
 ﻿using Axphi.ViewModels;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 
 namespace Axphi;
 
@@ -20,7 +21,7 @@ public partial class MainWindow : Window
         DataContext = mainViewModel;
     }
 
-
+    // 不是怎么不奏效
     // 拦截 Alt 键的系统级行为
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {

@@ -6,7 +6,8 @@
     xmlns:ws="https://schemas.elecho.dev/wpfsuite"
     xmlns:nodify="https://miroiu.github.io/nodify"
     xmlns:services="clr-namespace:Axphi.Services"
-    xmlns:vms="clr-namespace:Axphi.ViewModels">
+    xmlns:vms="clr-namespace:Axphi.ViewModels"
+    xmlns:v="clr-namespace:Axphi.Views">
 
 
     <DataTemplate DataType="{x:Type vms:TimeLineJudgmentLineViewModel}">
@@ -15,35 +16,14 @@
                 BorderThickness="1"
                 CornerRadius="2"
                 Height="{Binding Height, Mode=OneWay}"
-                Width="{Binding Width, Mode=OneWay}">
-            <TextBlock Text="{Binding Line.Name}" 
-                       Foreground="White" 
-                       VerticalAlignment="Center" 
-                       Margin="5,0,0,0" 
-                       FontSize="10" 
-                       Opacity="0.7"/>
-        </Border>
+                Width="{Binding Width, Mode=OneWay}"></Border>
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type vms:TimeLineKeyFrameViewModel}">
-        <Grid Width="10" Height="10" Background="Transparent" Cursor="Hand">
-            <Path x:Name="DiamondPath" 
-                  Data="M 5 0 L 10 5 L 5 10 L 0 5 Z"
-                  Fill="#A0A0A0" 
-                  Stroke="#D1D1D1" 
-                  StrokeThickness="1" 
-                  Stretch="Uniform" />
-        </Grid>
-
-        <DataTemplate.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="DiamondPath" Property="Fill" Value="#FFFFFF" />
-                <Setter TargetName="DiamondPath" Property="Stroke" Value="#007ACC" />
-            </Trigger>
-        </DataTemplate.Triggers>
+        <comp:KeyFrame />
     </DataTemplate>
-    
-    
+
+
 
     <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
@@ -400,7 +380,7 @@
         <Setter Property="ItemTemplate">
             <Setter.Value>
                 <DataTemplate>
-                    <comp:TrackHeaderJudgementLine/>
+                    <comp:TrackHeaderJudgementLine />
                 </DataTemplate>
             </Setter.Value>
         </Setter>
@@ -493,7 +473,7 @@
                     <Setter Property="Location" Value="{Binding Location, Mode=OneWay}" />
 
                     <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BoolToVis}}" />
-                    
+
                     <Setter Property="IsDraggable" Value="False" />
                     <Setter Property="Background" Value="Transparent" />
                     <Setter Property="BorderThickness" Value="0" />
@@ -505,7 +485,63 @@
                 </Style>
             </Setter.Value>
         </Setter>
-        
+
+    </Style>
+
+
+    <Style TargetType="{x:Type comp:KeyFrame}">
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Height" Value="10" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type comp:KeyFrame}">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Path x:Name="DiamondPath"
+                              Data="M 5 0 L 10 5 L 5 10 L 0 5 Z"
+                              Fill="#A0A0A0"
+                              Stroke="#D1D1D1"
+                              StrokeThickness="1"
+                              Stretch="Uniform" />
+                    </Grid>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="DiamondPath" Property="Fill" Value="#FFFFFF" />
+                            <Setter TargetName="DiamondPath" Property="Stroke" Value="#007ACC" />
+                        </Trigger>
+
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="DiamondPath" Property="Fill" Value="#007ACC" />
+                            <Setter TargetName="DiamondPath" Property="Stroke" Value="#FFFFFF" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type comp:Playhead}">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Margin" Value="-16,0,0,0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type comp:Playhead}">
+                    <Grid>
+                        <Rectangle Width="1.5"
+                                   Fill="#FF3333"
+                                   HorizontalAlignment="Center"
+                                   IsHitTestVisible="False" />
+
+                        <Path Data="M 0 0 L 16 0 L 8 10 Z"
+                              Fill="#FF3333"
+                              Height="14"
+                              VerticalAlignment="Top"
+                              Margin="8,0,0,0" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
 </ResourceDictionary>

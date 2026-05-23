@@ -7,7 +7,8 @@
     xmlns:nodify="https://miroiu.github.io/nodify"
     xmlns:services="clr-namespace:Axphi.Services"
     xmlns:vms="clr-namespace:Axphi.ViewModels"
-    xmlns:v="clr-namespace:Axphi.Views">
+    xmlns:v="clr-namespace:Axphi.Views"
+    xmlns:di="clr-namespace:Axphi.Utilities">
 
 
     <DataTemplate DataType="{x:Type vms:TimeLineJudgmentLineViewModel}">
@@ -20,7 +21,10 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type vms:TimeLineKeyFrameViewModel}">
-        <comp:KeyFrame />
+        <comp:KeyFrame
+            Tick="{Binding Tick, Mode=TwoWay}"
+            Zoom="{Binding DataContext.Zoom, RelativeSource={RelativeSource AncestorType=comp:TimeLine}}"
+            PixelPerTick="{Binding DataContext.PixelPerTick, RelativeSource={RelativeSource AncestorType=comp:TimeLine}}" />
     </DataTemplate>
 
 

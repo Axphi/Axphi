@@ -6,10 +6,26 @@ namespace Axphi.ViewModels
 {
     public abstract partial class TimeLineItemViewModelBase : ObservableObject, IDisposable
     {
-        // 🌟 修正为 int
-        public abstract int Tick { get; }
+        
+        public abstract int Tick { get; set; }
 
         public abstract Point Location { get; }
+
+
+        
+        private double _pixelPerTick;
+        public double PixelPerTick
+        {
+            get => _pixelPerTick;
+            set => SetProperty(ref _pixelPerTick, value);
+        }
+
+        private double _zoom;
+        public double Zoom
+        {
+            get => _zoom;
+            set => SetProperty(ref _zoom, value);
+        }
 
         [ObservableProperty]
         private bool _isVisible = true;

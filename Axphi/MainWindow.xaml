@@ -231,8 +231,6 @@
                             <!--  滚轮条  -->
                         </Grid.ColumnDefinitions>
 
-
-
                         <comp:TabPane
                              Grid.Column="0"
                              Header="Line">
@@ -247,27 +245,17 @@
                                     <RowDefinition Height="Auto" />
                                     <!--  滚轮条  -->
                                 </Grid.RowDefinitions>
-
                                 <comp:TrackHeader
                                     Grid.Row="2"
                                     DataContext="{di:DI {x:Type vms:TrackHeaderViewModel}}"
                                     ItemsSource="{Binding LineViewModels}"
-                                    ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}">
-
-                                    
-
-                                </comp:TrackHeader>
-
-
-
-
+                                    ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}"></comp:TrackHeader>
                             </Grid>
                         </comp:TabPane>
 
                         <comp:TabPane
                             Grid.Column="2"
                             Header="Layer">
-
 
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -278,32 +266,36 @@
                                 </Grid.RowDefinitions>
 
                                 <Grid Grid.Row="1" ClipToBounds="True">
-                                    <comp:TimelineRuler 
+                                    <comp:TimelineRuler
                                         DataContext="{di:DI {x:Type vms:TimeLineViewModel}}"
                                         Zoom="{Binding Zoom, Mode=OneWay}"
                                         PixelPerTick="{Binding PixelPerTick, Mode=OneWay}"
                                         VisibleOffsetX="{Binding ViewportLocation.X, Mode=OneWay}" />
 
-                                   
+
                                 </Grid>
 
                                 <Grid Grid.Row="2" ClipToBounds="True">
-                                    <comp:TimeLine 
+                                    <comp:TimeLine
                                         DataContext="{di:DI {x:Type vms:TimeLineViewModel}}"
-                                        ItemsSource="{Binding LineBlocks}"
+                                        ItemsSource="{Binding TimeLineElements}"
                                         ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}"
                                         Zoom="{Binding Zoom, Mode=TwoWay}"
                                         PixelPerTick="{Binding PixelPerTick, Mode=TwoWay}" />
 
-                                    
+
                                 </Grid>
 
-                                <Canvas Grid.Row="1" Grid.RowSpan="2" 
+                                <Canvas Grid.Row="1" Grid.RowSpan="2"
                                         Panel.ZIndex="100"
+                                        ClipToBounds="True"
                                         DataContext="{di:DI {x:Type vms:TimeLineViewModel}}">
 
-                                    <comp:Playhead Canvas.Left="{Binding PlayheadX}" 
-                                                          Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}" />
+                                    <comp:Playhead Canvas.Left="{Binding PlayheadX}"
+                                                   CurrentTick="{Binding CurrentTick, Mode=TwoWay}"
+                                                   Zoom="{Binding Zoom}"
+                                                   PixelPerTick="{Binding PixelPerTick}"
+                                                   Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}" />
                                 </Canvas>
 
 

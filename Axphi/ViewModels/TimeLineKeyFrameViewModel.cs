@@ -10,16 +10,28 @@ namespace Axphi.ViewModels
     {
         public JudgementLine OwnerLine { get; }
 
-        // 🌟 核心修改：使用非泛型接口！
         public IKeyFrame KeyFrameData { get; }
 
         public string PropertyName { get; }
 
-        private readonly TimeLineViewModel _timelineVM;
+        
         private readonly TrackLayoutService _layoutService;
 
-        // 🌟 完美获取 Tick，完全不需要知道它存的是 Vector 还是 double
-        public override int Tick => KeyFrameData.Tick;
+        
+        private int _tick;
+        public override int Tick
+        {
+            get => KeyFrameData.Tick;
+            set
+            {
+                if (KeyFrameData.Tick != value)
+                {
+                    KeyFrameData.Tick = value;
+                    UpdateVisuals();          // 重新计算 Location
+                    OnPropertyChanged(nameof(Tick));
+                }
+            }
+        }
 
         public override Point Location
         {
@@ -35,24 +47,34 @@ namespace Axphi.ViewModels
 
                 IsVisible = true;
 
-                // 🌟 核心计算：让 10x10 的菱形绝对居中
-                // 1. X 轴对齐：Tick 的实际像素位置 - 菱形宽度的一半 (5.0)
-                double x = (Tick * (_timelineVM.PixelPerTick * _timelineVM.Zoom)) - 5.0;
-                // 2. Y 轴对齐：属性行的顶端 Y + 属性行高的一半 - 菱形高度的一半 (5.0)
+                // 让 10x10 的菱形绝对居中
+                // X 轴对齐：Tick 的实际像素位置 - 菱形宽度的一半 (5.0)
+                double x = (Tick * (PixelPerTick * Zoom)) - 5.0;
+                // Y 轴对齐：属性行的顶端 Y + 属性行高的一半 - 菱形高度的一半 (5.0)
                 double y = targetY + (TrackLayoutService.PropertyRowHeight / 2.0) - 5.0;
 
                 return new Point(x, y);
             }
         }
 
-        // 构造函数接收 IKeyFrame
-        public TimeLineKeyFrameViewModel(JudgementLine ownerLine, string propertyName, IKeyFrame keyFrameData, TimeLineViewModel timelineVM, TrackLayoutService layoutService)
+        
+        public TimeLineKeyFrameViewModel(
+            JudgementLine ownerLine, 
+            string propertyName, 
+            IKeyFrame keyFrameData, 
+            TrackLayoutService layoutService, 
+            double pixelPerTick, 
+            double zoom)
         {
             OwnerLine = ownerLine;
             PropertyName = propertyName;
             KeyFrameData = keyFrameData;
-            _timelineVM = timelineVM;
+            
             _layoutService = layoutService;
+
+            // 初始化布局参数
+            PixelPerTick = pixelPerTick;
+            Zoom = zoom;
 
             _layoutService.LayoutUpdated += OnLayoutUpdated;
         }
@@ -80,26 +102,6 @@ namespace Axphi.ViewModels
 
         
 
-        // 🌟 删除原来的 _accumulatedDeltaX 和旧方法，只保留这个：
-        public void MoveTickByAbsoluteDelta(double totalDeltaX, int startTick)
-        {
-            double pixelsPerTick = _timelineVM.PixelPerTick * _timelineVM.Zoom;
-
-            // 核心推导：物理总位移 / 每 Tick 的像素 = 跨越了多少个 Tick
-            double tickDeltaDouble = totalDeltaX / pixelsPerTick;
-
-            // 完美的四舍五入：正好跨过 ±0.5 像素门槛时才发生吸附！
-            int tickDelta = (int)Math.Round(tickDeltaDouble, MidpointRounding.AwayFromZero);
-
-            // 算出现在应该处于哪个 Tick（严禁越界到负数）
-            int newTick = Math.Max(0, startTick + tickDelta);
-
-            // 只有当 Tick 真的发生改变时，才去更新数据和触发 UI 瞬移
-            if (KeyFrameData.Tick != newTick)
-            {
-                KeyFrameData.Tick = newTick;
-                UpdateVisuals();
-            }
-        }
+        
     }
 }

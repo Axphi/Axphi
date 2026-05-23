@@ -19,28 +19,24 @@ namespace Axphi.Services
         public static GridLength BaseTrackGridHeight => new GridLength(BaseTrackHeight);
         public static double PropertyRowHeightValue => PropertyRowHeight;
 
+        
+
+
         private readonly Dictionary<JudgementLine, double> _lineYCoordinates = new();
-
-        // 存具体的属性名字列表
         private readonly Dictionary<JudgementLine, List<string>> _lineActiveProperties = new();
-
         private List<JudgementLine> _orderedLines = new();
-
         public event EventHandler? LayoutUpdated;
 
 
-        // ================= 🌟 相机 Y 轴联动系统 =================
+        // 相机 Y 轴联动系统
         private double _viewportY = 0;
         public double ViewportY => _viewportY;
 
         // 当 Y 轴相机改变时触发，传递 (发送者, 新的Y坐标)
         public event EventHandler<double>? ViewportYChanged;
 
-        /// <summary>
-        /// 更新相机的 Y 坐标
-        /// </summary>
-        /// <param name="newY">新的 Y 坐标</param>
-        /// <param name="sender">是谁发起的修改（防止死循环）</param>
+        
+        // 更新相机的 Y 坐标
         public void UpdateViewportY(double newY, object sender)
         {
             // 如果差值极小（浮点数误差）就忽略，防止无限微调抖动

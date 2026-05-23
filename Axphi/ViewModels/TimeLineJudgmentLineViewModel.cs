@@ -9,11 +9,20 @@ namespace Axphi.ViewModels
     public partial class TimeLineJudgmentLineViewModel : TimeLineItemViewModelBase
     {
         public JudgementLine Line { get; }
+
+        // 啊哈哈...这个等一会再重构吧(((
         private readonly TimeLineViewModel _timelineVM;
+
+
+
         private readonly TrackLayoutService _layoutService;
 
         // 🌟 实现抽象属性
-        public override int Tick => Line.StartTick;
+        public override int Tick
+        {
+            get => Line.StartTick;
+            set { }
+        }
         public override Point Location => new Point(CalculateX(), _layoutService.GetYCoordinate(Line));
 
         public double Width => CalculateWidth();

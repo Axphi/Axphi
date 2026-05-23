@@ -8,7 +8,7 @@ namespace Axphi.Components
 {
     public class TimelineRuler : FrameworkElement
     {
-        // === 1. 时间轴缩放参数 ===
+        // 每 tick 多少像素
         public static readonly DependencyProperty PixelPerTickProperty =
             DependencyProperty.Register("PixelPerTick", typeof(double), typeof(TimelineRuler),
                 new FrameworkPropertyMetadata(0.5, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -19,6 +19,8 @@ namespace Axphi.Components
             set => SetValue(PixelPerTickProperty, value);
         }
 
+
+        // 缩放倍率
         public static readonly DependencyProperty ZoomProperty =
             DependencyProperty.Register("Zoom", typeof(double), typeof(TimelineRuler),
                 new FrameworkPropertyMetadata(1.0, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -29,7 +31,7 @@ namespace Axphi.Components
             set => SetValue(ZoomProperty, value);
         }
 
-        // === 2. 接收总长度 (可选，如果以后需要控制最长能滚到哪) ===
+        // 总 Tick 数量
         public static readonly DependencyProperty TotalTicksProperty =
             DependencyProperty.Register("TotalTicks", typeof(int), typeof(TimelineRuler),
                 new FrameworkPropertyMetadata(100000, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -40,7 +42,7 @@ namespace Axphi.Components
             set => SetValue(TotalTicksProperty, value);
         }
 
-        // === 3. 视口同步属性 (绑到相机的 X 轴) ===
+        // 窗口左侧刻度
         public static readonly DependencyProperty VisibleOffsetXProperty =
             DependencyProperty.Register("VisibleOffsetX", typeof(double), typeof(TimelineRuler),
                 new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -51,7 +53,7 @@ namespace Axphi.Components
             set => SetValue(VisibleOffsetXProperty, value);
         }
 
-        // === 4. 核心绘画引擎 (OnRender) ===
+        
         protected override void OnRender(DrawingContext dc)
         {
             base.OnRender(dc);

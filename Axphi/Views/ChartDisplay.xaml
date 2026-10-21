@@ -16,18 +16,19 @@
             DockPanel.Dock="Bottom"
             Orientation="Horizontal">
 
-            <ws:Button Command="{Binding ElementName=Root, Path=PlayPauseChartRenderingCommand}" Content="Play/Pause" />
+            <ws:Button Command="{Binding PlayPauseChartRenderingCommand}" Content="Play/Pause" />
 
-            <ws:Button Command="{Binding ElementName=Root, Path=StopChartRenderingCommand}" Content="Stop" />
+            <ws:Button Command="{Binding StopChartRenderingCommand}" Content="Stop" />
         </StackPanel>
 
         <comp:ChartRenderer
             x:Name="InternalChartRenderer"
-            Chart="{Binding ProjectManager.EditingProject.Chart}"
-            IllustrationBytes="{Binding ProjectManager.EditingProject.EncodedIllustration}"
-            BackgroundDimOpacity="{Binding ElementName=Root, Path=BackgroundDimOpacity}"
+            Chart="{Binding CurrentChart}"
+            Time="{Binding CurrentTime}"
+            IllustrationBytes="{Binding IllustrationBytes}"
+            BackgroundDimOpacity="{Binding BackgroundDimOpacity}"
             ClipToBounds="True"
-            ShowAuxiliaryUi="{Binding ElementName=Root, Path=ShowAuxiliaryUi}"
-            ShowNoteCenters="{Binding ElementName=Root, Path=ShowNoteCenters}" />
+            ShowAuxiliaryUi="{Binding ShowAuxiliaryUi}"
+            ShowNoteCenters="{Binding ShowNoteCenters}" />
     </DockPanel>
 </UserControl>

@@ -1,5 +1,4 @@
-﻿using Axphi.ViewModels;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -51,6 +50,19 @@ namespace Axphi.Components
         {
             get => (double)GetValue(VisibleOffsetXProperty);
             set => SetValue(VisibleOffsetXProperty, value);
+        }
+
+        public static readonly DependencyProperty CurrentTickProperty =
+            DependencyProperty.Register(
+                nameof(CurrentTick),
+                typeof(int),
+                typeof(TimelineRuler),
+                new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+        public int CurrentTick
+        {
+            get => (int)GetValue(CurrentTickProperty);
+            set => SetValue(CurrentTickProperty, value);
         }
 
         
@@ -169,22 +181,22 @@ namespace Axphi.Components
         // 核心反推算法
         private void SeekPlayheadToMouse(double mouseX)
         {
-            if (DataContext is TimeLineViewModel vm)
+            // 1. 计算鼠标相当于 0 刻度的绝对物理像素。
+            // VisibleOffsetX 就是时间线当前 X 方向相机偏移。
+            double totalAbsolutePixels = mouseX + VisibleOffsetX;
+
+            // 2. 当前每 Tick 的实际宽度。
+            double actualPixelsPerTick = PixelPerTick * Zoom;
+            if (actualPixelsPerTick <= 0)
             {
-                // 1. 计算鼠标相当于 0 刻度的绝对物理像素
-                // 因为相机可能往右滚了 (ViewportLocation.X 为正)
-                // 也可能处于初始的 Padding 留白状态 (ViewportLocation.X 为 -5)
-                double totalAbsolutePixels = mouseX + vm.ViewportLocation.X;
-
-                // 2. 当前每 Tick 的实际宽度
-                double actualPixelsPerTick = vm.PixelPerTick * vm.Zoom;
-
-                // 3. 像素 ÷ 单价 = 数量，并采用完美的四舍五入吸附手感
-                int targetTick = (int)Math.Round(totalAbsolutePixels / actualPixelsPerTick, MidpointRounding.AwayFromZero);
-
-                // 4. 修改 VM 底层数据，钳制在 0 以上
-                vm.CurrentTick = Math.Max(0, targetTick);
+                return;
             }
+
+            // 3. 像素 ÷ 单价 = 数量，并采用四舍五入吸附手感。
+            int targetTick = (int)Math.Round(totalAbsolutePixels / actualPixelsPerTick, MidpointRounding.AwayFromZero);
+
+            // 4. 只写 DP，由绑定决定外部如何处理。
+            CurrentTick = Math.Max(0, targetTick);
         }
     }
 }

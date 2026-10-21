@@ -5,10 +5,8 @@ using System;
 using CommunityToolkit.Mvvm.Messaging;
 using Axphi.Services;
 using Axphi.Utilities;
-using Axphi.Views.Dialogs;
 using System.IO;
 using System.Text.Json;
-using System.Windows;
 using System.Threading.Tasks;
 
 namespace Axphi.ViewModels;
@@ -16,12 +14,26 @@ namespace Axphi.ViewModels;
 public partial class FileActionsViewModel : ObservableObject
 {
     private readonly IFileService _fileService;
+    private readonly IMessenger _messenger;
+    private readonly INotificationService _notificationService;
+    private readonly IOfficialChartExportDialogService _exportDialogService;
+    private readonly IProjectStorageService _projectStorageService;
     public ProjectManager ProjectManager { get; }
 
     // 这个类只关心它自己需要的服务：IFileService 和 ProjectManager
-    public FileActionsViewModel(IFileService fileService, ProjectManager projectManager)
+    public FileActionsViewModel(
+        IFileService fileService,
+        ProjectManager projectManager,
+        IMessenger messenger,
+        INotificationService notificationService,
+        IOfficialChartExportDialogService exportDialogService,
+        IProjectStorageService projectStorageService)
     {
         _fileService = fileService;
+        _messenger = messenger;
+        _notificationService = notificationService;
+        _exportDialogService = exportDialogService;
+        _projectStorageService = projectStorageService;
         ProjectManager = projectManager;
     }
 
@@ -36,7 +48,7 @@ public partial class FileActionsViewModel : ObservableObject
             ProjectManager.EditingProject.EncodedAudio = File.ReadAllBytes(filePath);
 
             // 发送消息通知 UI
-            WeakReferenceMessenger.Default.Send(new AudioLoadedMessage(filePath));
+            _messenger.Send(new AudioLoadedMessage(filePath));
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -61,7 +73,7 @@ public partial class FileActionsViewModel : ObservableObject
         try
         {
             ProjectManager.EditingProject.EncodedIllustration = File.ReadAllBytes(filePath);
-            WeakReferenceMessenger.Default.Send(new IllustrationLoadedMessage());
+            _messenger.Send(new IllustrationLoadedMessage());
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -85,8 +97,7 @@ public partial class FileActionsViewModel : ObservableObject
 
         try
         {
-            ProjectManager.LoadEditingProject(filePath);
-            WeakReferenceMessenger.Default.Send(new ProjectLoadedMessage());
+            ProjectManager.SetEditingProject(_projectStorageService.LoadProject(filePath), filePath);
         }
         catch (InvalidDataException ex)
         {
@@ -125,7 +136,7 @@ public partial class FileActionsViewModel : ObservableObject
 
         try
         {
-            ProjectManager.SaveEditingProject(ProjectManager.EditingProjectFilePath);
+            _projectStorageService.SaveProject(ProjectManager.EditingProject, ProjectManager.EditingProjectFilePath);
         }
         catch (ArgumentException ex)
         {
@@ -159,36 +170,24 @@ public partial class FileActionsViewModel : ObservableObject
         string? savePath = _fileService.SaveOfficialChartFile(defaultFileName);
         if (savePath == null) return;
 
-        var setupDialog = new OfficialChartExportProgressDialog(setupMode: true);
-        if (Application.Current?.MainWindow is Window mainWindow)
-        {
-            setupDialog.Owner = mainWindow;
-        }
-
-        bool? confirmed = setupDialog.ShowDialog();
-        if (confirmed != true)
+        var exportSettings = _exportDialogService.ShowSetupDialog();
+        if (exportSettings is null)
         {
             return;
         }
 
-        var exportOptions = new OfficialChartExporter.ExportOptions(setupDialog.CalculateFloorPosition);
+        var exportOptions = new OfficialChartExporter.ExportOptions(exportSettings.Value.CalculateFloorPosition);
 
-        var progressDialog = new OfficialChartExportProgressDialog();
-        if (Application.Current?.MainWindow is Window progressOwner)
-        {
-            progressDialog.Owner = progressOwner;
-        }
-
-        progressDialog.UpdateProgress(0.0, "准备导出官谱...");
+        using var progressSession = _exportDialogService.CreateProgressSession();
 
         var progress = new Progress<OfficialChartExporter.ExportProgress>(update =>
         {
-            progressDialog.UpdateProgress(update.Fraction, update.Message);
+            progressSession.Update(update.Fraction, update.Message);
         });
 
         try
         {
-            progressDialog.Show();
+            progressSession.Show();
             await Task.Run(() => OfficialChartExporter.ExportWithProgress(ProjectManager.EditingProject, savePath, progress, exportOptions));
         }
         catch (ArgumentException ex)
@@ -207,21 +206,13 @@ public partial class FileActionsViewModel : ObservableObject
         {
             ShowFileActionError("export official chart", "Export Official Chart Failed", savePath, $"An unexpected error occurred while exporting official chart.\n\n{ex.Message}");
         }
-        finally
-        {
-            if (progressDialog.IsVisible)
-            {
-                progressDialog.Close();
-            }
-        }
     }
 
-    private static void ShowFileActionError(string actionName, string title, string? filePath, string details)
+    private void ShowFileActionError(string actionName, string title, string? filePath, string details)
     {
-        MessageBox.Show(
-            $"Failed to {actionName}:\n{filePath ?? "(no path)"}\n\n{details}",
+        _notificationService.ShowError(
             title,
-            MessageBoxButton.OK,
-            MessageBoxImage.Error);
+            $"Failed to {actionName}:\n{filePath ?? "(no path)"}\n\n{details}"
+        );
     }
 }

@@ -1,23 +1,29 @@
 ﻿using Axphi.Data;
-using Axphi.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 
 namespace Axphi.Services
 {
-    public class TrackLayoutService
+    public class TrackLayoutService : ITrackLayoutProvider
     {
+        private static readonly string[] DefaultVisibleProperties =
+        [
+            "Position",
+            "Scale",
+            "Rotation",
+            "Opacity",
+            "Speed"
+        ];
+
         // 常量定义：轨道基础高度、属性行高度、轨道间距
         public const double BaseTrackHeight = 20.0;
         public const double PropertyRowHeight = 18.0;
         public const double TrackSpacing = 2.5;
 
-
-        // 给 xaml 用的
-        public static GridLength BaseTrackGridHeight => new GridLength(BaseTrackHeight);
-        public static double PropertyRowHeightValue => PropertyRowHeight;
+        double ITrackLayoutProvider.BaseTrackHeight => BaseTrackHeight;
+        double ITrackLayoutProvider.PropertyRowHeight => PropertyRowHeight;
+        double ITrackLayoutProvider.TrackSpacing => TrackSpacing;
 
         
 
@@ -26,6 +32,8 @@ namespace Axphi.Services
         private readonly Dictionary<JudgementLine, List<string>> _lineActiveProperties = new();
         private List<JudgementLine> _orderedLines = new();
         public event EventHandler? LayoutUpdated;
+
+        public double ContentHeight { get; private set; }
 
 
         // 相机 Y 轴联动系统
@@ -65,7 +73,30 @@ namespace Axphi.Services
             RecalculateLayout();
         }
 
-        // 🌟 左侧表头调用：直接把最新的属性列表塞进来
+        public bool IsLineExpanded(JudgementLine line)
+        {
+            return _lineActiveProperties.TryGetValue(line, out var props) && props.Count > 0;
+        }
+
+        public void ToggleLineExpanded(JudgementLine line)
+        {
+            SetLineExpanded(line, !IsLineExpanded(line));
+        }
+
+        public void SetLineExpanded(JudgementLine line, bool isExpanded)
+        {
+            if (!_lineActiveProperties.ContainsKey(line))
+            {
+                _lineActiveProperties[line] = new List<string>();
+            }
+
+            _lineActiveProperties[line] = isExpanded
+                ? DefaultVisibleProperties.ToList()
+                : new List<string>();
+
+            RecalculateLayout();
+        }
+
         public void UpdateActiveProperties(JudgementLine line, IEnumerable<string> activeProperties)
         {
             _lineActiveProperties[line] = activeProperties.ToList();
@@ -75,6 +106,11 @@ namespace Axphi.Services
         public double GetYCoordinate(JudgementLine line)
         {
             return _lineYCoordinates.TryGetValue(line, out double y) ? y : 0;
+        }
+
+        public double GetLineYCoordinate(JudgementLine line)
+        {
+            return GetYCoordinate(line);
         }
 
 
@@ -121,6 +157,8 @@ namespace Axphi.Services
 
                 currentY += currentTrackTotalHeight + TrackSpacing;
             }
+
+            ContentHeight = Math.Max(0, currentY - TrackSpacing);
 
             LayoutUpdated?.Invoke(this, EventArgs.Empty);
         }

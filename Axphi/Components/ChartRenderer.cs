@@ -3,6 +3,7 @@ using Axphi.Data.KeyFrames;
 using Axphi.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -149,7 +150,7 @@ namespace Axphi.Components
             }
             catch (Exception ex)
             {
-                MessageBox.Show("图片没找到: " + ex.Message);
+                Debug.WriteLine($"Failed to load hit effect sprite sheet: {ex}");
             }
         }
         public TimeSpan Time

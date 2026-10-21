@@ -19,9 +19,9 @@ public partial class MainWindow : Window
 
         _mainViewModel = mainViewModel;
         DataContext = mainViewModel;
+        Closed += (_, _) => _mainViewModel.Dispose();
     }
 
-    // 不是怎么不奏效
     // 拦截 Alt 键的系统级行为
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {

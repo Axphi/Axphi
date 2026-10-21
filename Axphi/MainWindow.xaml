@@ -13,8 +13,6 @@
     Height="650"
     d:DataContext="{d:DesignInstance Type=local:MainWindow, IsDesignTimeCreatable=False}"
     ws:WindowOption.IsCaptionMenuVisible="False"
-    xmlns:di="clr-namespace:Axphi.Utilities"
-    xmlns:vms="clr-namespace:Axphi.ViewModels"
     Background="#1f1f1f"
     Foreground="#d6d6d6"
     mc:Ignorable="d"
@@ -161,11 +159,11 @@
                                 Minimum="0.1"
                                 Maximum="4"
                                 NumberFormat="0.00'x'"
-                                Value="{Binding ElementName=MainChartDisplay, Path=PlaybackSpeed, Mode=TwoWay}" />
+                                Value="{Binding ElementName=MainChartDisplay, Path=DataContext.PlaybackSpeed, Mode=TwoWay}" />
                                 <CheckBox
                                 Margin="10,0,0,0"
                                 VerticalAlignment="Center"
-                                IsChecked="{Binding ElementName=MainChartDisplay, Path=PreserveAudioPitch, Mode=TwoWay}" />
+                                IsChecked="{Binding ElementName=MainChartDisplay, Path=DataContext.PreserveAudioPitch, Mode=TwoWay}" />
                                 <TextBlock
                                 Margin="6,0,0,0"
                                 VerticalAlignment="Center"
@@ -176,7 +174,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <CheckBox
                                 VerticalAlignment="Center"
-                                IsChecked="{Binding ElementName=MainChartDisplay, Path=ShowAuxiliaryUi, Mode=TwoWay}" />
+                                IsChecked="{Binding ElementName=MainChartDisplay, Path=DataContext.ShowAuxiliaryUi, Mode=TwoWay}" />
                                 <TextBlock
                                 Margin="6,0,0,0"
                                 VerticalAlignment="Center"
@@ -187,8 +185,8 @@
                             <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
                                 <CheckBox
                                 VerticalAlignment="Center"
-                                IsChecked="{Binding ElementName=MainChartDisplay, Path=ShowNoteCenters, Mode=TwoWay}"
-                                IsEnabled="{Binding ElementName=MainChartDisplay, Path=ShowAuxiliaryUi}" />
+                                IsChecked="{Binding ElementName=MainChartDisplay, Path=DataContext.ShowNoteCenters, Mode=TwoWay}"
+                                IsEnabled="{Binding ElementName=MainChartDisplay, Path=DataContext.ShowAuxiliaryUi}" />
                                 <TextBlock
                                 Margin="6,0,0,0"
                                 VerticalAlignment="Center"
@@ -208,7 +206,7 @@
                                 Minimum="0"
                                 Maximum="1"
                                 NumberFormat="0.00"
-                                Value="{Binding ElementName=MainChartDisplay, Path=BackgroundDimOpacity, Mode=TwoWay}" />
+                                Value="{Binding ElementName=MainChartDisplay, Path=DataContext.BackgroundDimOpacity, Mode=TwoWay}" />
                             </StackPanel>
                         </StackPanel>
                     </comp:TabPane>
@@ -247,8 +245,11 @@
                                 </Grid.RowDefinitions>
                                 <comp:TrackHeader
                                     Grid.Row="2"
-                                    DataContext="{di:DI {x:Type vms:TrackHeaderViewModel}}"
-                                    ItemsSource="{Binding LineViewModels}"
+                                    DataContext="{Binding TrackHeaderViewModel}"
+                                    Chart="{Binding CurrentChart}"
+                                    LayoutProvider="{Binding LayoutProvider}"
+                                    ContentHeight="{Binding ContentHeight, Mode=OneWay}"
+                                    LayoutVersion="{Binding LayoutVersion, Mode=OneWay}"
                                     ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}"></comp:TrackHeader>
                             </Grid>
                         </comp:TabPane>
@@ -267,29 +268,33 @@
 
                                 <Grid Grid.Row="1" ClipToBounds="True">
                                     <comp:TimelineRuler
-                                        DataContext="{di:DI {x:Type vms:TimeLineViewModel}}"
+                                        DataContext="{Binding TimeLineViewModel}"
                                         Zoom="{Binding Zoom, Mode=OneWay}"
                                         PixelPerTick="{Binding PixelPerTick, Mode=OneWay}"
+                                        CurrentTick="{Binding CurrentTick, Mode=TwoWay}"
                                         VisibleOffsetX="{Binding ViewportLocation.X, Mode=OneWay}" />
 
 
                                 </Grid>
 
                                 <Grid Grid.Row="2" ClipToBounds="True">
-                                    <comp:TimeLine
-                                        DataContext="{di:DI {x:Type vms:TimeLineViewModel}}"
-                                        ItemsSource="{Binding TimeLineElements}"
+                                    <comp:TimelineRenderSurface
+                                        DataContext="{Binding TimeLineViewModel}"
+                                        Chart="{Binding CurrentChart}"
+                                        LayoutProvider="{Binding LayoutProvider}"
+                                        ContentHeight="{Binding ContentHeight, Mode=OneWay}"
+                                        LayoutVersion="{Binding LayoutVersion, Mode=OneWay}"
                                         ViewportLocation="{Binding ViewportLocation, Mode=TwoWay}"
                                         Zoom="{Binding Zoom, Mode=TwoWay}"
-                                        PixelPerTick="{Binding PixelPerTick, Mode=TwoWay}" />
-
+                                        PixelPerTick="{Binding PixelPerTick, Mode=OneWay}"
+                                        Focusable="True" />
 
                                 </Grid>
 
                                 <Canvas Grid.Row="1" Grid.RowSpan="2"
                                         Panel.ZIndex="100"
                                         ClipToBounds="True"
-                                        DataContext="{di:DI {x:Type vms:TimeLineViewModel}}">
+                                    DataContext="{Binding TimeLineViewModel}">
 
                                     <comp:Playhead Canvas.Left="{Binding PlayheadX}"
                                                    CurrentTick="{Binding CurrentTick, Mode=TwoWay}"
@@ -354,7 +359,7 @@
 
                     <!--  渲染窗口  -->
                     <Grid Grid.Row="0" Grid.Column="2">
-                        <v:ChartDisplay x:Name="MainChartDisplay" />
+                        <v:ChartDisplay x:Name="MainChartDisplay" DataContext="{Binding ChartDisplayViewModel}" />
 
                         <Grid IsHitTestVisible="True" ClipToBounds="True">
                             <Grid.Style>

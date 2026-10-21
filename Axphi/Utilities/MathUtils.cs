@@ -1,4 +1,4 @@
-using System.Windows;
+using Axphi.Data;
 
 namespace Axphi.Utilities;
 
@@ -12,9 +12,9 @@ internal static class MathUtils
         return start + (end - start) * t;
     }
 
-    public static Vector Lerp(Vector start, Vector end, double t)
+    public static ChartVector Lerp(ChartVector start, ChartVector end, double t)
     {
-        return new Vector(
+        return new ChartVector(
             Lerp(start.X, end.X, t),
             Lerp(start.Y, end.Y, t));
     }

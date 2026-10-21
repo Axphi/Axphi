@@ -517,7 +517,7 @@ internal static class OfficialChartExporter
         var properties = note.Properties;
         bool hasRotationChange = HasScalarPropertyChange(properties.Rotation, 0.0);
         bool hasAnchorChange = HasVectorPropertyChange(properties.Anchor, default);
-        bool hasScaleChange = HasVectorPropertyChange(properties.Scale, new Vector(1, 1));
+        bool hasScaleChange = HasVectorPropertyChange(properties.Scale, new ChartVector(1, 1));
         bool hasOpacityChange = HasScalarPropertyChange(properties.Opacity, 100.0);
         bool hasOffsetExpression = properties.Position.ExpressionEnabled && !string.IsNullOrWhiteSpace(properties.Position.ExpressionText);
         bool hasOffsetMotionKeyframes = HasOffsetXMotion(note);
@@ -544,7 +544,7 @@ internal static class OfficialChartExporter
             || property.KeyFrames.Any(frame => !AreClose(frame.Value, defaultValue));
     }
 
-    private static bool HasVectorPropertyChange(Property<Vector> property, Vector defaultValue)
+    private static bool HasVectorPropertyChange(Property<ChartVector> property, ChartVector defaultValue)
     {
         return !AreClose(property.InitialValue, defaultValue)
             || (property.ExpressionEnabled && !string.IsNullOrWhiteSpace(property.ExpressionText))
@@ -560,7 +560,7 @@ internal static class OfficialChartExporter
         }
 
         double previousX = offset.InitialValue.X;
-        foreach (KeyFrame<Vector> frame in offset.KeyFrames.OrderBy(frame => frame.Tick))
+        foreach (KeyFrame<ChartVector> frame in offset.KeyFrames.OrderBy(frame => frame.Tick))
         {
             if (!AreClose(frame.Value.X, previousX))
             {
@@ -593,7 +593,7 @@ internal static class OfficialChartExporter
             note.Properties,
             chart,
             out _,
-            out Vector notePosition,
+            out ChartVector notePosition,
             out _,
             out _,
             out _);
@@ -1034,6 +1034,11 @@ internal static class OfficialChartExporter
         return AreClose(left.X, right.X) && AreClose(left.Y, right.Y);
     }
 
+    private static bool AreClose(ChartVector left, ChartVector right)
+    {
+        return AreClose(left.X, right.X) && AreClose(left.Y, right.Y);
+    }
+
     private static void EvaluateCarrierWorldTransformAtTick(Chart chart, JudgementLine sourceLine, Note note, NoteExportStrategy strategy, int tick, IReadOnlyDictionary<string, JudgementLine> lineById, out Vector offset, out double rotation)
     {
         Matrix lineWorldMatrix = BuildLineWorldMatrix(sourceLine, tick, chart, lineById, new HashSet<string>(StringComparer.Ordinal));
@@ -1203,7 +1208,7 @@ internal static class OfficialChartExporter
         return new Vector(value.X * scalar, value.Y * scalar);
     }
 
-    private static void EvaluateLineTransformAtTick(Chart chart, JudgementLine line, int tick, out Vector offset, out double rotation, out double opacity)
+    private static void EvaluateLineTransformAtTick(Chart chart, JudgementLine line, int tick, out ChartVector offset, out double rotation, out double opacity)
     {
         EasingUtils.CalculateObjectTransform(
             tick,

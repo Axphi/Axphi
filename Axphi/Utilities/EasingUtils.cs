@@ -2,7 +2,6 @@
 using Axphi.Data;
 using System;
 using System.Collections.Generic;
-using System.Windows;
 using Axphi.Data.AnimatableProperties;
 
 namespace Axphi.Utilities
@@ -203,7 +202,7 @@ namespace Axphi.Utilities
             int time,
             KeyFrameEasingDirection easingDirection,
             IProperties properties, // 👈 修改
-            out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+            out ChartVector finalAnchor, out ChartVector finalOffset, out ChartVector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
             CalculateObjectTransform((double)time, easingDirection, properties, null, out finalAnchor, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
         }
@@ -212,7 +211,7 @@ namespace Axphi.Utilities
             double time,
             KeyFrameEasingDirection easingDirection,
             IProperties properties, // 👈 修改
-            out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+            out ChartVector finalAnchor, out ChartVector finalOffset, out ChartVector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
             CalculateObjectTransform(time, easingDirection, properties, null, out finalAnchor, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
         }
@@ -222,7 +221,7 @@ namespace Axphi.Utilities
             KeyFrameEasingDirection easingDirection,
             IProperties properties, // 👈 修改
             Chart? chart,
-            out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+            out ChartVector finalAnchor, out ChartVector finalOffset, out ChartVector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
             CalculateObjectTransform((double)time, easingDirection, properties, chart, out finalAnchor, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
         }
@@ -233,7 +232,7 @@ namespace Axphi.Utilities
             IProperties properties, // 👈 修改
             Chart? chart,
             JudgementLine? currentLine,
-            out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+            out ChartVector finalAnchor, out ChartVector finalOffset, out ChartVector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
             finalAnchor = properties.Anchor.InitialValue;
 
@@ -277,7 +276,7 @@ namespace Axphi.Utilities
             KeyFrameEasingDirection easingDirection,
             IProperties properties, // 👈 修改
             Chart? chart,
-            out Vector finalAnchor, out Vector finalOffset, out Vector finalScale, out double finalRotationAngle, out double finalOpacity)
+            out ChartVector finalAnchor, out ChartVector finalOffset, out ChartVector finalScale, out double finalRotationAngle, out double finalOpacity)
         {
             CalculateObjectTransform(time, easingDirection, properties, chart, null, out finalAnchor, out finalOffset, out finalScale, out finalRotationAngle, out finalOpacity);
         }

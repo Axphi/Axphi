@@ -1,11 +1,8 @@
 ﻿using Axphi.Data;
-using Axphi.Data.KeyFrames; // 确保引用了你的 IKeyFrame
 using Axphi.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Windows;
 
 namespace Axphi.ViewModels
@@ -17,6 +14,7 @@ namespace Axphi.ViewModels
         // 必要服务
         private readonly ProjectManager _projectManager;
         private readonly TrackLayoutService _layoutService;
+        private readonly PlaybackPositionService _playbackPositionService;
 
 
         // 时间轴相机的位置
@@ -54,25 +52,22 @@ namespace Axphi.ViewModels
 
         
 
-        // 给轨道的的 UI 列表
-        public ObservableCollection<TimeLineItemViewModelBase> TimeLineElements { get; } = new();
+        public Chart? CurrentChart => _projectManager.EditingProject?.Chart;
+        public double ContentHeight => _layoutService.ContentHeight;
+        public ITrackLayoutProvider LayoutProvider => _layoutService;
 
-        public TimeLineViewModel(ProjectManager projectManager, TrackLayoutService layoutService)
+        [ObservableProperty]
+        private int _layoutVersion;
+
+        public TimeLineViewModel(ProjectManager projectManager, TrackLayoutService layoutService, PlaybackPositionService playbackPositionService)
         {
             _projectManager = projectManager;
             _layoutService = layoutService;
+            _playbackPositionService = playbackPositionService;
 
 
             // 监听服务的相机同步广播
-            _layoutService.ViewportYChanged += (sender, newY) =>
-            {
-                // 如果广播是我自己发出的，或者 Y 根本没变，就不处理
-                if (sender != this && Math.Abs(_viewportLocation.Y - newY) > 0.01)
-                {
-                    // 替换 Y
-                    ViewportLocation = new Point(_viewportLocation.X, newY);
-                }
-            };
+            _layoutService.ViewportYChanged += OnViewportYChanged;
 
             // 监听布局服务，防止在缩放或调整 X 轴时，错过 Y 轴的变动（双保险）
             _layoutService.LayoutUpdated += OnLayoutUpdated;
@@ -80,7 +75,7 @@ namespace Axphi.ViewModels
             // 监听工程变更，确保谱面切换时能够同步刷新
             _projectManager.PropertyChanged += OnProjectManagerPropertyChanged;
 
-            RefreshElements();
+            _playbackPositionService.PropertyChanged += OnPlaybackPositionPropertyChanged;
 
             ViewportLocation = new Point(-5, 0);
         }
@@ -89,93 +84,48 @@ namespace Axphi.ViewModels
         {
             if (e.PropertyName == nameof(_projectManager.EditingProject) || e.PropertyName == "Chart")
             {
-                RefreshElements();
+                OnPropertyChanged(nameof(CurrentChart));
+            }
+        }
+
+        private void OnViewportYChanged(object? sender, double newY)
+        {
+            // 如果广播是我自己发出的，或者 Y 根本没变，就不处理
+            if (sender != this && Math.Abs(_viewportLocation.Y - newY) > 0.01)
+            {
+                // 替换 Y
+                ViewportLocation = new Point(_viewportLocation.X, newY);
             }
         }
 
         private void OnLayoutUpdated(object? sender, EventArgs e)
         {
-            // 虽然每个子 Block 自己会监听 Y，但有时需要父级配合触发
-            // 这里暂不执行，交给 TimeLineJudgmentLineViewModel 自己处理 Y 的变化。
+            OnPropertyChanged(nameof(ContentHeight));
+            LayoutVersion++;
         }
 
-        private void RefreshElements()
+        private void OnPlaybackPositionPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            // 清理旧资源，防止事件泄漏
-            foreach (var block in TimeLineElements)
+            if (e.PropertyName == nameof(PlaybackPositionService.CurrentTick)
+                && CurrentTick != _playbackPositionService.CurrentTick)
             {
-                block.Dispose();
+                CurrentTick = _playbackPositionService.CurrentTick;
             }
-            TimeLineElements.Clear();
+        }
 
-            var chart = _projectManager.EditingProject?.Chart;
-            if (chart?.JudgementLines == null) return;
+        public double GetLineYCoordinate(JudgementLine line)
+        {
+            return _layoutService.GetYCoordinate(line);
+        }
 
-            // 遍历底层的每一根判定线
-            foreach (var line in chart.JudgementLines)
-            {
-                // 先把判定线本身的蓝色图层塞进去
-                var lineBlockVM = new TimeLineJudgmentLineViewModel(line, this, _layoutService);
-                TimeLineElements.Add(lineBlockVM);
-
-                // 扫描这根判定线所有的属性，把里面的关键帧提取出来变成菱形
-                if (line.Properties != null)
-                {
-                    // 提取 Position 关键帧
-                    if (line.Properties.Position?.KeyFrames != null)
-                    {
-                        foreach (var kf in line.Properties.Position.KeyFrames)
-                        {
-                            TimeLineElements.Add(new TimeLineKeyFrameViewModel(line, "Position", kf, _layoutService, this.PixelPerTick, this.Zoom));
-                        }
-                    }
-
-                    // 提取 Scale 关键帧
-                    if (line.Properties.Scale?.KeyFrames != null)
-                    {
-                        foreach (var kf in line.Properties.Scale.KeyFrames)
-                        {
-                            TimeLineElements.Add(new TimeLineKeyFrameViewModel(line, "Scale", kf,  _layoutService, this.PixelPerTick, this.Zoom));
-                        }
-                    }
-
-                    // 提取 Rotation 关键帧
-                    if (line.Properties.Rotation?.KeyFrames != null)
-                    {
-                        foreach (var kf in line.Properties.Rotation.KeyFrames)
-                        {
-                            TimeLineElements.Add(new TimeLineKeyFrameViewModel(line, "Rotation", kf,  _layoutService, this.PixelPerTick, this.Zoom));
-                        }
-                    }
-
-                    // 提取 Opacity 关键帧
-                    if (line.Properties.Opacity?.KeyFrames != null)
-                    {
-                        foreach (var kf in line.Properties.Opacity.KeyFrames)
-                        {
-                            TimeLineElements.Add(new TimeLineKeyFrameViewModel(line, "Opacity", kf,  _layoutService, this.PixelPerTick, this.Zoom));
-                        }
-                    }
-
-                    // 提取 Speed 关键帧
-                    if (line.Properties.Speed?.KeyFrames != null)
-                    {
-                        foreach (var kf in line.Properties.Speed.KeyFrames)
-                        {
-                            TimeLineElements.Add(new TimeLineKeyFrameViewModel(line, "Speed", kf, _layoutService, this.PixelPerTick, this.Zoom));
-                        }
-                    }
-                }
-            }
-
-
-            
+        public double GetPropertyYCoordinate(JudgementLine line, string propertyName)
+        {
+            return _layoutService.GetPropertyYCoordinate(line, propertyName);
         }
 
         // 当用户使用快捷键/鼠标滚轮改变缩放时  
         partial void OnZoomChanged(double value)
         {
-            RefreshAllElementsVisuals();
             UpdatePlayheadX(); // 缩放变了，游标位置也得重新算
         }
 
@@ -183,31 +133,15 @@ namespace Axphi.ViewModels
         // 实际上, 该函数不会被调用
         partial void OnPixelPerTickChanged(double value)
         {
-            RefreshAllElementsVisuals();
             UpdatePlayheadX();
-        }
-
-        private void RefreshAllElementsVisuals()
-        {
-            foreach (var ele in TimeLineElements)
-            {
-
-                // 先推送最新的参数值（如果子类需要）
-                if (ele is TimeLineItemViewModelBase item)
-                {
-                    item.PixelPerTick = this.PixelPerTick;
-                    item.Zoom = this.Zoom;
-                }
-
-
-                ele.UpdateVisuals();
-            }
         }
 
         public void Dispose()
         {
+            _layoutService.ViewportYChanged -= OnViewportYChanged;
             _projectManager.PropertyChanged -= OnProjectManagerPropertyChanged;
             _layoutService.LayoutUpdated -= OnLayoutUpdated;
+            _playbackPositionService.PropertyChanged -= OnPlaybackPositionPropertyChanged;
         }
 
 

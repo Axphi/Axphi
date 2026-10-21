@@ -7,7 +7,6 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Media.Animation;
 
 namespace Axphi.Utilities
@@ -46,11 +45,11 @@ namespace Axphi.Utilities
                             {
                                 KeyFrames =
                                 {
-                                    new KeyFrame<Vector>() { Tick = SecToTick(0), Value = new Vector(0, 0), Easing = BezierPresets.Ease },
-                                    new KeyFrame<Vector>() { Tick = SecToTick(5), Value = new Vector(0, 1.5), Easing = BezierPresets.Ease },
-                                    new KeyFrame<Vector>() { Tick = SecToTick(8), Value = new Vector(0, -1.5), Easing = BezierPresets.Ease },
-                                    new KeyFrame<Vector>() { Tick = SecToTick(10), Value = new Vector(0, -1.5), Easing = BezierPresets.Ease },
-                                    new KeyFrame<Vector>() { Tick = SecToTick(12), Value = new Vector(-1.5, -1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<ChartVector>() { Tick = SecToTick(0), Value = new ChartVector(0, 0), Easing = BezierPresets.Ease },
+                                    new KeyFrame<ChartVector>() { Tick = SecToTick(5), Value = new ChartVector(0, 1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<ChartVector>() { Tick = SecToTick(8), Value = new ChartVector(0, -1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<ChartVector>() { Tick = SecToTick(10), Value = new ChartVector(0, -1.5), Easing = BezierPresets.Ease },
+                                    new KeyFrame<ChartVector>() { Tick = SecToTick(12), Value = new ChartVector(-1.5, -1.5), Easing = BezierPresets.Ease },
                                 }
                             },
                             Rotation =
@@ -77,11 +76,11 @@ namespace Axphi.Utilities
                                     {
                                         KeyFrames =
                                         {
-                                            new KeyFrame<Vector>() { Tick = SecToTick(0) },
-                                            new KeyFrame<Vector>() { Tick = SecToTick(1) },
-                                            new KeyFrame<Vector>() { Tick = SecToTick(1.5), Value = new Vector(-2, 0) },
-                                            new KeyFrame<Vector>() { Tick = SecToTick(1.75), Value = new Vector(2, 0) },
-                                            new KeyFrame<Vector>() { Tick = SecToTick(2) }
+                                            new KeyFrame<ChartVector>() { Tick = SecToTick(0) },
+                                            new KeyFrame<ChartVector>() { Tick = SecToTick(1) },
+                                            new KeyFrame<ChartVector>() { Tick = SecToTick(1.5), Value = new ChartVector(-2, 0) },
+                                            new KeyFrame<ChartVector>() { Tick = SecToTick(1.75), Value = new ChartVector(2, 0) },
+                                            new KeyFrame<ChartVector>() { Tick = SecToTick(2) }
                                         }
                                     }
                                 },
@@ -94,10 +93,10 @@ namespace Axphi.Utilities
                                     {
                                         KeyFrames =
                                         {
-                                            new KeyFrame<Vector>() { Tick = SecToTick(0) },
-                                            new KeyFrame<Vector>() { Tick = SecToTick(2) },
-                                            new KeyFrame<Vector>() { Tick = SecToTick(2.5), Value = new Vector(2, 2) },
-                                            new KeyFrame<Vector>() { Tick = SecToTick(3), Value = new Vector(1, 1) }
+                                            new KeyFrame<ChartVector>() { Tick = SecToTick(0) },
+                                            new KeyFrame<ChartVector>() { Tick = SecToTick(2) },
+                                            new KeyFrame<ChartVector>() { Tick = SecToTick(2.5), Value = new ChartVector(2, 2) },
+                                            new KeyFrame<ChartVector>() { Tick = SecToTick(3), Value = new ChartVector(1, 1) }
                                         }
                                     }
                                 },
@@ -145,7 +144,7 @@ namespace Axphi.Utilities
                         {
                             Position =
                             {
-                                InitialValue = new Vector(0, -4)
+                                InitialValue = new ChartVector(0, -4)
                             },
                             Rotation =
                             {

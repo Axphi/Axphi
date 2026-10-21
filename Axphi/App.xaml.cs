@@ -1,5 +1,6 @@
 ﻿using Axphi.Services;
 using Axphi.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using System.Configuration;
 using System.Data;
@@ -18,15 +19,29 @@ public partial class App : Application
     {
         var serviceCollection = new ServiceCollection();
 
+        serviceCollection.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
+
         serviceCollection.AddSingleton<MainWindow>();
 
         serviceCollection.AddSingleton<MainViewModel>();
 
         serviceCollection.AddSingleton<BezierViewModel>();
 
+        serviceCollection.AddSingleton<ChartDisplayViewModel>();
+
         serviceCollection.AddSingleton<ProjectManager>();
 
+        serviceCollection.AddSingleton<IProjectStorageService, ProjectStorageService>();
+
+        serviceCollection.AddSingleton<PlaybackPositionService>();
+
         serviceCollection.AddSingleton<IFileService, WindowsFileService>();
+
+        serviceCollection.AddSingleton<INotificationService, WindowsNotificationService>();
+
+        serviceCollection.AddSingleton<IOfficialChartExportDialogService, OfficialChartExportDialogService>();
+
+        serviceCollection.AddTransient<IAudioPlaybackService, AudioPlaybackService>();
 
         serviceCollection.AddSingleton<FileActionsViewModel>();
 

@@ -1,73 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <RootNamespace>Axphi</RootNamespace>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Resources\UI\anchor.png" />
-    <None Remove="Resources\Notes\drag.png" />
-    <None Remove="Resources\Notes\dragHL.png" />
-    <None Remove="Resources\Notes\flick.png" />
-    <None Remove="Resources\Notes\flickHL.png" />
-    <None Remove="Resources\Notes\hit_fx.png" />
-    <None Remove="Resources\Notes\hold.png" />
-    <None Remove="Resources\Notes\holdHL.png" />
-    <None Remove="Resources\Notes\tap.png" />
-    <None Remove="Resources\Notes\tapHL.png" />
-    <None Remove="Resources\Sounds\drag.ogg" />
-    <None Remove="Resources\Sounds\drag.wav" />
-    <None Remove="Resources\Sounds\flick.ogg" />
-    <None Remove="Resources\Sounds\flick.wav" />
-    <None Remove="Resources\Sounds\tap.ogg" />
-    <None Remove="Resources\Sounds\tap.wav" />
-    <None Remove="Resources\UI\AxphiLogo.png" />
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Resources\Sounds\drag.wav">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Resources\Sounds\flick.wav">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Resources\Sounds\tap.wav">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="EleCho.WpfSuite" Version="0.10.20" />
-    <PackageReference Include="Jint" Version="4.4.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
-    <PackageReference Include="NAudio" Version="2.3.0" />
-    <PackageReference Include="SoundTouch.Net" Version="2.3.2" />
-    <PackageReference Include="ValueConverters" Version="3.1.22" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Resources\UI\anchor.png" />
-    <Resource Include="Resources\Notes\hit_fx.png" />
-    <Resource Include="Resources\Notes\tap.png" />
-    <Resource Include="Resources\Notes\tapHL.png" />
-    <Resource Include="Resources\Notes\drag.png" />
-    <Resource Include="Resources\Notes\dragHL.png" />
-    <Resource Include="Resources\Notes\flick.png" />
-    <Resource Include="Resources\Notes\flickHL.png" />
-    <Resource Include="Resources\Notes\hold.png" />
-    <Resource Include="Resources\Notes\holdHL.png" />
-    <Resource Include="Resources\UI\AxphiLogo.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="DemoCharts\" />
-  </ItemGroup>
-
 </Project>
